@@ -1,0 +1,994 @@
+{
+  "animals": [
+    {
+      "path": "assets/images/animals/1.png",
+      "word": "Kedi"
+    },
+    {
+      "path": "assets/images/animals/6.png",
+      "word": "Baykuş"
+    },
+    {
+      "path": "assets/images/animals/10.png",
+      "word": "Zürafa"
+    },
+    {
+      "path": "assets/images/animals/13.png",
+      "word": "Köpek"
+    },
+    {
+      "path": "assets/images/animals/23.png",
+      "word": "Nar Bülbülü"
+    },
+    {
+      "path": "assets/images/animals/28.png",
+      "word": "Tukan"
+    },
+    {
+      "path": "assets/images/animals/31.png",
+      "word": "Muhabbet kuşu"
+    },
+    {
+      "path": "assets/images/animals/32.png",
+      "word": "Panda"
+    },
+    {
+      "path": "assets/images/animals/33.png",
+      "word": "Kedi"
+    },
+    {
+      "path": "assets/images/animals/34.png",
+      "word": "Yunus"
+    },
+    {
+      "path": "assets/images/animals/35.png",
+      "word": "Denizatı"
+    },
+    {
+      "path": "assets/images/animals/37.png",
+      "word": "Fil"
+    },
+    {
+      "path": "assets/images/animals/40.png",
+      "word": "Kedi"
+    },
+    {
+      "path": "assets/images/animals/41.png",
+      "word": "Yarasa"
+    },
+    {
+      "path": "assets/images/animals/43.png",
+      "word": "Köpek"
+    },
+    {
+      "path": "assets/images/animals/44.png",
+      "word": "Aslan"
+    },
+    {
+      "path": "assets/images/animals/45.png",
+      "word": "Papağan"
+    },
+    {
+      "path": "assets/images/animals/47.png",
+      "word": "Sincap"
+    },
+    {
+      "path": "assets/images/animals/51.png",
+      "word": "Salyangoz"
+    },
+    {
+      "path": "assets/images/animals/53.png",
+      "word": "Ayı"
+    },
+    {
+      "path": "assets/images/animals/56.png",
+      "word": "Kedi"
+    },
+    {
+      "path": "assets/images/animals/59.png",
+      "word": "Rakun"
+    },
+    {
+      "path": "assets/images/animals/63.png",
+      "word": "Zebra"
+    },
+    {
+      "path": "assets/images/animals/65.png",
+      "word": "Kedi"
+    },
+    {
+      "path": "assets/images/animals/66.png",
+      "word": "Kaniş"
+    },
+    {
+      "path": "assets/images/animals/72.png",
+      "word": "Tavşan"
+    },
+    {
+      "path": "assets/images/animals/73.png",
+      "word": "Penguen"
+    },
+    {
+      "path": "assets/images/animals/82.png",
+      "word": "Balina"
+    },
+    {
+      "path": "assets/images/animals/88.png",
+      "word": "Pug"
+    },
+    {
+      "path": "assets/images/animals/97.png",
+      "word": "Maymun"
+    },
+    {
+      "path": "assets/images/animals/99.png",
+      "word": "Kaplumbağa"
+    },
+    {
+      "path": "assets/images/animals/101.png",
+      "word": "Timsah"
+    },
+    {
+      "path": "assets/images/animals/102.png",
+      "word": "Flamingo"
+    },
+    {
+      "path": "assets/images/animals/104.png",
+      "word": "Kedi"
+    },
+    {
+      "path": "assets/images/animals/115.png",
+      "word": "Koyun"
+    },
+    {
+      "path": "assets/images/animals/116.png",
+      "word": "Koyun"
+    },
+    {
+      "path": "assets/images/animals/117.png",
+      "word": "Yengeç"
+    },
+    {
+      "path": "assets/images/animals/118.png",
+      "word": "Civciv"
+    },
+    {
+      "path": "assets/images/animals/120.png",
+      "word": "Arı"
+    },
+    {
+      "path": "assets/images/animals/121.png",
+      "word": "Buldog"
+    },
+    {
+      "path": "assets/images/animals/124.png",
+      "word": "Dalmaçyalı"
+    },
+    {
+      "path": "assets/images/animals/126.png",
+      "word": "Papağan"
+    },
+    {
+      "path": "assets/images/animals/128.png",
+      "word": "Kuş"
+    },
+    {
+      "path": "assets/images/animals/132.png",
+      "word": "Köpek"
+    },
+    {
+      "path": "assets/images/animals/134.png",
+      "word": "Kedi"
+    },
+    {
+      "path": "assets/images/animals/153.png",
+      "word": "İnek"
+    },
+    {
+      "path": "assets/images/animals/155.png",
+      "word": "Köpek"
+    },
+    {
+      "path": "assets/images/animals/156.png",
+      "word": "Bengal kedisi"
+    },
+    {
+      "path": "assets/images/animals/163.png",
+      "word": "Kelebek"
+    },
+    {
+      "path": "assets/images/animals/164.png",
+      "word": "Kirpi"
+    },
+    {
+      "path": "assets/images/animals/175.png",
+      "word": "Ahtapot"
+    },
+    {
+      "path": "assets/images/animals/176.png",
+      "word": "Köpek"
+    },
+    {
+      "path": "assets/images/animals/179.png",
+      "word": "Baykuş"
+    },
+    {
+      "path": "assets/images/animals/181.png",
+      "word": "Yusufçuk"
+    },
+    {
+      "path": "assets/images/animals/185.png",
+      "word": "Kedi"
+    },
+    {
+      "path": "assets/images/animals/187.png",
+      "word": "Chihuahua"
+    },
+    {
+      "path": "assets/images/animals/198.png",
+      "word": "Güvercin"
+    },
+    {
+      "path": "assets/images/animals/211.png",
+      "word": "Denizanası"
+    },
+    {
+      "path": "assets/images/animals/217.png",
+      "word": "Domuz"
+    },
+    {
+      "path": "assets/images/animals/236.png",
+      "word": "Uğurböceği"
+    },
+    {
+      "path": "assets/images/animals/240.png",
+      "word": "Kedi"
+    }
+  ],
+  "fruits_vegetables": [
+    {
+      "path": "assets/images/fruits_vegetables/14.png",
+      "word": "Yaban mersini"
+    },
+    {
+      "path": "assets/images/fruits_vegetables/36.png",
+      "word": "Mısır"
+    },
+    {
+      "path": "assets/images/fruits_vegetables/46.png",
+      "word": "Havuç"
+    },
+    {
+      "path": "assets/images/fruits_vegetables/83.png",
+      "word": "Ahududu"
+    },
+    {
+      "path": "assets/images/fruits_vegetables/85.png",
+      "word": "Nar"
+    },
+    {
+      "path": "assets/images/fruits_vegetables/103.png",
+      "word": "Üzüm"
+    },
+    {
+      "path": "assets/images/fruits_vegetables/106.png",
+      "word": "Bezelye"
+    },
+    {
+      "path": "assets/images/fruits_vegetables/108.png",
+      "word": "Erik"
+    },
+    {
+      "path": "assets/images/fruits_vegetables/112.png",
+      "word": "Biber"
+    },
+    {
+      "path": "assets/images/fruits_vegetables/113.png",
+      "word": "Patates"
+    },
+    {
+      "path": "assets/images/fruits_vegetables/127.png",
+      "word": "Hindistancevizi"
+    },
+    {
+      "path": "assets/images/fruits_vegetables/135.png",
+      "word": "Mango"
+    },
+    {
+      "path": "assets/images/fruits_vegetables/136.png",
+      "word": "Muz"
+    },
+    {
+      "path": "assets/images/fruits_vegetables/137.png",
+      "word": "Domates"
+    },
+    {
+      "path": "assets/images/fruits_vegetables/141.png",
+      "word": "Sarımsak"
+    },
+    {
+      "path": "assets/images/fruits_vegetables/142.png",
+      "word": "Mor lahana"
+    },
+    {
+      "path": "assets/images/fruits_vegetables/143.png",
+      "word": "Turp"
+    },
+    {
+      "path": "assets/images/fruits_vegetables/149.png",
+      "word": "Mantar"
+    },
+    {
+      "path": "assets/images/fruits_vegetables/158.png",
+      "word": "Marul"
+    },
+    {
+      "path": "assets/images/fruits_vegetables/161.png",
+      "word": "Armut"
+    },
+    {
+      "path": "assets/images/fruits_vegetables/162.png",
+      "word": "Brokoli"
+    },
+    {
+      "path": "assets/images/fruits_vegetables/166.png",
+      "word": "Karnabahar"
+    },
+    {
+      "path": "assets/images/fruits_vegetables/171.png",
+      "word": "Patlıcan"
+    },
+    {
+      "path": "assets/images/fruits_vegetables/183.png",
+      "word": "Kiraz"
+    },
+    {
+      "path": "assets/images/fruits_vegetables/186.png",
+      "word": "Ananas"
+    },
+    {
+      "path": "assets/images/fruits_vegetables/189.png",
+      "word": "Böğürtlen"
+    },
+    {
+      "path": "assets/images/fruits_vegetables/197.png",
+      "word": "Kereviz"
+    },
+    {
+      "path": "assets/images/fruits_vegetables/201.png",
+      "word": "Kabak"
+    },
+    {
+      "path": "assets/images/fruits_vegetables/204.png",
+      "word": "Karpuz"
+    },
+    {
+      "path": "assets/images/fruits_vegetables/207.png",
+      "word": "Portakal"
+    },
+    {
+      "path": "assets/images/fruits_vegetables/214.png",
+      "word": "Elma"
+    },
+    {
+      "path": "assets/images/fruits_vegetables/224.png",
+      "word": "Limon"
+    },
+    {
+      "path": "assets/images/fruits_vegetables/230.png",
+      "word": "Şeftali"
+    },
+    {
+      "path": "assets/images/fruits_vegetables/235.png",
+      "word": "Bezelye"
+    },
+    {
+      "path": "assets/images/fruits_vegetables/237.png",
+      "word": "Kivi"
+    },
+    {
+      "path": "assets/images/fruits_vegetables/238.png",
+      "word": "Soğan"
+    },
+    {
+      "path": "assets/images/fruits_vegetables/241.png",
+      "word": "Çilek"
+    },
+    {
+      "path": "assets/images/fruits_vegetables/244.png",
+      "word": "Biber"
+    }
+  ],
+  "colors": [
+    {
+      "path": "assets/images/colors/7.png",
+      "word": "Kırmızı"
+    },
+    {
+      "path": "assets/images/colors/48.png",
+      "word": "Kahverengi"
+    },
+    {
+      "path": "assets/images/colors/67.png",
+      "word": "Beyaz"
+    },
+    {
+      "path": "assets/images/colors/75.png",
+      "word": "Pembe"
+    },
+    {
+      "path": "assets/images/colors/80.png",
+      "word": "Siyah"
+    },
+    {
+      "path": "assets/images/colors/96.png",
+      "word": "Pembe"
+    },
+    {
+      "path": "assets/images/colors/105.png",
+      "word": "Yeşil"
+    },
+    {
+      "path": "assets/images/colors/107.png",
+      "word": "Yeşil"
+    },
+    {
+      "path": "assets/images/colors/146.png",
+      "word": "Gri"
+    },
+    {
+      "path": "assets/images/colors/154.png",
+      "word": "Şeftali"
+    },
+    {
+      "path": "assets/images/colors/170.png",
+      "word": "Mavi"
+    },
+    {
+      "path": "assets/images/colors/173.png",
+      "word": "Yeşil"
+    },
+    {
+      "path": "assets/images/colors/174.png",
+      "word": "Kahverengi"
+    },
+    {
+      "path": "assets/images/colors/178.png",
+      "word": "Sarı"
+    },
+    {
+      "path": "assets/images/colors/191.png",
+      "word": "Mavi"
+    },
+    {
+      "path": "assets/images/colors/192.png",
+      "word": "Turuncu"
+    },
+    {
+      "path": "assets/images/colors/199.png",
+      "word": "Mor"
+    },
+    {
+      "path": "assets/images/colors/212.png",
+      "word": "Mor"
+    },
+    {
+      "path": "assets/images/colors/234.png",
+      "word": "Bej"
+    },
+    {
+      "path": "assets/images/colors/243.png",
+      "word": "Kahverengi"
+    }
+  ],
+  "shapes": [
+    {
+      "path": "assets/images/shapes/4.png",
+      "word": "Yıldız"
+    },
+    {
+      "path": "assets/images/shapes/30.png",
+      "word": "Kalp"
+    },
+    {
+      "path": "assets/images/shapes/39.png",
+      "word": "Beşgen"
+    },
+    {
+      "path": "assets/images/shapes/81.png",
+      "word": "Yıldız"
+    },
+    {
+      "path": "assets/images/shapes/94.png",
+      "word": "Daire"
+    },
+    {
+      "path": "assets/images/shapes/129.png",
+      "word": "Üçgen"
+    },
+    {
+      "path": "assets/images/shapes/190.png",
+      "word": "Oval"
+    },
+    {
+      "path": "assets/images/shapes/222.png",
+      "word": "Eşkenar dörtgen"
+    },
+    {
+      "path": "assets/images/shapes/227.png",
+      "word": "Ay"
+    }
+  ],
+  "body_parts": [
+    {
+      "path": "assets/images/body_parts/25.png",
+      "word": "Parmak"
+    },
+    {
+      "path": "assets/images/body_parts/42.png",
+      "word": "Boyun"
+    },
+    {
+      "path": "assets/images/body_parts/57.png",
+      "word": "Ayak"
+    },
+    {
+      "path": "assets/images/body_parts/69.png",
+      "word": "Baş"
+    },
+    {
+      "path": "assets/images/body_parts/78.png",
+      "word": "Dirsek"
+    },
+    {
+      "path": "assets/images/body_parts/79.png",
+      "word": "Göbek"
+    },
+    {
+      "path": "assets/images/body_parts/95.png",
+      "word": "Sırt"
+    },
+    {
+      "path": "assets/images/body_parts/110.png",
+      "word": "Ağız"
+    },
+    {
+      "path": "assets/images/body_parts/114.png",
+      "word": "Yumruk"
+    },
+    {
+      "path": "assets/images/body_parts/122.png",
+      "word": "Yüz"
+    },
+    {
+      "path": "assets/images/body_parts/125.png",
+      "word": "Burun"
+    },
+    {
+      "path": "assets/images/body_parts/130.png",
+      "word": "Diz"
+    },
+    {
+      "path": "assets/images/body_parts/150.png",
+      "word": "Bacak"
+    },
+    {
+      "path": "assets/images/body_parts/172.png",
+      "word": "El"
+    },
+    {
+      "path": "assets/images/body_parts/203.png",
+      "word": "Ayak"
+    },
+    {
+      "path": "assets/images/body_parts/208.png",
+      "word": "Göz"
+    },
+    {
+      "path": "assets/images/body_parts/209.png",
+      "word": "Ayak"
+    },
+    {
+      "path": "assets/images/body_parts/215.png",
+      "word": "Kulak"
+    },
+    {
+      "path": "assets/images/body_parts/218.png",
+      "word": "Dil"
+    },
+    {
+      "path": "assets/images/body_parts/223.png",
+      "word": "Kol"
+    }
+  ],
+  "clothes": [
+    {
+      "path": "assets/images/clothes/2.png",
+      "word": "Tulum"
+    },
+    {
+      "path": "assets/images/clothes/11.png",
+      "word": "Şapka"
+    },
+    {
+      "path": "assets/images/clothes/16.png",
+      "word": "Etek"
+    },
+    {
+      "path": "assets/images/clothes/93.png",
+      "word": "Şort"
+    },
+    {
+      "path": "assets/images/clothes/100.png",
+      "word": "Pijama"
+    },
+    {
+      "path": "assets/images/clothes/131.png",
+      "word": "Şort"
+    },
+    {
+      "path": "assets/images/clothes/216.png",
+      "word": "Kapüşonlu"
+    },
+    {
+      "path": "assets/images/clothes/228.png",
+      "word": "Tayt"
+    }
+  ],
+  "daily_objects": [
+    {
+      "path": "assets/images/daily_objects/8.png",
+      "word": "Çalar saat"
+    },
+    {
+      "path": "assets/images/daily_objects/9.png",
+      "word": "Sandalye"
+    },
+    {
+      "path": "assets/images/daily_objects/17.png",
+      "word": "Biberon"
+    },
+    {
+      "path": "assets/images/daily_objects/20.png",
+      "word": "Kitap"
+    },
+    {
+      "path": "assets/images/daily_objects/22.png",
+      "word": "Çorap"
+    },
+    {
+      "path": "assets/images/daily_objects/24.png",
+      "word": "Yatak"
+    },
+    {
+      "path": "assets/images/daily_objects/29.png",
+      "word": "Dolap"
+    },
+    {
+      "path": "assets/images/daily_objects/54.png",
+      "word": "Masa"
+    },
+    {
+      "path": "assets/images/daily_objects/60.png",
+      "word": "Tişört"
+    },
+    {
+      "path": "assets/images/daily_objects/61.png",
+      "word": "Televizyon"
+    },
+    {
+      "path": "assets/images/daily_objects/64.png",
+      "word": "Hırka"
+    },
+    {
+      "path": "assets/images/daily_objects/70.png",
+      "word": "Elbise"
+    },
+    {
+      "path": "assets/images/daily_objects/76.png",
+      "word": "Çöp kutusu"
+    },
+    {
+      "path": "assets/images/daily_objects/87.png",
+      "word": "Pencere"
+    },
+    {
+      "path": "assets/images/daily_objects/89.png",
+      "word": "Sünger"
+    },
+    {
+      "path": "assets/images/daily_objects/90.png",
+      "word": "Klozet"
+    },
+    {
+      "path": "assets/images/daily_objects/91.png",
+      "word": "Telefon"
+    },
+    {
+      "path": "assets/images/daily_objects/119.png",
+      "word": "Tencere"
+    },
+    {
+      "path": "assets/images/daily_objects/123.png",
+      "word": "Fincan"
+    },
+    {
+      "path": "assets/images/daily_objects/148.png",
+      "word": "Araba"
+    },
+    {
+      "path": "assets/images/daily_objects/151.png",
+      "word": "Kanepe"
+    },
+    {
+      "path": "assets/images/daily_objects/152.png",
+      "word": "Koltuk"
+    },
+    {
+      "path": "assets/images/daily_objects/157.png",
+      "word": "Küvet"
+    },
+    {
+      "path": "assets/images/daily_objects/165.png",
+      "word": "Lavabo"
+    },
+    {
+      "path": "assets/images/daily_objects/168.png",
+      "word": "Yastık"
+    },
+    {
+      "path": "assets/images/daily_objects/188.png",
+      "word": "Tişört"
+    },
+    {
+      "path": "assets/images/daily_objects/195.png",
+      "word": "Yastık"
+    },
+    {
+      "path": "assets/images/daily_objects/202.png",
+      "word": "Abajur"
+    },
+    {
+      "path": "assets/images/daily_objects/210.png",
+      "word": "Kupa"
+    },
+    {
+      "path": "assets/images/daily_objects/213.png",
+      "word": "Buzdolabı"
+    },
+    {
+      "path": "assets/images/daily_objects/219.png",
+      "word": "Havlu"
+    },
+    {
+      "path": "assets/images/daily_objects/221.png",
+      "word": "Ayakkabı"
+    },
+    {
+      "path": "assets/images/daily_objects/231.png",
+      "word": "Ayakkabı"
+    },
+    {
+      "path": "assets/images/daily_objects/232.png",
+      "word": "Vazo"
+    },
+    {
+      "path": "assets/images/daily_objects/242.png",
+      "word": "Ayakkabı"
+    }
+  ],
+  "weather": [
+    {
+      "path": "assets/images/weather/18.png",
+      "word": "Soğuk"
+    },
+    {
+      "path": "assets/images/weather/19.png",
+      "word": "Rüzgarlı"
+    },
+    {
+      "path": "assets/images/weather/26.png",
+      "word": "Güneşli"
+    },
+    {
+      "path": "assets/images/weather/27.png",
+      "word": "Yağmur"
+    },
+    {
+      "path": "assets/images/weather/50.png",
+      "word": "Fırtına"
+    },
+    {
+      "path": "assets/images/weather/58.png",
+      "word": "Kasırga"
+    },
+    {
+      "path": "assets/images/weather/74.png",
+      "word": "Bulutlu"
+    },
+    {
+      "path": "assets/images/weather/86.png",
+      "word": "Bulutlu"
+    },
+    {
+      "path": "assets/images/weather/167.png",
+      "word": "Sıcak"
+    },
+    {
+      "path": "assets/images/weather/193.png",
+      "word": "Parçalı bulutlu"
+    },
+    {
+      "path": "assets/images/weather/196.png",
+      "word": "Rüzgar"
+    },
+    {
+      "path": "assets/images/weather/205.png",
+      "word": "Bulutlu"
+    },
+    {
+      "path": "assets/images/weather/220.png",
+      "word": "Gökkuşağı"
+    },
+    {
+      "path": "assets/images/weather/233.png",
+      "word": "Bulutlu"
+    }
+  ],
+  "actions": [
+    {
+      "path": "assets/images/actions/3.png",
+      "word": "Oturuyor"
+    },
+    {
+      "path": "assets/images/actions/12.png",
+      "word": "Okuyor"
+    },
+    {
+      "path": "assets/images/actions/15.png",
+      "word": "Yürüyor"
+    },
+    {
+      "path": "assets/images/actions/38.png",
+      "word": "Oturuyor"
+    },
+    {
+      "path": "assets/images/actions/49.png",
+      "word": "El sallıyor"
+    },
+    {
+      "path": "assets/images/actions/52.png",
+      "word": "Yüzüyor"
+    },
+    {
+      "path": "assets/images/actions/55.png",
+      "word": "Uyuyor"
+    },
+    {
+      "path": "assets/images/actions/68.png",
+      "word": "El sallıyor"
+    },
+    {
+      "path": "assets/images/actions/77.png",
+      "word": "Uyuyor"
+    },
+    {
+      "path": "assets/images/actions/84.png",
+      "word": "Yiyor"
+    },
+    {
+      "path": "assets/images/actions/98.png",
+      "word": "Yiyor"
+    },
+    {
+      "path": "assets/images/actions/138.png",
+      "word": "Koşuyor"
+    },
+    {
+      "path": "assets/images/actions/139.png",
+      "word": "Koşuyor"
+    },
+    {
+      "path": "assets/images/actions/145.png",
+      "word": "Zıplıyor"
+    },
+    {
+      "path": "assets/images/actions/159.png",
+      "word": "Koşuyor"
+    },
+    {
+      "path": "assets/images/actions/160.png",
+      "word": "Su içiyor"
+    },
+    {
+      "path": "assets/images/actions/169.png",
+      "word": "Okuyor"
+    },
+    {
+      "path": "assets/images/actions/194.png",
+      "word": "Su içiyor"
+    },
+    {
+      "path": "assets/images/actions/206.png",
+      "word": "Zıplıyor"
+    },
+    {
+      "path": "assets/images/actions/225.png",
+      "word": "Yüzüyor"
+    },
+    {
+      "path": "assets/images/actions/229.png",
+      "word": "Yürüyor"
+    },
+    {
+      "path": "assets/images/actions/245.png",
+      "word": "Uyuyor"
+    },
+    {
+      "path": "assets/images/actions/246.png",
+      "word": "Koşuyor"
+    },
+    {
+      "path": "assets/images/actions/247.png",
+      "word": "Koşuyor"
+    }
+  ],
+  "adjectives": [
+    {
+      "path": "assets/images/adjectives/5.png",
+      "word": "Hediye"
+    },
+    {
+      "path": "assets/images/adjectives/21.png",
+      "word": "Mutlu"
+    },
+    {
+      "path": "assets/images/adjectives/62.png",
+      "word": "Yıpranmış"
+    },
+    {
+      "path": "assets/images/adjectives/92.png",
+      "word": "Soğuk"
+    },
+    {
+      "path": "assets/images/adjectives/109.png",
+      "word": "Temiz"
+    },
+    {
+      "path": "assets/images/adjectives/133.png",
+      "word": "Parlak"
+    },
+    {
+      "path": "assets/images/adjectives/140.png",
+      "word": "Hızlı"
+    },
+    {
+      "path": "assets/images/adjectives/144.png",
+      "word": "Güneşli"
+    },
+    {
+      "path": "assets/images/adjectives/147.png",
+      "word": "Çamurlu"
+    },
+    {
+      "path": "assets/images/adjectives/180.png",
+      "word": "Dişli"
+    },
+    {
+      "path": "assets/images/adjectives/182.png",
+      "word": "Solgun"
+    },
+    {
+      "path": "assets/images/adjectives/200.png",
+      "word": "Renkli"
+    },
+    {
+      "path": "assets/images/adjectives/226.png",
+      "word": "Taş"
+    },
+    {
+      "path": "assets/images/adjectives/239.png",
+      "word": "Sevimli"
+    }
+  ]
+}

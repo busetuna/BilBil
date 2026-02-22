@@ -1,0 +1,70 @@
+name: app
+description: "A new Flutter project."
+publish_to: 'none'
+
+version: 1.0.0+1
+
+environment:
+  sdk: ^3.10.4
+
+dependencies:
+  flutter:
+    sdk: flutter
+
+  cupertino_icons: ^1.0.8
+
+  uuid: ^4.5.0
+
+  # State Management
+  provider: ^6.1.1
+
+  # Local Storage
+  hive: ^2.2.3
+  hive_flutter: ^1.1.0
+
+  firebase_core: ^3.8.1
+  firebase_auth: ^5.3.4
+
+
+  # AI Services
+  flutter_tts: ^3.8.0
+  speech_to_text: ^7.0.0  # ← GÜNCELLENDİ (6.5.1'den 7.0.0'a)
+
+  # UI & Charts
+  fl_chart: ^0.68.0
+  animations: ^2.0.11
+
+  # Utils
+  path_provider: ^2.1.2
+  permission_handler: ^11.2.0
+  intl: ^0.19.0
+  google_fonts: ^6.1.0
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+
+  flutter_lints: ^6.0.0
+
+  # Hive code generation
+  build_runner: ^2.4.8
+  hive_generator: ^2.0.1
+
+flutter:
+  uses-material-design: true
+
+  # Assets
+  assets:
+    - assets/images/
+    - assets/images/animals/
+    - assets/images/actions/
+    - assets/images/adjectives/
+    - assets/images/body_parts/
+    - assets/images/clothes/
+    - assets/images/colors/
+    - assets/images/daily_objects/
+    - assets/images/fruits_vegetables/
+    - assets/images/shapes/
+    - assets/images/weather/
+    - assets/sounds/
+    - assets/models/

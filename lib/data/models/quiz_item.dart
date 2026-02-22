@@ -1,0 +1,318 @@
+// lib/data/models/quiz_item.dart
+// AUTO-GENERATED - DO NOT EDIT MANUALLY
+
+class QuizItem {
+  final String imagePath;
+  final String word;
+  final String category;
+
+  const QuizItem({
+    required this.imagePath,
+    required this.word,
+    required this.category,
+  });
+}
+
+class QuizData {
+  static const List<QuizItem> animals = [
+    QuizItem(imagePath: 'assets/images/animals/1.png', word: 'Kedi', category: 'animals'),
+    QuizItem(imagePath: 'assets/images/animals/6.png', word: 'Baykuş', category: 'animals'),
+    QuizItem(imagePath: 'assets/images/animals/10.png', word: 'Zürafa', category: 'animals'),
+    QuizItem(imagePath: 'assets/images/animals/13.png', word: 'Köpek', category: 'animals'),
+    QuizItem(imagePath: 'assets/images/animals/23.png', word: 'Nar Bülbülü', category: 'animals'),
+    QuizItem(imagePath: 'assets/images/animals/28.png', word: 'Tukan', category: 'animals'),
+    QuizItem(imagePath: 'assets/images/animals/31.png', word: 'Muhabbet kuşu', category: 'animals'),
+    QuizItem(imagePath: 'assets/images/animals/32.png', word: 'Panda', category: 'animals'),
+    QuizItem(imagePath: 'assets/images/animals/33.png', word: 'Kedi', category: 'animals'),
+    QuizItem(imagePath: 'assets/images/animals/34.png', word: 'Yunus', category: 'animals'),
+    QuizItem(imagePath: 'assets/images/animals/35.png', word: 'Denizatı', category: 'animals'),
+    QuizItem(imagePath: 'assets/images/animals/37.png', word: 'Fil', category: 'animals'),
+    QuizItem(imagePath: 'assets/images/animals/40.png', word: 'Kedi', category: 'animals'),
+    QuizItem(imagePath: 'assets/images/animals/41.png', word: 'Yarasa', category: 'animals'),
+    QuizItem(imagePath: 'assets/images/animals/43.png', word: 'Köpek', category: 'animals'),
+    QuizItem(imagePath: 'assets/images/animals/44.png', word: 'Aslan', category: 'animals'),
+    QuizItem(imagePath: 'assets/images/animals/45.png', word: 'Papağan', category: 'animals'),
+    QuizItem(imagePath: 'assets/images/animals/47.png', word: 'Sincap', category: 'animals'),
+    QuizItem(imagePath: 'assets/images/animals/51.png', word: 'Salyangoz', category: 'animals'),
+    QuizItem(imagePath: 'assets/images/animals/53.png', word: 'Ayı', category: 'animals'),
+    QuizItem(imagePath: 'assets/images/animals/56.png', word: 'Kedi', category: 'animals'),
+    QuizItem(imagePath: 'assets/images/animals/59.png', word: 'Rakun', category: 'animals'),
+    QuizItem(imagePath: 'assets/images/animals/63.png', word: 'Zebra', category: 'animals'),
+    QuizItem(imagePath: 'assets/images/animals/65.png', word: 'Kedi', category: 'animals'),
+    QuizItem(imagePath: 'assets/images/animals/66.png', word: 'Kaniş', category: 'animals'),
+    QuizItem(imagePath: 'assets/images/animals/72.png', word: 'Tavşan', category: 'animals'),
+    QuizItem(imagePath: 'assets/images/animals/73.png', word: 'Penguen', category: 'animals'),
+    QuizItem(imagePath: 'assets/images/animals/82.png', word: 'Balina', category: 'animals'),
+    QuizItem(imagePath: 'assets/images/animals/88.png', word: 'Pug', category: 'animals'),
+    QuizItem(imagePath: 'assets/images/animals/97.png', word: 'Maymun', category: 'animals'),
+    QuizItem(imagePath: 'assets/images/animals/99.png', word: 'Kaplumbağa', category: 'animals'),
+    QuizItem(imagePath: 'assets/images/animals/101.png', word: 'Timsah', category: 'animals'),
+    QuizItem(imagePath: 'assets/images/animals/102.png', word: 'Flamingo', category: 'animals'),
+    QuizItem(imagePath: 'assets/images/animals/104.png', word: 'Kedi', category: 'animals'),
+    QuizItem(imagePath: 'assets/images/animals/115.png', word: 'Koyun', category: 'animals'),
+    QuizItem(imagePath: 'assets/images/animals/116.png', word: 'Koyun', category: 'animals'),
+    QuizItem(imagePath: 'assets/images/animals/117.png', word: 'Yengeç', category: 'animals'),
+    QuizItem(imagePath: 'assets/images/animals/118.png', word: 'Civciv', category: 'animals'),
+    QuizItem(imagePath: 'assets/images/animals/120.png', word: 'Arı', category: 'animals'),
+    QuizItem(imagePath: 'assets/images/animals/121.png', word: 'Buldog', category: 'animals'),
+    QuizItem(imagePath: 'assets/images/animals/124.png', word: 'Dalmaçyalı', category: 'animals'),
+    QuizItem(imagePath: 'assets/images/animals/126.png', word: 'Papağan', category: 'animals'),
+    QuizItem(imagePath: 'assets/images/animals/128.png', word: 'Kuş', category: 'animals'),
+    QuizItem(imagePath: 'assets/images/animals/132.png', word: 'Köpek', category: 'animals'),
+    QuizItem(imagePath: 'assets/images/animals/134.png', word: 'Kedi', category: 'animals'),
+    QuizItem(imagePath: 'assets/images/animals/153.png', word: 'İnek', category: 'animals'),
+    QuizItem(imagePath: 'assets/images/animals/155.png', word: 'Köpek', category: 'animals'),
+    QuizItem(imagePath: 'assets/images/animals/156.png', word: 'Bengal kedisi', category: 'animals'),
+    QuizItem(imagePath: 'assets/images/animals/163.png', word: 'Kelebek', category: 'animals'),
+    QuizItem(imagePath: 'assets/images/animals/164.png', word: 'Kirpi', category: 'animals'),
+    QuizItem(imagePath: 'assets/images/animals/175.png', word: 'Ahtapot', category: 'animals'),
+    QuizItem(imagePath: 'assets/images/animals/176.png', word: 'Köpek', category: 'animals'),
+    QuizItem(imagePath: 'assets/images/animals/179.png', word: 'Baykuş', category: 'animals'),
+    QuizItem(imagePath: 'assets/images/animals/181.png', word: 'Yusufçuk', category: 'animals'),
+    QuizItem(imagePath: 'assets/images/animals/185.png', word: 'Kedi', category: 'animals'),
+    QuizItem(imagePath: 'assets/images/animals/187.png', word: 'Chihuahua', category: 'animals'),
+    QuizItem(imagePath: 'assets/images/animals/198.png', word: 'Güvercin', category: 'animals'),
+    QuizItem(imagePath: 'assets/images/animals/211.png', word: 'Denizanası', category: 'animals'),
+    QuizItem(imagePath: 'assets/images/animals/217.png', word: 'Domuz', category: 'animals'),
+    QuizItem(imagePath: 'assets/images/animals/236.png', word: 'Uğurböceği', category: 'animals'),
+    QuizItem(imagePath: 'assets/images/animals/240.png', word: 'Kedi', category: 'animals'),
+  ];
+
+  static const List<QuizItem> fruitsVegetables = [
+    QuizItem(imagePath: 'assets/images/fruits_vegetables/14.png', word: 'Yaban mersini', category: 'fruits_vegetables'),
+    QuizItem(imagePath: 'assets/images/fruits_vegetables/36.png', word: 'Mısır', category: 'fruits_vegetables'),
+    QuizItem(imagePath: 'assets/images/fruits_vegetables/46.png', word: 'Havuç', category: 'fruits_vegetables'),
+    QuizItem(imagePath: 'assets/images/fruits_vegetables/83.png', word: 'Ahududu', category: 'fruits_vegetables'),
+    QuizItem(imagePath: 'assets/images/fruits_vegetables/85.png', word: 'Nar', category: 'fruits_vegetables'),
+    QuizItem(imagePath: 'assets/images/fruits_vegetables/103.png', word: 'Üzüm', category: 'fruits_vegetables'),
+    QuizItem(imagePath: 'assets/images/fruits_vegetables/106.png', word: 'Bezelye', category: 'fruits_vegetables'),
+    QuizItem(imagePath: 'assets/images/fruits_vegetables/108.png', word: 'Erik', category: 'fruits_vegetables'),
+    QuizItem(imagePath: 'assets/images/fruits_vegetables/112.png', word: 'Biber', category: 'fruits_vegetables'),
+    QuizItem(imagePath: 'assets/images/fruits_vegetables/113.png', word: 'Patates', category: 'fruits_vegetables'),
+    QuizItem(imagePath: 'assets/images/fruits_vegetables/127.png', word: 'Hindistancevizi', category: 'fruits_vegetables'),
+    QuizItem(imagePath: 'assets/images/fruits_vegetables/135.png', word: 'Mango', category: 'fruits_vegetables'),
+    QuizItem(imagePath: 'assets/images/fruits_vegetables/136.png', word: 'Muz', category: 'fruits_vegetables'),
+    QuizItem(imagePath: 'assets/images/fruits_vegetables/137.png', word: 'Domates', category: 'fruits_vegetables'),
+    QuizItem(imagePath: 'assets/images/fruits_vegetables/141.png', word: 'Sarımsak', category: 'fruits_vegetables'),
+    QuizItem(imagePath: 'assets/images/fruits_vegetables/142.png', word: 'Mor lahana', category: 'fruits_vegetables'),
+    QuizItem(imagePath: 'assets/images/fruits_vegetables/143.png', word: 'Turp', category: 'fruits_vegetables'),
+    QuizItem(imagePath: 'assets/images/fruits_vegetables/149.png', word: 'Mantar', category: 'fruits_vegetables'),
+    QuizItem(imagePath: 'assets/images/fruits_vegetables/158.png', word: 'Marul', category: 'fruits_vegetables'),
+    QuizItem(imagePath: 'assets/images/fruits_vegetables/161.png', word: 'Armut', category: 'fruits_vegetables'),
+    QuizItem(imagePath: 'assets/images/fruits_vegetables/162.png', word: 'Brokoli', category: 'fruits_vegetables'),
+    QuizItem(imagePath: 'assets/images/fruits_vegetables/166.png', word: 'Karnabahar', category: 'fruits_vegetables'),
+    QuizItem(imagePath: 'assets/images/fruits_vegetables/171.png', word: 'Patlıcan', category: 'fruits_vegetables'),
+    QuizItem(imagePath: 'assets/images/fruits_vegetables/183.png', word: 'Kiraz', category: 'fruits_vegetables'),
+    QuizItem(imagePath: 'assets/images/fruits_vegetables/186.png', word: 'Ananas', category: 'fruits_vegetables'),
+    QuizItem(imagePath: 'assets/images/fruits_vegetables/189.png', word: 'Böğürtlen', category: 'fruits_vegetables'),
+    QuizItem(imagePath: 'assets/images/fruits_vegetables/197.png', word: 'Kereviz', category: 'fruits_vegetables'),
+    QuizItem(imagePath: 'assets/images/fruits_vegetables/201.png', word: 'Kabak', category: 'fruits_vegetables'),
+    QuizItem(imagePath: 'assets/images/fruits_vegetables/204.png', word: 'Karpuz', category: 'fruits_vegetables'),
+    QuizItem(imagePath: 'assets/images/fruits_vegetables/207.png', word: 'Portakal', category: 'fruits_vegetables'),
+    QuizItem(imagePath: 'assets/images/fruits_vegetables/214.png', word: 'Elma', category: 'fruits_vegetables'),
+    QuizItem(imagePath: 'assets/images/fruits_vegetables/224.png', word: 'Limon', category: 'fruits_vegetables'),
+    QuizItem(imagePath: 'assets/images/fruits_vegetables/230.png', word: 'Şeftali', category: 'fruits_vegetables'),
+    QuizItem(imagePath: 'assets/images/fruits_vegetables/235.png', word: 'Bezelye', category: 'fruits_vegetables'),
+    QuizItem(imagePath: 'assets/images/fruits_vegetables/237.png', word: 'Kivi', category: 'fruits_vegetables'),
+    QuizItem(imagePath: 'assets/images/fruits_vegetables/238.png', word: 'Soğan', category: 'fruits_vegetables'),
+    QuizItem(imagePath: 'assets/images/fruits_vegetables/241.png', word: 'Çilek', category: 'fruits_vegetables'),
+    QuizItem(imagePath: 'assets/images/fruits_vegetables/244.png', word: 'Biber', category: 'fruits_vegetables'),
+  ];
+
+  static const List<QuizItem> colors = [
+    QuizItem(imagePath: 'assets/images/colors/7.png', word: 'Kırmızı', category: 'colors'),
+    QuizItem(imagePath: 'assets/images/colors/48.png', word: 'Kahverengi', category: 'colors'),
+    QuizItem(imagePath: 'assets/images/colors/67.png', word: 'Beyaz', category: 'colors'),
+    QuizItem(imagePath: 'assets/images/colors/75.png', word: 'Pembe', category: 'colors'),
+    QuizItem(imagePath: 'assets/images/colors/80.png', word: 'Siyah', category: 'colors'),
+    QuizItem(imagePath: 'assets/images/colors/96.png', word: 'Pembe', category: 'colors'),
+    QuizItem(imagePath: 'assets/images/colors/105.png', word: 'Yeşil', category: 'colors'),
+    QuizItem(imagePath: 'assets/images/colors/107.png', word: 'Yeşil', category: 'colors'),
+    QuizItem(imagePath: 'assets/images/colors/146.png', word: 'Gri', category: 'colors'),
+    QuizItem(imagePath: 'assets/images/colors/154.png', word: 'Şeftali', category: 'colors'),
+    QuizItem(imagePath: 'assets/images/colors/170.png', word: 'Mavi', category: 'colors'),
+    QuizItem(imagePath: 'assets/images/colors/173.png', word: 'Yeşil', category: 'colors'),
+    QuizItem(imagePath: 'assets/images/colors/174.png', word: 'Kahverengi', category: 'colors'),
+    QuizItem(imagePath: 'assets/images/colors/178.png', word: 'Sarı', category: 'colors'),
+    QuizItem(imagePath: 'assets/images/colors/191.png', word: 'Mavi', category: 'colors'),
+    QuizItem(imagePath: 'assets/images/colors/192.png', word: 'Turuncu', category: 'colors'),
+    QuizItem(imagePath: 'assets/images/colors/199.png', word: 'Mor', category: 'colors'),
+    QuizItem(imagePath: 'assets/images/colors/212.png', word: 'Mor', category: 'colors'),
+    QuizItem(imagePath: 'assets/images/colors/234.png', word: 'Bej', category: 'colors'),
+    QuizItem(imagePath: 'assets/images/colors/243.png', word: 'Kahverengi', category: 'colors'),
+  ];
+
+  static const List<QuizItem> shapes = [
+    QuizItem(imagePath: 'assets/images/shapes/4.png', word: 'Yıldız', category: 'shapes'),
+    QuizItem(imagePath: 'assets/images/shapes/30.png', word: 'Kalp', category: 'shapes'),
+    QuizItem(imagePath: 'assets/images/shapes/39.png', word: 'Beşgen', category: 'shapes'),
+    QuizItem(imagePath: 'assets/images/shapes/81.png', word: 'Yıldız', category: 'shapes'),
+    QuizItem(imagePath: 'assets/images/shapes/94.png', word: 'Daire', category: 'shapes'),
+    QuizItem(imagePath: 'assets/images/shapes/129.png', word: 'Üçgen', category: 'shapes'),
+    QuizItem(imagePath: 'assets/images/shapes/190.png', word: 'Oval', category: 'shapes'),
+    QuizItem(imagePath: 'assets/images/shapes/222.png', word: 'Eşkenar dörtgen', category: 'shapes'),
+    QuizItem(imagePath: 'assets/images/shapes/227.png', word: 'Ay', category: 'shapes'),
+  ];
+
+  static const List<QuizItem> bodyParts = [
+    QuizItem(imagePath: 'assets/images/body_parts/25.png', word: 'Parmak', category: 'body_parts'),
+    QuizItem(imagePath: 'assets/images/body_parts/42.png', word: 'Boyun', category: 'body_parts'),
+    QuizItem(imagePath: 'assets/images/body_parts/57.png', word: 'Ayak', category: 'body_parts'),
+    QuizItem(imagePath: 'assets/images/body_parts/69.png', word: 'Baş', category: 'body_parts'),
+    QuizItem(imagePath: 'assets/images/body_parts/78.png', word: 'Dirsek', category: 'body_parts'),
+    QuizItem(imagePath: 'assets/images/body_parts/79.png', word: 'Göbek', category: 'body_parts'),
+    QuizItem(imagePath: 'assets/images/body_parts/95.png', word: 'Sırt', category: 'body_parts'),
+    QuizItem(imagePath: 'assets/images/body_parts/110.png', word: 'Ağız', category: 'body_parts'),
+    QuizItem(imagePath: 'assets/images/body_parts/114.png', word: 'Yumruk', category: 'body_parts'),
+    QuizItem(imagePath: 'assets/images/body_parts/122.png', word: 'Yüz', category: 'body_parts'),
+    QuizItem(imagePath: 'assets/images/body_parts/125.png', word: 'Burun', category: 'body_parts'),
+    QuizItem(imagePath: 'assets/images/body_parts/130.png', word: 'Diz', category: 'body_parts'),
+    QuizItem(imagePath: 'assets/images/body_parts/150.png', word: 'Bacak', category: 'body_parts'),
+    QuizItem(imagePath: 'assets/images/body_parts/172.png', word: 'El', category: 'body_parts'),
+    QuizItem(imagePath: 'assets/images/body_parts/203.png', word: 'Ayak', category: 'body_parts'),
+    QuizItem(imagePath: 'assets/images/body_parts/208.png', word: 'Göz', category: 'body_parts'),
+    QuizItem(imagePath: 'assets/images/body_parts/209.png', word: 'Ayak', category: 'body_parts'),
+    QuizItem(imagePath: 'assets/images/body_parts/215.png', word: 'Kulak', category: 'body_parts'),
+    QuizItem(imagePath: 'assets/images/body_parts/218.png', word: 'Dil', category: 'body_parts'),
+    QuizItem(imagePath: 'assets/images/body_parts/223.png', word: 'Kol', category: 'body_parts'),
+  ];
+
+  static const List<QuizItem> clothes = [
+    QuizItem(imagePath: 'assets/images/clothes/2.png', word: 'Tulum', category: 'clothes'),
+    QuizItem(imagePath: 'assets/images/clothes/11.png', word: 'Şapka', category: 'clothes'),
+    QuizItem(imagePath: 'assets/images/clothes/16.png', word: 'Etek', category: 'clothes'),
+    QuizItem(imagePath: 'assets/images/clothes/93.png', word: 'Şort', category: 'clothes'),
+    QuizItem(imagePath: 'assets/images/clothes/100.png', word: 'Pijama', category: 'clothes'),
+    QuizItem(imagePath: 'assets/images/clothes/131.png', word: 'Şort', category: 'clothes'),
+    QuizItem(imagePath: 'assets/images/clothes/216.png', word: 'Kapüşonlu', category: 'clothes'),
+    QuizItem(imagePath: 'assets/images/clothes/228.png', word: 'Tayt', category: 'clothes'),
+  ];
+
+  static const List<QuizItem> dailyObjects = [
+    QuizItem(imagePath: 'assets/images/daily_objects/8.png', word: 'Çalar saat', category: 'daily_objects'),
+    QuizItem(imagePath: 'assets/images/daily_objects/9.png', word: 'Sandalye', category: 'daily_objects'),
+    QuizItem(imagePath: 'assets/images/daily_objects/17.png', word: 'Biberon', category: 'daily_objects'),
+    QuizItem(imagePath: 'assets/images/daily_objects/20.png', word: 'Kitap', category: 'daily_objects'),
+    QuizItem(imagePath: 'assets/images/daily_objects/22.png', word: 'Çorap', category: 'daily_objects'),
+    QuizItem(imagePath: 'assets/images/daily_objects/24.png', word: 'Yatak', category: 'daily_objects'),
+    QuizItem(imagePath: 'assets/images/daily_objects/29.png', word: 'Dolap', category: 'daily_objects'),
+    QuizItem(imagePath: 'assets/images/daily_objects/54.png', word: 'Masa', category: 'daily_objects'),
+    QuizItem(imagePath: 'assets/images/daily_objects/60.png', word: 'Tişört', category: 'daily_objects'),
+    QuizItem(imagePath: 'assets/images/daily_objects/61.png', word: 'Televizyon', category: 'daily_objects'),
+    QuizItem(imagePath: 'assets/images/daily_objects/64.png', word: 'Hırka', category: 'daily_objects'),
+    QuizItem(imagePath: 'assets/images/daily_objects/70.png', word: 'Elbise', category: 'daily_objects'),
+    QuizItem(imagePath: 'assets/images/daily_objects/76.png', word: 'Çöp kutusu', category: 'daily_objects'),
+    QuizItem(imagePath: 'assets/images/daily_objects/87.png', word: 'Pencere', category: 'daily_objects'),
+    QuizItem(imagePath: 'assets/images/daily_objects/89.png', word: 'Sünger', category: 'daily_objects'),
+    QuizItem(imagePath: 'assets/images/daily_objects/90.png', word: 'Klozet', category: 'daily_objects'),
+    QuizItem(imagePath: 'assets/images/daily_objects/91.png', word: 'Telefon', category: 'daily_objects'),
+    QuizItem(imagePath: 'assets/images/daily_objects/119.png', word: 'Tencere', category: 'daily_objects'),
+    QuizItem(imagePath: 'assets/images/daily_objects/123.png', word: 'Fincan', category: 'daily_objects'),
+    QuizItem(imagePath: 'assets/images/daily_objects/148.png', word: 'Araba', category: 'daily_objects'),
+    QuizItem(imagePath: 'assets/images/daily_objects/151.png', word: 'Kanepe', category: 'daily_objects'),
+    QuizItem(imagePath: 'assets/images/daily_objects/152.png', word: 'Koltuk', category: 'daily_objects'),
+    QuizItem(imagePath: 'assets/images/daily_objects/157.png', word: 'Küvet', category: 'daily_objects'),
+    QuizItem(imagePath: 'assets/images/daily_objects/165.png', word: 'Lavabo', category: 'daily_objects'),
+    QuizItem(imagePath: 'assets/images/daily_objects/168.png', word: 'Yastık', category: 'daily_objects'),
+    QuizItem(imagePath: 'assets/images/daily_objects/188.png', word: 'Tişört', category: 'daily_objects'),
+    QuizItem(imagePath: 'assets/images/daily_objects/195.png', word: 'Yastık', category: 'daily_objects'),
+    QuizItem(imagePath: 'assets/images/daily_objects/202.png', word: 'Abajur', category: 'daily_objects'),
+    QuizItem(imagePath: 'assets/images/daily_objects/210.png', word: 'Kupa', category: 'daily_objects'),
+    QuizItem(imagePath: 'assets/images/daily_objects/213.png', word: 'Buzdolabı', category: 'daily_objects'),
+    QuizItem(imagePath: 'assets/images/daily_objects/219.png', word: 'Havlu', category: 'daily_objects'),
+    QuizItem(imagePath: 'assets/images/daily_objects/221.png', word: 'Ayakkabı', category: 'daily_objects'),
+    QuizItem(imagePath: 'assets/images/daily_objects/231.png', word: 'Ayakkabı', category: 'daily_objects'),
+    QuizItem(imagePath: 'assets/images/daily_objects/232.png', word: 'Vazo', category: 'daily_objects'),
+    QuizItem(imagePath: 'assets/images/daily_objects/242.png', word: 'Ayakkabı', category: 'daily_objects'),
+  ];
+
+  static const List<QuizItem> weather = [
+    QuizItem(imagePath: 'assets/images/weather/18.png', word: 'Soğuk', category: 'weather'),
+    QuizItem(imagePath: 'assets/images/weather/19.png', word: 'Rüzgarlı', category: 'weather'),
+    QuizItem(imagePath: 'assets/images/weather/26.png', word: 'Güneşli', category: 'weather'),
+    QuizItem(imagePath: 'assets/images/weather/27.png', word: 'Yağmur', category: 'weather'),
+    QuizItem(imagePath: 'assets/images/weather/50.png', word: 'Fırtına', category: 'weather'),
+    QuizItem(imagePath: 'assets/images/weather/58.png', word: 'Kasırga', category: 'weather'),
+    QuizItem(imagePath: 'assets/images/weather/74.png', word: 'Bulutlu', category: 'weather'),
+    QuizItem(imagePath: 'assets/images/weather/86.png', word: 'Bulutlu', category: 'weather'),
+    QuizItem(imagePath: 'assets/images/weather/167.png', word: 'Sıcak', category: 'weather'),
+    QuizItem(imagePath: 'assets/images/weather/193.png', word: 'Parçalı bulutlu', category: 'weather'),
+    QuizItem(imagePath: 'assets/images/weather/196.png', word: 'Rüzgar', category: 'weather'),
+    QuizItem(imagePath: 'assets/images/weather/205.png', word: 'Bulutlu', category: 'weather'),
+    QuizItem(imagePath: 'assets/images/weather/220.png', word: 'Gökkuşağı', category: 'weather'),
+    QuizItem(imagePath: 'assets/images/weather/233.png', word: 'Bulutlu', category: 'weather'),
+  ];
+
+  static const List<QuizItem> actions = [
+    QuizItem(imagePath: 'assets/images/actions/3.png', word: 'Oturuyor', category: 'actions'),
+    QuizItem(imagePath: 'assets/images/actions/12.png', word: 'Okuyor', category: 'actions'),
+    QuizItem(imagePath: 'assets/images/actions/15.png', word: 'Yürüyor', category: 'actions'),
+    QuizItem(imagePath: 'assets/images/actions/38.png', word: 'Oturuyor', category: 'actions'),
+    QuizItem(imagePath: 'assets/images/actions/49.png', word: 'El sallıyor', category: 'actions'),
+    QuizItem(imagePath: 'assets/images/actions/52.png', word: 'Yüzüyor', category: 'actions'),
+    QuizItem(imagePath: 'assets/images/actions/55.png', word: 'Uyuyor', category: 'actions'),
+    QuizItem(imagePath: 'assets/images/actions/68.png', word: 'El sallıyor', category: 'actions'),
+    QuizItem(imagePath: 'assets/images/actions/77.png', word: 'Uyuyor', category: 'actions'),
+    QuizItem(imagePath: 'assets/images/actions/84.png', word: 'Yiyor', category: 'actions'),
+    QuizItem(imagePath: 'assets/images/actions/98.png', word: 'Yiyor', category: 'actions'),
+    QuizItem(imagePath: 'assets/images/actions/138.png', word: 'Koşuyor', category: 'actions'),
+    QuizItem(imagePath: 'assets/images/actions/139.png', word: 'Koşuyor', category: 'actions'),
+    QuizItem(imagePath: 'assets/images/actions/145.png', word: 'Zıplıyor', category: 'actions'),
+    QuizItem(imagePath: 'assets/images/actions/159.png', word: 'Koşuyor', category: 'actions'),
+    QuizItem(imagePath: 'assets/images/actions/160.png', word: 'Su içiyor', category: 'actions'),
+    QuizItem(imagePath: 'assets/images/actions/169.png', word: 'Okuyor', category: 'actions'),
+    QuizItem(imagePath: 'assets/images/actions/194.png', word: 'Su içiyor', category: 'actions'),
+    QuizItem(imagePath: 'assets/images/actions/206.png', word: 'Zıplıyor', category: 'actions'),
+    QuizItem(imagePath: 'assets/images/actions/225.png', word: 'Yüzüyor', category: 'actions'),
+    QuizItem(imagePath: 'assets/images/actions/229.png', word: 'Yürüyor', category: 'actions'),
+    QuizItem(imagePath: 'assets/images/actions/245.png', word: 'Uyuyor', category: 'actions'),
+    QuizItem(imagePath: 'assets/images/actions/246.png', word: 'Koşuyor', category: 'actions'),
+    QuizItem(imagePath: 'assets/images/actions/247.png', word: 'Koşuyor', category: 'actions'),
+  ];
+
+  static const List<QuizItem> adjectives = [
+    QuizItem(imagePath: 'assets/images/adjectives/5.png', word: 'Hediye', category: 'adjectives'),
+    QuizItem(imagePath: 'assets/images/adjectives/21.png', word: 'Mutlu', category: 'adjectives'),
+    QuizItem(imagePath: 'assets/images/adjectives/62.png', word: 'Yıpranmış', category: 'adjectives'),
+    QuizItem(imagePath: 'assets/images/adjectives/92.png', word: 'Soğuk', category: 'adjectives'),
+    QuizItem(imagePath: 'assets/images/adjectives/109.png', word: 'Temiz', category: 'adjectives'),
+    QuizItem(imagePath: 'assets/images/adjectives/133.png', word: 'Parlak', category: 'adjectives'),
+    QuizItem(imagePath: 'assets/images/adjectives/140.png', word: 'Hızlı', category: 'adjectives'),
+    QuizItem(imagePath: 'assets/images/adjectives/144.png', word: 'Güneşli', category: 'adjectives'),
+    QuizItem(imagePath: 'assets/images/adjectives/147.png', word: 'Çamurlu', category: 'adjectives'),
+    QuizItem(imagePath: 'assets/images/adjectives/180.png', word: 'Dişli', category: 'adjectives'),
+    QuizItem(imagePath: 'assets/images/adjectives/182.png', word: 'Solgun', category: 'adjectives'),
+    QuizItem(imagePath: 'assets/images/adjectives/200.png', word: 'Renkli', category: 'adjectives'),
+    QuizItem(imagePath: 'assets/images/adjectives/226.png', word: 'Taş', category: 'adjectives'),
+    QuizItem(imagePath: 'assets/images/adjectives/239.png', word: 'Sevimli', category: 'adjectives'),
+  ];
+
+  static List<QuizItem> get all => [
+    ...animals,
+    ...fruitsVegetables,
+    ...colors,
+    ...shapes,
+    ...bodyParts,
+    ...clothes,
+    ...dailyObjects,
+    ...weather,
+    ...actions,
+    ...adjectives,
+  ];
+
+  static List<QuizItem> byCategory(String category) {
+    switch (category) {
+      case 'animals': return animals;
+      case 'fruits_vegetables': return fruitsVegetables;
+      case 'colors': return colors;
+      case 'shapes': return shapes;
+      case 'body_parts': return bodyParts;
+      case 'clothes': return clothes;
+      case 'daily_objects': return dailyObjects;
+      case 'weather': return weather;
+      case 'actions': return actions;
+      case 'adjectives': return adjectives;
+      default: return all;
+    }
+  }
+}
