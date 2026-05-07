@@ -12,24 +12,27 @@ import 'domain/usecases/register_usecase.dart';
 import 'domain/usecases/logout_usecase.dart';
 import 'features/learning/presentations/providers/auth_provider.dart';
 import 'features/learning/presentations/screens/splash_screen.dart';
+import 'services/rewards/reward_service.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
-  // Firebase'i başlat
   await Firebase.initializeApp(
     options: DefaultFirebaseOptions.currentPlatform,
   );
 
-  // Hive'ı başlat
   await Hive.initFlutter();
   Hive.registerAdapter(UserModelAdapter());
 
-  runApp(const MyApp());
+  final rewardService = RewardService();
+  await rewardService.init();
+
+  runApp(MyApp(rewardService: rewardService));
 }
 
 class MyApp extends StatelessWidget {
-  const MyApp({super.key});
+  final RewardService rewardService;
+  const MyApp({super.key, required this.rewardService});
 
   @override
   Widget build(BuildContext context) {
@@ -46,6 +49,7 @@ class MyApp extends StatelessWidget {
             authRepository: authRepository,
           ),
         ),
+        ChangeNotifierProvider<RewardService>.value(value: rewardService),
       ],
       child: MaterialApp(
         title: 'Bilbil',
