@@ -1,17 +1,19 @@
-// lib/features/learning/presentations/screens/quiz_screen.dart
-
 import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:flutter_tts/flutter_tts.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:speech_to_text/speech_to_text.dart';
 import 'package:speech_to_text/speech_recognition_error.dart';
+import 'package:speech_to_text/speech_recognition_result.dart';
 import 'package:provider/provider.dart';
+import 'package:permission_handler/permission_handler.dart';
+
 import '../../../../core/theme/app_colors.dart';
 import '../../../../data/models/quiz_item.dart';
 import '../../../../services/rewards/reward_service.dart';
 import '../../../../services/rl_agent/rl_agent.dart';
-import 'package:permission_handler/permission_handler.dart';
+import 'answer_checker.dart';
+import 'reward_celebration_dialog.dart';
 
 class QuizScreen extends StatefulWidget {
   const QuizScreen({super.key});
@@ -21,38 +23,42 @@ class QuizScreen extends StatefulWidget {
 }
 
 class _QuizScreenState extends State<QuizScreen> with TickerProviderStateMixin {
-  // Her zorluk için ayrı soru havuzu
+  // ── Soru havuzları ──────────────────────────────────────────────────────────
   late Map<int, List<QuizItem>> _pools;
-  int _activeDifficulty = 0; // hangi havuz aktif
+  int _activeDifficulty = 0;
   int _currentIndex = 0;
   int _stars = 0;
 
   List<QuizItem> get _items => _pools[_rlAgent.currentDifficulty]!;
+  QuizItem get _currentItem => _items[_currentIndex];
 
+  // ── Servisler ───────────────────────────────────────────────────────────────
   final FlutterTts _tts = FlutterTts();
   final SpeechToText _stt = SpeechToText();
+  final RLAgent _rlAgent = RLAgent(epsilon: 0.2);
+  late RewardService _rewardService;
 
+  // ── STT durumu ──────────────────────────────────────────────────────────────
   bool _isListening = false;
   bool _sttAvailable = false;
   String _recognizedWord = '';
   bool _hasSpoken = false;
   bool _isCorrect = false;
-  late RewardService _rewardService;
-  final RLAgent _rlAgent = RLAgent(epsilon: 0.2);
   DateTime? _questionStartTime;
 
+  // ── Animasyonlar ────────────────────────────────────────────────────────────
   late AnimationController _micPulseController;
   late AnimationController _cardController;
   late Animation<double> _cardAnimation;
   late AnimationController _wordRevealController;
   late Animation<double> _wordRevealAnimation;
 
-  List<QuizItem> _buildPool(int diff) {
-    return RLAgent.configs[diff].categories
-        .expand((c) => QuizData.byCategory(c))
-        .toList()
-      ..shuffle(Random());
-  }
+  // ── Yaşam döngüsü ───────────────────────────────────────────────────────────
+
+  List<QuizItem> _buildPool(int diff) => RLAgent.configs[diff].categories
+      .expand((c) => QuizData.byCategory(c))
+      .toList()
+    ..shuffle(Random());
 
   @override
   void initState() {
@@ -60,21 +66,17 @@ class _QuizScreenState extends State<QuizScreen> with TickerProviderStateMixin {
     _pools = {for (var i = 0; i < RLAgent.configs.length; i++) i: _buildPool(i)};
 
     _micPulseController = AnimationController(
-      vsync: this,
-      duration: const Duration(milliseconds: 900),
-    );
+        vsync: this, duration: const Duration(milliseconds: 900));
 
     _cardController = AnimationController(
-      vsync: this,
-      duration: const Duration(milliseconds: 500),
-    );
-    _cardAnimation = CurvedAnimation(parent: _cardController, curve: Curves.easeOutBack);
+        vsync: this, duration: const Duration(milliseconds: 500));
+    _cardAnimation =
+        CurvedAnimation(parent: _cardController, curve: Curves.easeOutBack);
 
     _wordRevealController = AnimationController(
-      vsync: this,
-      duration: const Duration(milliseconds: 600),
-    );
-    _wordRevealAnimation = CurvedAnimation(parent: _wordRevealController, curve: Curves.elasticOut);
+        vsync: this, duration: const Duration(milliseconds: 600));
+    _wordRevealAnimation =
+        CurvedAnimation(parent: _wordRevealController, curve: Curves.elasticOut);
 
     _cardController.forward();
     _initTts();
@@ -88,60 +90,87 @@ class _QuizScreenState extends State<QuizScreen> with TickerProviderStateMixin {
     _rewardService = Provider.of<RewardService>(context, listen: false);
   }
 
-  void _showRewardCelebration(Reward reward) {
+  @override
+  void dispose() {
+    _tts.stop();
+    _stt.stop();
+    _micPulseController.dispose();
+    _cardController.dispose();
+    _wordRevealController.dispose();
+    super.dispose();
+  }
+
+  // ── TTS ─────────────────────────────────────────────────────────────────────
+
+  Future<void> _initTts() async {
+    _tts.setErrorHandler((msg) => debugPrint('TTS Error: $msg'));
+    const variants = ['tr-TR', 'tr_TR', 'tr'];
+    bool langSet = false;
+    for (final v in variants) {
+      final ok = await _tts.isLanguageAvailable(v);
+      if (ok == true || ok == 1) {
+        await _tts.setLanguage(v);
+        langSet = true;
+        break;
+      }
+    }
+    if (!langSet) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) _showTtsSetupDialog();
+      });
+    }
+    await _tts.setSpeechRate(_rlAgent.config.ttsRate);
+    await _tts.setVolume(1.0);
+    await _tts.setPitch(1.0);
+  }
+
+  Future<void> _speak(String text) async {
+    await Future.delayed(const Duration(milliseconds: 500));
+    if (mounted) _tts.speak(text);
+  }
+
+  void _showTtsSetupDialog() {
     showDialog(
       context: context,
-      barrierDismissible: false,
-      barrierColor: Colors.black54,
-      builder: (dialogContext) => Dialog(
-        backgroundColor: Colors.transparent,
-        insetPadding: const EdgeInsets.symmetric(horizontal: 28, vertical: 60),
-        child: _RewardCelebrationCard(
-          reward: reward,
-          onCollect: () => Navigator.pop(dialogContext),
+      builder: (_) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: Text('Sesli Okuma Kapalı',
+            style: GoogleFonts.fredoka(fontSize: 20, fontWeight: FontWeight.bold)),
+        content: Text(
+          'Türkçe ses paketi yüklü değil.\n\n'
+          '📱 Şu adımları izle:\n'
+          '1. Telefon Ayarları\'nı aç\n'
+          '2. "Erişilebilirlik" seç\n'
+          '3. "Metin Okuma" veya "TTS" seç\n'
+          '4. "Türkçe" dil paketini indir\n'
+          '5. Uygulamaya geri dön',
+          style: GoogleFonts.poppins(fontSize: 13, height: 1.6),
         ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: Text('Tamam',
+                style: GoogleFonts.poppins(color: AppColors.textSecondary)),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              Navigator.pop(context);
+              openAppSettings();
+            },
+            style: ElevatedButton.styleFrom(backgroundColor: AppColors.primary),
+            child: Text('Ayarları Aç',
+                style: GoogleFonts.poppins(
+                    color: Colors.white, fontWeight: FontWeight.w600)),
+          ),
+        ],
       ),
     );
   }
 
-  Future<void> _initTts() async {
-    await _tts.setLanguage('tr-TR');
-    await _tts.setSpeechRate(_rlAgent.config.ttsRate);
-    await _tts.setVolume(1.0);
-  }
-
-  void _startQuestion() {
-    _questionStartTime = DateTime.now();
-  }
-
-  void _onSttStatus(String s) {
-    debugPrint('STT Status: $s');
-    if ((s == 'done' || s == 'notListening') && mounted) {
-      _micPulseController.stop();
-      if (_isListening) setState(() => _isListening = false);
-    }
-  }
-
-  void _onSttError(SpeechRecognitionError error) {
-    debugPrint('STT Error: $error');
-    if (!mounted) return;
-    _micPulseController.stop();
-    setState(() => _isListening = false);
-    // permanent hatası gerçek izin iptali mi yoksa recognizer hatası mı?
-    if (error.permanent) {
-      Permission.microphone.status.then((perm) {
-        if (!perm.isGranted && mounted) {
-          setState(() => _sttAvailable = false);
-          _showMicPermissionDialog(permanent: perm.isPermanentlyDenied);
-        }
-        // İzin hâlâ geçerliyse sadece dinleme durur; butona tekrar basılabilir
-      });
-    }
-  }
+  // ── STT ─────────────────────────────────────────────────────────────────────
 
   Future<void> _initStt() async {
     final status = await Permission.microphone.request();
-
     if (status.isPermanentlyDenied) {
       setState(() => _sttAvailable = false);
       WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -149,17 +178,36 @@ class _QuizScreenState extends State<QuizScreen> with TickerProviderStateMixin {
       });
       return;
     }
-
     if (status.isDenied) {
       setState(() => _sttAvailable = false);
       return;
     }
-
-    _sttAvailable = await _stt.initialize(
-      onError: _onSttError,
-      onStatus: _onSttStatus,
-    );
+    _sttAvailable =
+        await _stt.initialize(onError: _onSttError, onStatus: _onSttStatus);
     setState(() {});
+  }
+
+  void _onSttStatus(String s) {
+    if ((s == 'done' || s == 'notListening') && mounted) {
+      _micPulseController.stop();
+      final wasListening = _isListening;
+      if (_isListening) setState(() => _isListening = false);
+      if (wasListening && !_hasSpoken) _handleNoAnswer();
+    }
+  }
+
+  void _onSttError(SpeechRecognitionError error) {
+    if (!mounted) return;
+    _micPulseController.stop();
+    setState(() => _isListening = false);
+    if (error.permanent) {
+      Permission.microphone.status.then((perm) {
+        if (!perm.isGranted && mounted) {
+          setState(() => _sttAvailable = false);
+          _showMicPermissionDialog(permanent: perm.isPermanentlyDenied);
+        }
+      });
+    }
   }
 
   void _showMicPermissionDialog({required bool permanent}) {
@@ -167,20 +215,20 @@ class _QuizScreenState extends State<QuizScreen> with TickerProviderStateMixin {
       context: context,
       builder: (_) => AlertDialog(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        title: Text(
-          'Mikrofon İzni Gerekli',
-          style: GoogleFonts.fredoka(fontSize: 20, fontWeight: FontWeight.bold),
-        ),
+        title: Text('Mikrofon İzni Gerekli',
+            style: GoogleFonts.fredoka(fontSize: 20, fontWeight: FontWeight.bold)),
         content: Text(
           permanent
-              ? 'Mikrofon izni kalıcı olarak reddedildi.\nUygulama ayarlarından "Mikrofon" iznini açmanız gerekiyor.'
+              ? 'Mikrofon izni kalıcı olarak reddedildi.\n'
+                  'Uygulama ayarlarından "Mikrofon" iznini açmanız gerekiyor.'
               : 'Sesli cevap verebilmek için mikrofon iznine ihtiyaç var.',
           style: GoogleFonts.poppins(fontSize: 13),
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: Text('Tamam', style: GoogleFonts.poppins(color: AppColors.textSecondary)),
+            child: Text('Tamam',
+                style: GoogleFonts.poppins(color: AppColors.textSecondary)),
           ),
           if (permanent)
             ElevatedButton(
@@ -188,47 +236,33 @@ class _QuizScreenState extends State<QuizScreen> with TickerProviderStateMixin {
                 Navigator.pop(context);
                 openAppSettings();
               },
-              style: ElevatedButton.styleFrom(backgroundColor: AppColors.primary),
+              style:
+                  ElevatedButton.styleFrom(backgroundColor: AppColors.primary),
               child: Text('Ayarları Aç',
-                  style: GoogleFonts.poppins(color: Colors.white, fontWeight: FontWeight.w600)),
+                  style: GoogleFonts.poppins(
+                      color: Colors.white, fontWeight: FontWeight.w600)),
             ),
         ],
       ),
     );
   }
 
-  bool _checkAnswer(String recognized, String expected) {
-    String normalize(String s) => s
-        .trim()
-        .toLowerCase()
-        .replaceAll('İ', 'i')
-        .replaceAll('I', 'ı')
-        .replaceAll('Ğ', 'ğ')
-        .replaceAll('Ü', 'ü')
-        .replaceAll('Ş', 'ş')
-        .replaceAll('Ö', 'ö')
-        .replaceAll('Ç', 'ç');
-    final r = normalize(recognized);
-    final e = normalize(expected);
-    return r == e || r.contains(e) || e.contains(r);
-  }
-
   Future<void> _startListening() async {
     if (_isListening) return;
 
-    final permStatus = await Permission.microphone.status;
-    if (permStatus.isPermanentlyDenied) {
+    final perm = await Permission.microphone.status;
+    if (perm.isPermanentlyDenied) {
       _showMicPermissionDialog(permanent: true);
       return;
     }
-    if (!permStatus.isGranted) {
+    if (!perm.isGranted) {
       final result = await Permission.microphone.request();
       if (!result.isGranted) return;
     }
 
-    // Geçici hata sonrası STT kapalıysa yeniden başlat
     if (!_sttAvailable) {
-      _sttAvailable = await _stt.initialize(onError: _onSttError, onStatus: _onSttStatus);
+      _sttAvailable =
+          await _stt.initialize(onError: _onSttError, onStatus: _onSttStatus);
       if (mounted) setState(() {});
       if (!_sttAvailable) return;
     }
@@ -241,58 +275,54 @@ class _QuizScreenState extends State<QuizScreen> with TickerProviderStateMixin {
     _micPulseController.repeat(reverse: true);
 
     await _stt.listen(
-      onResult: (result) {
-        setState(() => _recognizedWord = result.recognizedWords);
-
-        if (result.finalResult && _recognizedWord.isNotEmpty) {
-          _stt.stop();
-          _micPulseController.stop();
-
-          final expectedWord = _items[_currentIndex].word;
-          final correct = _checkAnswer(_recognizedWord, expectedWord);
-
-          final responseTimeSec = _questionStartTime != null
-              ? DateTime.now().difference(_questionStartTime!).inMilliseconds / 1000.0
-              : 5.0;
-
-          final prevDiff = _rlAgent.currentDifficulty;
-          _rlAgent.processAnswer(isCorrect: correct, responseTimeSec: responseTimeSec);
-          _tts.setSpeechRate(_rlAgent.config.ttsRate);
-          if (_rlAgent.currentDifficulty != prevDiff) {
-            _activeDifficulty = _rlAgent.currentDifficulty;
-          }
-
-          setState(() {
-            _isListening = false;
-            _hasSpoken = true;
-            _isCorrect = correct;
-            if (correct) _stars++;
-          });
-
-          _wordRevealController.reset();
-          _wordRevealController.forward();
-
-          if (correct) {
-            _tts.speak('Aferin! Bu bir $expectedWord!');
-            _rewardService.addCorrect().then((newRewards) {
-              if (mounted && newRewards.isNotEmpty) {
-                Future.delayed(const Duration(milliseconds: 800), () {
-                  if (mounted) _showRewardCelebration(newRewards.first);
-                });
-              }
-            });
-          } else {
-            _tts.speak('Neredeyse! Bu bir $expectedWord. Tekrar deneyelim!');
-          }
-
-          Future.delayed(const Duration(seconds: 3), _nextItem);
-        }
-      },
+      onResult: _onSttResult,
       localeId: 'tr_TR',
       listenFor: const Duration(seconds: 30),
       pauseFor: const Duration(seconds: 4),
       listenOptions: SpeechListenOptions(cancelOnError: false),
     );
+  }
+
+  void _onSttResult(SpeechRecognitionResult result) {
+    setState(() => _recognizedWord = result.recognizedWords);
+    if (!result.finalResult || _recognizedWord.isEmpty) return;
+
+    _stt.stop();
+    _micPulseController.stop();
+
+    final expected = _currentItem.word;
+    final correct = AnswerChecker.check(_recognizedWord, expected);
+    final responseTimeSec = _questionStartTime != null
+        ? DateTime.now().difference(_questionStartTime!).inMilliseconds / 1000.0
+        : 5.0;
+
+    _updateRlAgent(correct, responseTimeSec);
+
+    setState(() {
+      _isListening = false;
+      _hasSpoken = true;
+      _isCorrect = correct;
+      if (correct) _stars++;
+    });
+
+    _wordRevealController
+      ..reset()
+      ..forward();
+
+    if (correct) {
+      _speak('Aferin! Bu bir $expected!');
+      _rewardService.addCorrect().then((newRewards) {
+        if (mounted && newRewards.isNotEmpty) {
+          Future.delayed(const Duration(milliseconds: 800), () {
+            if (mounted) showRewardCelebration(context, newRewards.first);
+          });
+        }
+      });
+    } else {
+      _speak('Neredeyse! Bu bir $expected. Tekrar deneyelim!');
+    }
+
+    Future.delayed(const Duration(seconds: 3), _nextItem);
   }
 
   Future<void> _toggleListening() async {
@@ -305,19 +335,53 @@ class _QuizScreenState extends State<QuizScreen> with TickerProviderStateMixin {
     }
   }
 
+  // ── Quiz akışı ───────────────────────────────────────────────────────────────
+
+  void _startQuestion() {
+    _questionStartTime = DateTime.now();
+  }
+
+  void _updateRlAgent(bool correct, double responseTimeSec) {
+    final prevDiff = _rlAgent.currentDifficulty;
+    _rlAgent.processAnswer(isCorrect: correct, responseTimeSec: responseTimeSec);
+    _tts.setSpeechRate(_rlAgent.config.ttsRate);
+    if (_rlAgent.currentDifficulty != prevDiff) {
+      _activeDifficulty = _rlAgent.currentDifficulty;
+    }
+  }
+
+  void _handleNoAnswer() {
+    if (!mounted || _hasSpoken) return;
+    final expected = _currentItem.word;
+    final responseTimeSec = _questionStartTime != null
+        ? DateTime.now().difference(_questionStartTime!).inMilliseconds / 1000.0
+        : 30.0;
+
+    _updateRlAgent(false, responseTimeSec);
+
+    setState(() {
+      _hasSpoken = true;
+      _isCorrect = false;
+      _recognizedWord = '';
+    });
+    _wordRevealController
+      ..reset()
+      ..forward();
+    _speak('Bu bir $expected. Tekrar deneyelim!');
+    Future.delayed(const Duration(seconds: 3), _nextItem);
+  }
+
   void _nextItem() {
     if (!mounted) return;
     final currentDiff = _rlAgent.currentDifficulty;
-
     int nextIndex;
+
     if (currentDiff != _activeDifficulty) {
-      // Zorluk değişti → yeni havuzun başından başla
       _activeDifficulty = currentDiff;
       nextIndex = 0;
     } else if (_currentIndex < _items.length - 1) {
       nextIndex = _currentIndex + 1;
     } else {
-      // Havuz bitti → karıştır ve başa dön
       _pools[currentDiff]!.shuffle(Random());
       nextIndex = 0;
     }
@@ -328,78 +392,20 @@ class _QuizScreenState extends State<QuizScreen> with TickerProviderStateMixin {
       _hasSpoken = false;
       _isCorrect = false;
     });
-    _cardController.reset();
-    _cardController.forward();
+    _cardController
+      ..reset()
+      ..forward();
     _wordRevealController.reset();
     _startQuestion();
   }
 
-  void _showFinishDialog() {
-    showDialog(
-      context: context,
-      barrierDismissible: false,
-      builder: (_) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            const Text('🎉', style: TextStyle(fontSize: 64)),
-            const SizedBox(height: 12),
-            Text('Tebrikler!',
-                style: GoogleFonts.fredoka(fontSize: 28, fontWeight: FontWeight.bold, color: AppColors.primary)),
-            const SizedBox(height: 8),
-            Text('Tüm resimleri tamamladın!',
-                style: GoogleFonts.poppins(fontSize: 14, color: AppColors.textSecondary),
-                textAlign: TextAlign.center),
-          ],
-        ),
-        actions: [
-          TextButton(
-            onPressed: () { Navigator.pop(context); Navigator.pop(context); },
-            child: Text('Ana Sayfaya Dön',
-                style: GoogleFonts.poppins(fontWeight: FontWeight.w600, color: AppColors.textSecondary)),
-          ),
-          ElevatedButton(
-            onPressed: () {
-              Navigator.pop(context);
-              setState(() {
-                _pools = {for (var i = 0; i < RLAgent.configs.length; i++) i: _buildPool(i)};
-                _activeDifficulty = 0;
-                _currentIndex = 0;
-                _stars = 0;
-                _recognizedWord = '';
-                _hasSpoken = false;
-                _isCorrect = false;
-              });
-              _cardController.reset();
-              _cardController.forward();
-            },
-            style: ElevatedButton.styleFrom(
-              backgroundColor: AppColors.primary,
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-            ),
-            child: Text('Tekrar Oyna',
-                style: GoogleFonts.poppins(fontWeight: FontWeight.w600, color: Colors.white)),
-          ),
-        ],
-      ),
-    );
-  }
-
-  @override
-  void dispose() {
-    _tts.stop();
-    _stt.stop();
-    _micPulseController.dispose();
-    _cardController.dispose();
-    _wordRevealController.dispose();
-    super.dispose();
-  }
+  // ── Build ────────────────────────────────────────────────────────────────────
 
   @override
   Widget build(BuildContext context) {
-    if (_items.isEmpty) return const Scaffold(body: Center(child: CircularProgressIndicator()));
-    final item = _items[_currentIndex];
+    if (_items.isEmpty) {
+      return const Scaffold(body: Center(child: CircularProgressIndicator()));
+    }
 
     return Scaffold(
       backgroundColor: const Color(0xFFF0F4FF),
@@ -418,27 +424,22 @@ class _QuizScreenState extends State<QuizScreen> with TickerProviderStateMixin {
                       color: const Color(0xFFFFFDE7),
                       borderRadius: BorderRadius.circular(32),
                       boxShadow: [
-                        BoxShadow(color: Colors.black.withOpacity(0.06), blurRadius: 20, offset: const Offset(0, 6)),
+                        BoxShadow(
+                          color: Colors.black.withOpacity(0.06),
+                          blurRadius: 20,
+                          offset: const Offset(0, 6),
+                        ),
                       ],
                     ),
                     child: Column(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        // Resim kartı
-                        _buildImageCard(item),
-
+                        _buildImageCard(),
                         const SizedBox(height: 28),
-
-                        // Tanınan kelime (çocuk söylediğinde belirir)
                         _buildWordReveal(),
-
                         const SizedBox(height: 28),
-
-                        // Mikrofon butonu
                         _buildMicButton(),
-
                         const SizedBox(height: 12),
-
                         Text(
                           _isListening ? 'Dinliyorum...' : 'Dokun ve Söyle',
                           style: GoogleFonts.poppins(
@@ -447,7 +448,6 @@ class _QuizScreenState extends State<QuizScreen> with TickerProviderStateMixin {
                             color: AppColors.textSecondary,
                           ),
                         ),
-
                         const SizedBox(height: 24),
                       ],
                     ),
@@ -463,12 +463,13 @@ class _QuizScreenState extends State<QuizScreen> with TickerProviderStateMixin {
   }
 
   Widget _buildTopBar() {
-    final difficultyColors = [
+    final diffColors = [
       const Color(0xFF4CAF50),
       const Color(0xFFFFC107),
       const Color(0xFFF44336),
     ];
-    final diffColor = difficultyColors[_rlAgent.currentDifficulty];
+    final diffColor = diffColors[_rlAgent.currentDifficulty];
+    final starsShown = _stars % 5 == 0 && _stars > 0 ? 5 : _stars % 5;
 
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
@@ -479,83 +480,89 @@ class _QuizScreenState extends State<QuizScreen> with TickerProviderStateMixin {
               GestureDetector(
                 onTap: () => Navigator.pop(context),
                 child: Container(
-                  width: 40, height: 40,
+                  width: 40,
+                  height: 40,
                   decoration: BoxDecoration(
                     color: Colors.white,
                     borderRadius: BorderRadius.circular(12),
-                    boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.08), blurRadius: 8)],
+                    boxShadow: [
+                      BoxShadow(
+                          color: Colors.black.withOpacity(0.08), blurRadius: 8)
+                    ],
                   ),
-                  child: Icon(Icons.arrow_back_ios_new_rounded, size: 18, color: AppColors.textPrimary),
+                  child: Icon(Icons.arrow_back_ios_new_rounded,
+                      size: 18, color: AppColors.textPrimary),
                 ),
               ),
               const Spacer(),
-              // Yıldızlar (her 5 doğruda döngü yapar)
               Row(
-                children: List.generate(5, (i) => Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 2),
-                  child: Icon(
-                    i < (_stars % 5 == 0 && _stars > 0 ? 5 : _stars % 5)
-                        ? Icons.star_rounded
-                        : Icons.star_outline_rounded,
-                    size: 28,
-                    color: i < (_stars % 5 == 0 && _stars > 0 ? 5 : _stars % 5)
-                        ? const Color(0xFFFFC107)
-                        : const Color(0xFFD0D0D0),
+                children: List.generate(
+                  5,
+                  (i) => Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 2),
+                    child: Icon(
+                      i < starsShown
+                          ? Icons.star_rounded
+                          : Icons.star_outline_rounded,
+                      size: 28,
+                      color: i < starsShown
+                          ? const Color(0xFFFFC107)
+                          : const Color(0xFFD0D0D0),
+                    ),
                   ),
-                )),
+                ),
               ),
               const Spacer(),
-              // İlerleme sayacı
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                 decoration: BoxDecoration(
                   color: Colors.white,
                   borderRadius: BorderRadius.circular(12),
-                  boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.08), blurRadius: 8)],
+                  boxShadow: [
+                    BoxShadow(
+                        color: Colors.black.withOpacity(0.08), blurRadius: 8)
+                  ],
                 ),
                 child: Text(
                   '${_currentIndex + 1}/${_items.length}',
-                  style: GoogleFonts.poppins(fontSize: 13, fontWeight: FontWeight.w600, color: AppColors.textSecondary),
+                  style: GoogleFonts.poppins(
+                      fontSize: 13,
+                      fontWeight: FontWeight.w600,
+                      color: AppColors.textSecondary),
                 ),
               ),
             ],
           ),
           const SizedBox(height: 6),
-          // RL zorluk göstergesi
-          Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 3),
-                decoration: BoxDecoration(
-                  color: diffColor.withOpacity(0.15),
-                  borderRadius: BorderRadius.circular(10),
-                  border: Border.all(color: diffColor.withOpacity(0.4)),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 3),
+            decoration: BoxDecoration(
+              color: diffColor.withOpacity(0.15),
+              borderRadius: BorderRadius.circular(10),
+              border: Border.all(color: diffColor.withOpacity(0.4)),
+            ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(Icons.auto_graph_rounded, size: 13, color: diffColor),
+                const SizedBox(width: 4),
+                Text(
+                  'Seviye: ${_rlAgent.config.label}',
+                  style: GoogleFonts.poppins(
+                      fontSize: 11,
+                      fontWeight: FontWeight.w600,
+                      color: diffColor),
                 ),
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Icon(Icons.auto_graph_rounded, size: 13, color: diffColor),
-                    const SizedBox(width: 4),
-                    Text(
-                      'Seviye: ${_rlAgent.config.label}',
-                      style: GoogleFonts.poppins(
-                        fontSize: 11,
-                        fontWeight: FontWeight.w600,
-                        color: diffColor,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ],
+              ],
+            ),
           ),
         ],
       ),
     );
   }
 
-  Widget _buildImageCard(QuizItem item) {
+  Widget _buildImageCard() {
     return Container(
       width: 260,
       height: 220,
@@ -563,15 +570,21 @@ class _QuizScreenState extends State<QuizScreen> with TickerProviderStateMixin {
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(28),
-        boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.07), blurRadius: 16, offset: const Offset(0, 4))],
+        boxShadow: [
+          BoxShadow(
+              color: Colors.black.withOpacity(0.07),
+              blurRadius: 16,
+              offset: const Offset(0, 4))
+        ],
       ),
       child: ClipRRect(
         borderRadius: BorderRadius.circular(28),
         child: Image.asset(
-          item.imagePath,
+          _currentItem.imagePath,
           fit: BoxFit.contain,
           errorBuilder: (_, __, ___) => Center(
-            child: Icon(Icons.image_not_supported_outlined, size: 60, color: Colors.grey[300]),
+            child: Icon(Icons.image_not_supported_outlined,
+                size: 60, color: Colors.grey[300]),
           ),
         ),
       ),
@@ -579,64 +592,108 @@ class _QuizScreenState extends State<QuizScreen> with TickerProviderStateMixin {
   }
 
   Widget _buildWordReveal() {
-    final feedbackColor = _isCorrect ? const Color(0xFF4CAF50) : const Color(0xFFF44336);
+    // Sessiz kaldı
+    if (_hasSpoken && _recognizedWord.isEmpty) {
+      return ScaleTransition(
+        scale: _wordRevealAnimation,
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              padding:
+                  const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+              decoration: BoxDecoration(
+                color: const Color(0xFFFFF3E0),
+                borderRadius: BorderRadius.circular(20),
+                border: Border.all(
+                    color: const Color(0xFFFF9800).withOpacity(0.6), width: 2),
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const Text('🤫', style: TextStyle(fontSize: 24)),
+                  const SizedBox(width: 8),
+                  Text(
+                    _currentItem.word,
+                    style: GoogleFonts.fredoka(
+                        fontSize: 32,
+                        fontWeight: FontWeight.bold,
+                        color: const Color(0xFFFF9800)),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 6),
+            Text('Tekrar deneyelim!',
+                style: GoogleFonts.poppins(
+                    fontSize: 13,
+                    color: const Color(0xFFFF9800),
+                    fontWeight: FontWeight.w600)),
+          ],
+        ),
+      );
+    }
+
+    final feedbackColor =
+        _isCorrect ? const Color(0xFF4CAF50) : const Color(0xFFF44336);
     final feedbackIcon = _isCorrect ? '✅' : '❌';
 
     return AnimatedSwitcher(
       duration: const Duration(milliseconds: 400),
       child: _hasSpoken && _recognizedWord.isNotEmpty
           ? ScaleTransition(
-        key: ValueKey(_recognizedWord),
-        scale: _wordRevealAnimation,
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 12),
-              decoration: BoxDecoration(
-                color: feedbackColor.withOpacity(0.12),
-                borderRadius: BorderRadius.circular(20),
-                border: Border.all(color: feedbackColor.withOpacity(0.5), width: 2),
-              ),
-              child: Row(
+              key: ValueKey(_recognizedWord),
+              scale: _wordRevealAnimation,
+              child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  Text(feedbackIcon, style: const TextStyle(fontSize: 24)),
-                  const SizedBox(width: 8),
-                  Text(
-                    _recognizedWord,
-                    style: GoogleFonts.fredoka(
-                      fontSize: 32,
-                      fontWeight: FontWeight.bold,
-                      color: feedbackColor,
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 32, vertical: 12),
+                    decoration: BoxDecoration(
+                      color: feedbackColor.withOpacity(0.12),
+                      borderRadius: BorderRadius.circular(20),
+                      border: Border.all(
+                          color: feedbackColor.withOpacity(0.5), width: 2),
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Text(feedbackIcon,
+                            style: const TextStyle(fontSize: 24)),
+                        const SizedBox(width: 8),
+                        Text(
+                          _recognizedWord,
+                          style: GoogleFonts.fredoka(
+                              fontSize: 32,
+                              fontWeight: FontWeight.bold,
+                              color: feedbackColor),
+                        ),
+                      ],
                     ),
                   ),
+                  if (!_isCorrect) ...[
+                    const SizedBox(height: 8),
+                    Text(
+                      'Doğrusu: ${_currentItem.word}',
+                      style: GoogleFonts.poppins(
+                          fontSize: 13,
+                          color: const Color(0xFF4CAF50),
+                          fontWeight: FontWeight.w600),
+                    ),
+                  ],
                 ],
               ),
-            ),
-            if (!_isCorrect) ...[
-              const SizedBox(height: 8),
-              Text(
-                'Doğrusu: ${_items[_currentIndex].word}',
-                style: GoogleFonts.poppins(
-                  fontSize: 13,
-                  color: const Color(0xFF4CAF50),
-                  fontWeight: FontWeight.w600,
+            )
+          : SizedBox(
+              height: 60,
+              child: Center(
+                child: Text(
+                  _isListening ? '🎤 ...' : '❓',
+                  style: const TextStyle(fontSize: 32),
                 ),
               ),
-            ],
-          ],
-        ),
-      )
-          : SizedBox(
-        height: 60,
-        child: Center(
-          child: Text(
-            _isListening ? '🎤 ...' : '❓',
-            style: const TextStyle(fontSize: 32),
-          ),
-        ),
-      ),
+            ),
     );
   }
 
@@ -646,7 +703,8 @@ class _QuizScreenState extends State<QuizScreen> with TickerProviderStateMixin {
       child: AnimatedBuilder(
         animation: _micPulseController,
         builder: (context, child) {
-          final scale = _isListening ? 1.0 + (_micPulseController.value * 0.15) : 1.0;
+          final scale =
+              _isListening ? 1.0 + (_micPulseController.value * 0.15) : 1.0;
           return Transform.scale(scale: scale, child: child);
         },
         child: Container(
@@ -657,7 +715,10 @@ class _QuizScreenState extends State<QuizScreen> with TickerProviderStateMixin {
             color: _isListening ? AppColors.secondary : const Color(0xFF5B9BFF),
             boxShadow: [
               BoxShadow(
-                color: (_isListening ? AppColors.secondary : const Color(0xFF5B9BFF)).withOpacity(0.45),
+                color: (_isListening
+                        ? AppColors.secondary
+                        : const Color(0xFF5B9BFF))
+                    .withOpacity(0.45),
                 blurRadius: 24,
                 spreadRadius: 4,
               ),
@@ -672,291 +733,4 @@ class _QuizScreenState extends State<QuizScreen> with TickerProviderStateMixin {
       ),
     );
   }
-}
-
-// ─── Rozet Kutlama Kartı ───────────────────────────────────────────────────
-
-class _RewardCelebrationCard extends StatefulWidget {
-  final Reward reward;
-  final VoidCallback onCollect;
-
-  const _RewardCelebrationCard({required this.reward, required this.onCollect});
-
-  @override
-  State<_RewardCelebrationCard> createState() => _RewardCelebrationCardState();
-}
-
-class _RewardCelebrationCardState extends State<_RewardCelebrationCard>
-    with SingleTickerProviderStateMixin {
-  late AnimationController _bounceController;
-  late Animation<double> _bounceAnim;
-
-  @override
-  void initState() {
-    super.initState();
-    _bounceController = AnimationController(
-      vsync: this,
-      duration: const Duration(milliseconds: 700),
-    );
-    _bounceAnim = CurvedAnimation(parent: _bounceController, curve: Curves.elasticOut);
-    _bounceController.forward();
-  }
-
-  @override
-  void dispose() {
-    _bounceController.dispose();
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return ScaleTransition(
-      scale: _bounceAnim,
-      child: Container(
-        decoration: BoxDecoration(
-          color: const Color(0xFFD6EFFA),
-          borderRadius: BorderRadius.circular(32),
-        ),
-        child: Stack(
-          children: [
-            _buildConfetti(),
-            Padding(
-              padding: const EdgeInsets.fromLTRB(24, 20, 24, 24),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  // Kapat butonu
-                  Align(
-                    alignment: Alignment.topRight,
-                    child: GestureDetector(
-                      onTap: widget.onCollect,
-                      child: Container(
-                        width: 32, height: 32,
-                        decoration: BoxDecoration(
-                          shape: BoxShape.circle,
-                          color: Colors.white.withOpacity(0.75),
-                        ),
-                        child: const Icon(Icons.close, size: 18, color: Colors.grey),
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: 2),
-                  // "Harika!"
-                  Text(
-                    'Harika!',
-                    style: GoogleFonts.fredoka(
-                      fontSize: 34,
-                      fontWeight: FontWeight.bold,
-                      color: const Color(0xFF1565C0),
-                    ),
-                  ),
-                  // "Yeni Ödül!"
-                  Text(
-                    'Yeni Ödül!',
-                    style: GoogleFonts.fredoka(
-                      fontSize: 34,
-                      fontWeight: FontWeight.bold,
-                      color: const Color(0xFFFF6B35),
-                    ),
-                  ),
-                  const SizedBox(height: 22),
-                  // Güneş ışını + rozet
-                  _buildBadgeCircle(),
-                  const SizedBox(height: 20),
-                  // Açıklama
-                  Text(
-                    widget.reward.description,
-                    style: GoogleFonts.poppins(
-                      fontSize: 14,
-                      fontWeight: FontWeight.w600,
-                      color: const Color(0xFFFF6B35),
-                    ),
-                    textAlign: TextAlign.center,
-                  ),
-                  const SizedBox(height: 22),
-                  // Koleksiyona Ekle butonu
-                  SizedBox(
-                    width: double.infinity,
-                    child: ElevatedButton.icon(
-                      onPressed: widget.onCollect,
-                      icon: const Icon(Icons.add_circle_outline, color: Colors.white, size: 20),
-                      label: Text(
-                        'KOLEKSİYONA EKLE',
-                        style: GoogleFonts.poppins(
-                          fontWeight: FontWeight.bold,
-                          fontSize: 14,
-                          color: Colors.white,
-                        ),
-                      ),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: const Color(0xFF43C659),
-                        padding: const EdgeInsets.symmetric(vertical: 14),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(18),
-                        ),
-                        elevation: 0,
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildBadgeCircle() {
-    return Stack(
-      alignment: Alignment.center,
-      children: [
-        // Güneş ışını arka planı
-        SizedBox(
-          width: 190,
-          height: 190,
-          child: CustomPaint(painter: _SunburstPainter()),
-        ),
-        // Beyaz daire + hayvan resmi
-        Container(
-          width: 148,
-          height: 148,
-          decoration: BoxDecoration(
-            shape: BoxShape.circle,
-            color: Colors.white,
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withOpacity(0.10),
-                blurRadius: 14,
-                offset: const Offset(0, 4),
-              ),
-            ],
-          ),
-          child: ClipOval(
-            child: Padding(
-              padding: const EdgeInsets.all(14),
-              child: Image.asset(
-                widget.reward.imagePath,
-                fit: BoxFit.contain,
-                errorBuilder: (_, __, ___) => Text(
-                  widget.reward.emoji,
-                  style: const TextStyle(fontSize: 60),
-                  textAlign: TextAlign.center,
-                ),
-              ),
-            ),
-          ),
-        ),
-        // Rozet etiketi (altta)
-        Positioned(
-          bottom: 12,
-          child: Container(
-            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 5),
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(20),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withOpacity(0.10),
-                  blurRadius: 6,
-                ),
-              ],
-            ),
-            child: Text(
-              widget.reward.badgeLabel,
-              style: GoogleFonts.poppins(
-                fontSize: 11,
-                fontWeight: FontWeight.w700,
-                color: const Color(0xFFFF6B35),
-              ),
-            ),
-          ),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildConfetti() {
-    const dots = [
-      _ConfettiDot(left: 18, top: 50, color: Color(0xFFFF6B35), size: 11),
-      _ConfettiDot(left: 36, top: 100, color: Color(0xFF43C659), size: 8),
-      _ConfettiDot(left: 14, top: 160, color: Color(0xFF1565C0), size: 9),
-      _ConfettiDot(right: 18, top: 50, color: Color(0xFF9C27B0), size: 10),
-      _ConfettiDot(right: 36, top: 110, color: Color(0xFFFFC107), size: 13),
-      _ConfettiDot(right: 14, top: 170, color: Color(0xFFE91E63), size: 8),
-      _ConfettiDot(left: 60, top: 28, color: Color(0xFFFFC107), size: 7),
-      _ConfettiDot(right: 60, top: 28, color: Color(0xFF43C659), size: 7),
-    ];
-
-    return Positioned.fill(
-      child: Stack(
-        children: dots
-            .map((d) => Positioned(
-                  left: d.left,
-                  right: d.right,
-                  top: d.top,
-                  bottom: d.bottom,
-                  child: Container(
-                    width: d.size,
-                    height: d.size,
-                    decoration: BoxDecoration(
-                      shape: BoxShape.circle,
-                      color: d.color,
-                    ),
-                  ),
-                ))
-            .toList(),
-      ),
-    );
-  }
-}
-
-class _ConfettiDot {
-  final double? left, right, top, bottom;
-  final Color color;
-  final double size;
-
-  const _ConfettiDot({
-    this.left,
-    this.right,
-    this.top,
-    this.bottom,
-    required this.color,
-    required this.size,
-  });
-}
-
-class _SunburstPainter extends CustomPainter {
-  const _SunburstPainter();
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    final center = Offset(size.width / 2, size.height / 2);
-    final radius = size.width / 2;
-    const totalRays = 16;
-    const twoPi = 3.14159265358979 * 2;
-    const sweepAngle = twoPi / totalRays;
-
-    for (int i = 0; i < totalRays; i++) {
-      final startAngle = i * sweepAngle;
-      final paint = Paint()
-        ..color = i.isEven ? const Color(0xFFFFF9C4) : const Color(0xFFFFF176)
-        ..style = PaintingStyle.fill;
-
-      final path = Path()
-        ..moveTo(center.dx, center.dy)
-        ..arcTo(
-          Rect.fromCircle(center: center, radius: radius),
-          startAngle,
-          sweepAngle,
-          false,
-        )
-        ..close();
-
-      canvas.drawPath(path, paint);
-    }
-  }
-
-  @override
-  bool shouldRepaint(_SunburstPainter _) => false;
 }
