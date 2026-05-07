@@ -8,7 +8,6 @@ class Reward {
   final String badgeLabel;
   final String title;
   final String description;
-  final int requiredCorrect;
   final Color color;
 
   const Reward({
@@ -18,7 +17,6 @@ class Reward {
     required this.badgeLabel,
     required this.title,
     required this.description,
-    required this.requiredCorrect,
     required this.color,
   });
 }
@@ -27,10 +25,15 @@ class RewardService extends ChangeNotifier {
   static const _boxName = 'rewards_box';
   static const _totalCorrectKey = 'total_correct';
   static const _earnedIdsKey = 'earned_ids';
+  static const _puzzlePiecesKey = 'puzzle_pieces';
+
+  // Her ödül için 3×3 yapboz
+  static const int puzzlePieceCount = 9;
 
   late Box _box;
   int _totalCorrect = 0;
   List<String> _earnedIds = [];
+  Map<String, int> _puzzlePieces = {}; // rewardId -> kazanılan parça sayısı
 
   static final List<Reward> allRewards = [
     const Reward(
@@ -40,7 +43,6 @@ class RewardService extends ChangeNotifier {
       badgeLabel: 'İlk Adım ✨',
       title: 'Sevimli Yavru',
       description: 'Sevimli Yavru rozetini kazandın!',
-      requiredCorrect: 1,
       color: Color(0xFFFFC107),
     ),
     const Reward(
@@ -50,7 +52,6 @@ class RewardService extends ChangeNotifier {
       badgeLabel: 'Çok Havalı ✨',
       title: 'Aslan Kral',
       description: 'Aslan Kral rozetini kazandın!',
-      requiredCorrect: 5,
       color: Color(0xFFFF5722),
     ),
     const Reward(
@@ -60,7 +61,6 @@ class RewardService extends ChangeNotifier {
       badgeLabel: 'Süper Güçlü 💪',
       title: 'Güçlü Fil',
       description: 'Güçlü Fil rozetini kazandın!',
-      requiredCorrect: 10,
       color: Color(0xFF4CAF50),
     ),
     const Reward(
@@ -70,7 +70,6 @@ class RewardService extends ChangeNotifier {
       badgeLabel: 'Harika Çocuk 🌟',
       title: 'Uzun Boylu',
       description: 'Uzun Boylu rozetini kazandın!',
-      requiredCorrect: 25,
       color: Color(0xFF2196F3),
     ),
     const Reward(
@@ -80,7 +79,6 @@ class RewardService extends ChangeNotifier {
       badgeLabel: 'Efsane 🏆',
       title: 'Panda Ustası',
       description: 'Panda Ustası rozetini kazandın!',
-      requiredCorrect: 50,
       color: Color(0xFF9C27B0),
     ),
     const Reward(
@@ -90,7 +88,6 @@ class RewardService extends ChangeNotifier {
       badgeLabel: 'Bilgi Kralı 👑',
       title: 'Yunus Kahramanı',
       description: 'Yunus Kahramanı rozetini kazandın!',
-      requiredCorrect: 100,
       color: Color(0xFFE91E63),
     ),
   ];
@@ -98,40 +95,68 @@ class RewardService extends ChangeNotifier {
   int get totalCorrect => _totalCorrect;
   List<String> get earnedIds => List.unmodifiable(_earnedIds);
 
-  Future<void> init() async {
-    _box = await Hive.openBox(_boxName);
-    _totalCorrect = (_box.get(_totalCorrectKey, defaultValue: 0) as num).toInt();
-    final stored = _box.get(_earnedIdsKey, defaultValue: <dynamic>[]);
-    _earnedIds = List<String>.from(stored as List);
-  }
-
-  bool isEarned(String id) => _earnedIds.contains(id);
-
-  Reward? get nextReward {
+  /// Şu an üzerinde çalışılan yapboz (kazanılmamış ilk ödül)
+  Reward? get activeReward {
     for (final r in allRewards) {
       if (!_earnedIds.contains(r.id)) return r;
     }
     return null;
   }
 
+  /// Geriye dönük uyumluluk için
+  Reward? get nextReward => activeReward;
+
+  /// Bir ödül için kazanılan parça sayısı
+  int puzzlePiecesFor(String rewardId) =>
+      (_puzzlePieces[rewardId] ?? 0).clamp(0, puzzlePieceCount);
+
+  Future<void> init() async {
+    _box = await Hive.openBox(_boxName);
+    _totalCorrect = (_box.get(_totalCorrectKey, defaultValue: 0) as num).toInt();
+    final stored = _box.get(_earnedIdsKey, defaultValue: <dynamic>[]);
+    _earnedIds = List<String>.from(stored as List);
+    final raw = _box.get(_puzzlePiecesKey, defaultValue: <dynamic, dynamic>{});
+    _puzzlePieces = Map<String, int>.from(
+      (raw as Map).map((k, v) => MapEntry(k.toString(), (v as num).toInt())),
+    );
+  }
+
+  bool isEarned(String id) => _earnedIds.contains(id);
+
   Future<List<Reward>> addCorrect() async {
     _totalCorrect++;
     await _box.put(_totalCorrectKey, _totalCorrect);
 
-    final newlyEarned = <Reward>[];
-    for (final reward in allRewards) {
-      if (!_earnedIds.contains(reward.id) &&
-          _totalCorrect >= reward.requiredCorrect) {
-        _earnedIds.add(reward.id);
-        newlyEarned.add(reward);
-      }
+    final active = activeReward;
+    if (active == null) {
+      notifyListeners();
+      return [];
     }
 
-    if (newlyEarned.isNotEmpty) {
+    // Aktif yapboza bir parça ekle
+    final pieces = puzzlePiecesFor(active.id) + 1;
+    _puzzlePieces[active.id] = pieces;
+    await _box.put(
+        _puzzlePiecesKey, _puzzlePieces.map((k, v) => MapEntry(k, v)));
+
+    final newlyEarned = <Reward>[];
+    if (pieces >= puzzlePieceCount && !_earnedIds.contains(active.id)) {
+      _earnedIds.add(active.id);
       await _box.put(_earnedIdsKey, _earnedIds);
+      newlyEarned.add(active);
     }
 
     notifyListeners();
     return newlyEarned;
+  }
+
+  Future<void> resetRewards() async {
+    _totalCorrect = 0;
+    _earnedIds = [];
+    _puzzlePieces = {};
+    await _box.put(_totalCorrectKey, 0);
+    await _box.put(_earnedIdsKey, <String>[]);
+    await _box.put(_puzzlePiecesKey, <String, int>{});
+    notifyListeners();
   }
 }

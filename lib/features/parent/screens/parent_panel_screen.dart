@@ -479,7 +479,7 @@ class _RewardsTab extends StatelessWidget {
                       textAlign: TextAlign.center,
                     ),
                     Text(
-                      '${reward.requiredCorrect} doğru',
+                      earned ? reward.badgeLabel : 'Kilitli',
                       style: GoogleFonts.poppins(
                           fontSize: 10, color: AppColors.textSecondary),
                     ),

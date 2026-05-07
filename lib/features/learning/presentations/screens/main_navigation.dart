@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../services/rewards/reward_service.dart';
 import 'home_screen.dart';
+import 'puzzle_screen.dart';
 import '../../../parent/screens/parent_pin_screen.dart';
 
 class MainNavigation extends StatefulWidget {
@@ -109,7 +110,7 @@ class _RewardsScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     return Consumer<RewardService>(
       builder: (context, service, _) {
-        final next = service.nextReward;
+        final active = service.activeReward;
         final total = service.totalCorrect;
 
         return Scaffold(
@@ -117,7 +118,7 @@ class _RewardsScreen extends StatelessWidget {
           body: SafeArea(
             child: Column(
               children: [
-                _buildHeader(total, next),
+                _buildHeader(total, active, service),
                 Expanded(
                   child: GridView.builder(
                     padding: const EdgeInsets.all(20),
@@ -125,13 +126,29 @@ class _RewardsScreen extends StatelessWidget {
                       crossAxisCount: 2,
                       mainAxisSpacing: 16,
                       crossAxisSpacing: 16,
-                      childAspectRatio: 0.85,
+                      childAspectRatio: 0.82,
                     ),
                     itemCount: RewardService.allRewards.length,
                     itemBuilder: (context, i) {
                       final reward = RewardService.allRewards[i];
-                      final earned = service.isEarned(reward.id);
-                      return _RewardCard(reward: reward, earned: earned, totalCorrect: total);
+                      final isEarned = service.isEarned(reward.id);
+                      final isActive = active?.id == reward.id;
+                      final pieces = service.puzzlePiecesFor(reward.id);
+                      return _RewardCard(
+                        reward: reward,
+                        isEarned: isEarned,
+                        isActive: isActive,
+                        piecesEarned: pieces,
+                        onTap: (isEarned || isActive)
+                            ? () => Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (_) =>
+                                        PuzzleScreen(reward: reward),
+                                  ),
+                                )
+                            : null,
+                      );
                     },
                   ),
                 ),
@@ -143,7 +160,10 @@ class _RewardsScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildHeader(int total, Reward? next) {
+  Widget _buildHeader(int total, Reward? active, RewardService service) {
+    final pieces = active != null ? service.puzzlePiecesFor(active.id) : 0;
+    final total9 = RewardService.puzzlePieceCount;
+
     return Container(
       margin: const EdgeInsets.fromLTRB(20, 16, 20, 0),
       padding: const EdgeInsets.all(20),
@@ -181,10 +201,10 @@ class _RewardsScreen extends StatelessWidget {
               color: Colors.white.withOpacity(0.85),
             ),
           ),
-          if (next != null) ...[
+          if (active != null) ...[
             const SizedBox(height: 12),
             Text(
-              'Sıradaki: ${next.emoji} ${next.title}',
+              'Aktif Yapboz: ${active.emoji} ${active.title}',
               style: GoogleFonts.poppins(
                 fontSize: 12,
                 fontWeight: FontWeight.w600,
@@ -195,7 +215,7 @@ class _RewardsScreen extends StatelessWidget {
             ClipRRect(
               borderRadius: BorderRadius.circular(8),
               child: LinearProgressIndicator(
-                value: (total / next.requiredCorrect).clamp(0.0, 1.0),
+                value: pieces / total9,
                 backgroundColor: Colors.white.withOpacity(0.25),
                 valueColor: const AlwaysStoppedAnimation<Color>(Colors.white),
                 minHeight: 8,
@@ -203,7 +223,7 @@ class _RewardsScreen extends StatelessWidget {
             ),
             const SizedBox(height: 4),
             Text(
-              '$total / ${next.requiredCorrect} doğru',
+              '$pieces / $total9 parça',
               style: GoogleFonts.poppins(
                 fontSize: 11,
                 color: Colors.white.withOpacity(0.8),
@@ -228,119 +248,224 @@ class _RewardsScreen extends StatelessWidget {
 
 class _RewardCard extends StatelessWidget {
   final Reward reward;
-  final bool earned;
-  final int totalCorrect;
+  final bool isEarned;
+  final bool isActive;
+  final int piecesEarned;
+  final VoidCallback? onTap;
 
   const _RewardCard({
     required this.reward,
-    required this.earned,
-    required this.totalCorrect,
+    required this.isEarned,
+    required this.isActive,
+    required this.piecesEarned,
+    this.onTap,
   });
 
   @override
   Widget build(BuildContext context) {
-    return AnimatedContainer(
-      duration: const Duration(milliseconds: 400),
-      decoration: BoxDecoration(
-        color: earned ? Colors.white : const Color(0xFFEEEEEE),
-        borderRadius: BorderRadius.circular(24),
-        boxShadow: earned
-            ? [
-                BoxShadow(
-                  color: reward.color.withOpacity(0.25),
-                  blurRadius: 16,
-                  offset: const Offset(0, 4),
-                ),
-              ]
-            : [],
-        border: earned
-            ? Border.all(color: reward.color.withOpacity(0.4), width: 2)
-            : null,
-      ),
-      child: Stack(
-        children: [
-          Padding(
-            padding: const EdgeInsets.all(16),
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                // Rozet görseli
-                Container(
-                  width: 72,
-                  height: 72,
-                  decoration: BoxDecoration(
-                    shape: BoxShape.circle,
-                    color: earned
-                        ? reward.color.withOpacity(0.12)
-                        : Colors.grey.withOpacity(0.15),
+    return GestureDetector(
+      onTap: onTap,
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 400),
+        decoration: BoxDecoration(
+          color: isEarned
+              ? Colors.white
+              : isActive
+                  ? Colors.white
+                  : const Color(0xFFEEEEEE),
+          borderRadius: BorderRadius.circular(24),
+          boxShadow: (isEarned || isActive)
+              ? [
+                  BoxShadow(
+                    color: reward.color.withOpacity(0.2),
+                    blurRadius: 14,
+                    offset: const Offset(0, 4),
                   ),
-                  child: earned
-                      ? ClipOval(
-                          child: Padding(
-                            padding: const EdgeInsets.all(10),
-                            child: Image.asset(
-                              reward.imagePath,
-                              fit: BoxFit.contain,
-                              errorBuilder: (_, __, ___) => Text(
-                                reward.emoji,
-                                style: const TextStyle(fontSize: 34),
-                                textAlign: TextAlign.center,
-                              ),
-                            ),
-                          ),
-                        )
-                      : const Icon(Icons.lock_rounded, size: 32, color: Colors.grey),
-                ),
-                const SizedBox(height: 10),
-                Text(
-                  reward.title,
-                  style: GoogleFonts.fredoka(
-                    fontSize: 15,
-                    fontWeight: FontWeight.bold,
-                    color: earned ? reward.color : Colors.grey,
+                ]
+              : [],
+          border: isEarned
+              ? Border.all(color: reward.color.withOpacity(0.4), width: 2)
+              : isActive
+                  ? Border.all(
+                      color: reward.color.withOpacity(0.3), width: 1.5)
+                  : null,
+        ),
+        child: Stack(
+          children: [
+            Padding(
+              padding: const EdgeInsets.fromLTRB(14, 16, 14, 12),
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  _buildIcon(),
+                  const SizedBox(height: 10),
+                  Text(
+                    reward.title,
+                    style: GoogleFonts.fredoka(
+                      fontSize: 15,
+                      fontWeight: FontWeight.bold,
+                      color: isEarned
+                          ? reward.color
+                          : isActive
+                              ? const Color(0xFF555555)
+                              : Colors.grey,
+                    ),
+                    textAlign: TextAlign.center,
                   ),
-                  textAlign: TextAlign.center,
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  earned
-                      ? reward.description
-                      : '${reward.requiredCorrect} doğru cevap',
-                  style: GoogleFonts.poppins(
-                    fontSize: 11,
-                    color: earned
-                        ? Colors.grey[600]
-                        : Colors.grey[400],
-                  ),
-                  textAlign: TextAlign.center,
-                  maxLines: 2,
-                ),
-              ],
-            ),
-          ),
-          // "Yeni!" etiketi
-          if (earned && totalCorrect == reward.requiredCorrect)
-            Positioned(
-              top: 10,
-              right: 10,
-              child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                decoration: BoxDecoration(
-                  color: reward.color,
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: Text(
-                  'YENİ!',
-                  style: GoogleFonts.poppins(
-                    fontSize: 9,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.white,
-                  ),
-                ),
+                  const SizedBox(height: 4),
+                  if (isActive && !isEarned) ...[
+                    Text(
+                      '$piecesEarned/${RewardService.puzzlePieceCount} parça',
+                      style: GoogleFonts.poppins(
+                        fontSize: 11,
+                        fontWeight: FontWeight.w600,
+                        color: reward.color,
+                      ),
+                    ),
+                    const SizedBox(height: 5),
+                    ClipRRect(
+                      borderRadius: BorderRadius.circular(6),
+                      child: LinearProgressIndicator(
+                        value: piecesEarned / RewardService.puzzlePieceCount,
+                        backgroundColor: Colors.grey[200],
+                        valueColor:
+                            AlwaysStoppedAnimation<Color>(reward.color),
+                        minHeight: 6,
+                      ),
+                    ),
+                  ] else if (isEarned)
+                    Text(
+                      reward.badgeLabel,
+                      style: GoogleFonts.poppins(
+                        fontSize: 11,
+                        color: Colors.grey[500],
+                      ),
+                      textAlign: TextAlign.center,
+                    )
+                  else
+                    Text(
+                      'Kilitli',
+                      style: GoogleFonts.poppins(
+                        fontSize: 11,
+                        color: Colors.grey[400],
+                      ),
+                    ),
+                ],
               ),
             ),
-        ],
+            // Tıklanabilir ok
+            if (isActive && !isEarned)
+              Positioned(
+                top: 8,
+                right: 8,
+                child: Icon(Icons.chevron_right_rounded,
+                    size: 18, color: Colors.grey[400]),
+              ),
+            // Tamamlandı tik
+            if (isEarned)
+              Positioned(
+                top: 8,
+                right: 8,
+                child: Container(
+                  width: 22,
+                  height: 22,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    color: reward.color,
+                  ),
+                  child: const Icon(Icons.check_rounded,
+                      color: Colors.white, size: 14),
+                ),
+              ),
+          ],
+        ),
       ),
+    );
+  }
+
+  Widget _buildIcon() {
+    if (isEarned) {
+      return Container(
+        width: 72,
+        height: 72,
+        decoration: BoxDecoration(
+          shape: BoxShape.circle,
+          color: reward.color.withOpacity(0.12),
+        ),
+        child: ClipOval(
+          child: Padding(
+            padding: const EdgeInsets.all(10),
+            child: Image.asset(
+              reward.imagePath,
+              fit: BoxFit.contain,
+              errorBuilder: (_, __, ___) =>
+                  Text(reward.emoji, style: const TextStyle(fontSize: 34)),
+            ),
+          ),
+        ),
+      );
+    }
+
+    if (isActive) {
+      // Yapboz ön izleme — kazanılan parça sayısı kadar dolmuş mini grid
+      return SizedBox(
+        width: 72,
+        height: 72,
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(12),
+          child: GridView.builder(
+            physics: const NeverScrollableScrollPhysics(),
+            gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+              crossAxisCount: 3,
+              mainAxisSpacing: 2,
+              crossAxisSpacing: 2,
+            ),
+            itemCount: 9,
+            itemBuilder: (_, i) {
+              final row = i ~/ 3;
+              final col = i % 3;
+              final has = i < piecesEarned;
+              if (!has) {
+                return Container(color: Colors.grey[200]);
+              }
+              return LayoutBuilder(
+                builder: (context, constraints) {
+                  final w = constraints.maxWidth * 3;
+                  final h = constraints.maxHeight * 3;
+                  final ax = col / 2 * 2.0 - 1.0;
+                  final ay = row / 2 * 2.0 - 1.0;
+                  return ClipRect(
+                    child: OverflowBox(
+                      maxWidth: w,
+                      maxHeight: h,
+                      alignment: Alignment(ax, ay),
+                      child: Image.asset(
+                        reward.imagePath,
+                        width: w,
+                        height: h,
+                        fit: BoxFit.cover,
+                        errorBuilder: (_, __, ___) =>
+                            Container(color: reward.color.withOpacity(0.3)),
+                      ),
+                    ),
+                  );
+                },
+              );
+            },
+          ),
+        ),
+      );
+    }
+
+    // Future — kilitli
+    return Container(
+      width: 72,
+      height: 72,
+      decoration: BoxDecoration(
+        shape: BoxShape.circle,
+        color: Colors.grey.withOpacity(0.15),
+      ),
+      child: const Icon(Icons.lock_rounded, size: 30, color: Colors.grey),
     );
   }
 }
