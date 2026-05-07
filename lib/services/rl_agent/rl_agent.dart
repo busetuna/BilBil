@@ -3,45 +3,22 @@ import 'state_manager.dart';
 import 'reward_calculator.dart';
 import 'action_selector.dart';
 
-/// Difficulty → TTS hızı ve ipucu davranışı
 class DifficultyConfig {
   final double ttsRate;
-  final bool showHintAfterDelay;
-  final int hintDelaySeconds;
   final String label;
 
-  const DifficultyConfig({
-    required this.ttsRate,
-    required this.showHintAfterDelay,
-    required this.hintDelaySeconds,
-    required this.label,
-  });
+  const DifficultyConfig({required this.ttsRate, required this.label});
 }
 
 class RLAgent {
   final EpsilonGreedyBandit _bandit;
   final PerformanceState _state;
-  int _lastArm = 1; // başlangıçta "aynı kal"
+  int _lastArm = 1;
 
   static const configs = [
-    DifficultyConfig(
-      ttsRate: 0.35,
-      showHintAfterDelay: true,
-      hintDelaySeconds: 5,
-      label: 'Kolay',
-    ),
-    DifficultyConfig(
-      ttsRate: 0.45,
-      showHintAfterDelay: false,
-      hintDelaySeconds: 0,
-      label: 'Orta',
-    ),
-    DifficultyConfig(
-      ttsRate: 0.55,
-      showHintAfterDelay: false,
-      hintDelaySeconds: 0,
-      label: 'Zor',
-    ),
+    DifficultyConfig(ttsRate: 0.35, label: 'Kolay'),
+    DifficultyConfig(ttsRate: 0.45, label: 'Orta'),
+    DifficultyConfig(ttsRate: 0.55, label: 'Zor'),
   ];
 
   RLAgent({double epsilon = 0.2})
@@ -59,22 +36,31 @@ class RLAgent {
     required bool isCorrect,
     required double responseTimeSec,
   }) {
-    // 1. Ödül hesapla
+    // 1. Ödül hesapla ve banditi güncelle
     final reward = RewardCalculator.calculate(
       isCorrect: isCorrect,
       responseTimeSec: responseTimeSec,
     );
-
-    // 2. Son kolu güncelle
     _bandit.update(_lastArm, reward);
 
-    // 3. Performans geçmişine ekle
+    // 2. Performans geçmişine ekle
     _state.addAnswer(isCorrect, responseTimeSec);
 
-    // 4. Yeni kol seç (ε-greedy)
-    _lastArm = _bandit.selectArm();
+    // 3. Kol seç: yeterli veri varsa performans eşiği öncelikli
+    if (_state.totalAnswers >= 3) {
+      final rate = _state.correctRate;
+      if (rate >= 0.8 && _state.currentDifficulty < 2) {
+        _lastArm = 2; // son 3+ cevabın 80%'i doğru → zorlaştır
+      } else if (rate <= 0.3 && _state.currentDifficulty > 0) {
+        _lastArm = 0; // 30% veya altında → kolaylaştır
+      } else {
+        _lastArm = _bandit.selectArm(); // orta bölge → bandit karar verir
+      }
+    } else {
+      _lastArm = _bandit.selectArm();
+    }
 
-    // 5. Zorluk güncelle
+    // 4. Zorluk güncelle
     _state.currentDifficulty = ActionSelector.adjustDifficulty(
       _state.currentDifficulty,
       _lastArm,

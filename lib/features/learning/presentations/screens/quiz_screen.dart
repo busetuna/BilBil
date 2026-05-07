@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_tts/flutter_tts.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:speech_to_text/speech_to_text.dart';
+import 'package:speech_to_text/speech_recognition_error.dart';
 import 'package:provider/provider.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../data/models/quiz_item.dart';
@@ -33,7 +34,6 @@ class _QuizScreenState extends State<QuizScreen> with TickerProviderStateMixin {
   String _recognizedWord = '';
   bool _hasSpoken = false;
   bool _isCorrect = false;
-  bool _showHint = false;
   late RewardService _rewardService;
   final RLAgent _rlAgent = RLAgent(epsilon: 0.2);
   DateTime? _questionStartTime;
@@ -102,14 +102,29 @@ class _QuizScreenState extends State<QuizScreen> with TickerProviderStateMixin {
 
   void _startQuestion() {
     _questionStartTime = DateTime.now();
-    _showHint = false;
+  }
 
-    // Kolay modda belirli süre sonra ipucu göster
-    if (_rlAgent.config.showHintAfterDelay) {
-      Future.delayed(Duration(seconds: _rlAgent.config.hintDelaySeconds), () {
-        if (mounted && !_hasSpoken) {
-          setState(() => _showHint = true);
+  void _onSttStatus(String s) {
+    debugPrint('STT Status: $s');
+    if ((s == 'done' || s == 'notListening') && mounted) {
+      _micPulseController.stop();
+      if (_isListening) setState(() => _isListening = false);
+    }
+  }
+
+  void _onSttError(SpeechRecognitionError error) {
+    debugPrint('STT Error: $error');
+    if (!mounted) return;
+    _micPulseController.stop();
+    setState(() => _isListening = false);
+    // permanent hatası gerçek izin iptali mi yoksa recognizer hatası mı?
+    if (error.permanent) {
+      Permission.microphone.status.then((perm) {
+        if (!perm.isGranted && mounted) {
+          setState(() => _sttAvailable = false);
+          _showMicPermissionDialog(permanent: perm.isPermanentlyDenied);
         }
+        // İzin hâlâ geçerliyse sadece dinleme durur; butona tekrar basılabilir
       });
     }
   }
@@ -118,7 +133,6 @@ class _QuizScreenState extends State<QuizScreen> with TickerProviderStateMixin {
     final status = await Permission.microphone.request();
 
     if (status.isPermanentlyDenied) {
-      // Kullanıcı "bir daha sorma" dedi → ayarlara gönder
       setState(() => _sttAvailable = false);
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (mounted) _showMicPermissionDialog(permanent: true);
@@ -132,26 +146,8 @@ class _QuizScreenState extends State<QuizScreen> with TickerProviderStateMixin {
     }
 
     _sttAvailable = await _stt.initialize(
-      onError: (error) {
-        debugPrint('STT Error: $error');
-        // permanent: true → dinlemeyi durdur ve kullanıcıyı bilgilendir
-        if (error.permanent && mounted) {
-          _micPulseController.stop();
-          setState(() {
-            _isListening = false;
-            _sttAvailable = false;
-          });
-          _showMicPermissionDialog(permanent: true);
-        }
-      },
-      onStatus: (s) {
-        debugPrint('STT Status: $s');
-        // 'done' veya 'notListening' gelirse animasyonu durdur
-        if ((s == 'done' || s == 'notListening') && mounted) {
-          _micPulseController.stop();
-          if (_isListening) setState(() => _isListening = false);
-        }
-      },
+      onError: _onSttError,
+      onStatus: _onSttStatus,
     );
     setState(() {});
   }
@@ -207,103 +203,91 @@ class _QuizScreenState extends State<QuizScreen> with TickerProviderStateMixin {
     return r == e || r.contains(e) || e.contains(r);
   }
 
+  Future<void> _startListening() async {
+    if (_isListening) return;
+
+    final permStatus = await Permission.microphone.status;
+    if (permStatus.isPermanentlyDenied) {
+      _showMicPermissionDialog(permanent: true);
+      return;
+    }
+    if (!permStatus.isGranted) {
+      final result = await Permission.microphone.request();
+      if (!result.isGranted) return;
+    }
+
+    // Geçici hata sonrası STT kapalıysa yeniden başlat
+    if (!_sttAvailable) {
+      _sttAvailable = await _stt.initialize(onError: _onSttError, onStatus: _onSttStatus);
+      if (mounted) setState(() {});
+      if (!_sttAvailable) return;
+    }
+
+    setState(() {
+      _isListening = true;
+      _recognizedWord = '';
+      _hasSpoken = false;
+    });
+    _micPulseController.repeat(reverse: true);
+
+    await _stt.listen(
+      onResult: (result) {
+        setState(() => _recognizedWord = result.recognizedWords);
+
+        if (result.finalResult && _recognizedWord.isNotEmpty) {
+          _stt.stop();
+          _micPulseController.stop();
+
+          final expectedWord = _items[_currentIndex].word;
+          final correct = _checkAnswer(_recognizedWord, expectedWord);
+
+          final responseTimeSec = _questionStartTime != null
+              ? DateTime.now().difference(_questionStartTime!).inMilliseconds / 1000.0
+              : 5.0;
+
+          _rlAgent.processAnswer(isCorrect: correct, responseTimeSec: responseTimeSec);
+          _tts.setSpeechRate(_rlAgent.config.ttsRate);
+
+          setState(() {
+            _isListening = false;
+            _hasSpoken = true;
+            _isCorrect = correct;
+            if (correct) _stars++;
+          });
+
+          _wordRevealController.reset();
+          _wordRevealController.forward();
+
+          if (correct) {
+            _tts.speak('Aferin! Bu bir $expectedWord!');
+            _rewardService.addCorrect().then((newRewards) {
+              if (mounted && newRewards.isNotEmpty) {
+                Future.delayed(const Duration(milliseconds: 800), () {
+                  if (mounted) _showRewardCelebration(newRewards.first);
+                });
+              }
+            });
+          } else {
+            _tts.speak('Neredeyse! Bu bir $expectedWord. Tekrar deneyelim!');
+          }
+
+          Future.delayed(const Duration(seconds: 3), _nextItem);
+        }
+      },
+      localeId: 'tr_TR',
+      listenFor: const Duration(seconds: 30),
+      pauseFor: const Duration(seconds: 4),
+      listenOptions: SpeechListenOptions(cancelOnError: false),
+    );
+  }
+
   Future<void> _toggleListening() async {
     if (_isListening) {
       await _stt.stop();
       _micPulseController.stop();
       setState(() => _isListening = false);
     } else {
-      // Her basışta izni tekrar kontrol et
-      final permStatus = await Permission.microphone.status;
-      if (permStatus.isPermanentlyDenied) {
-        _showMicPermissionDialog(permanent: true);
-        return;
-      }
-      if (!permStatus.isGranted) {
-        final result = await Permission.microphone.request();
-        if (!result.isGranted) return;
-        // İzin yeni verildiyse STT'yi yeniden başlat
-        _sttAvailable = await _stt.initialize(
-          onError: (error) {
-            if (error.permanent && mounted) {
-              _micPulseController.stop();
-              setState(() { _isListening = false; _sttAvailable = false; });
-              _showMicPermissionDialog(permanent: true);
-            }
-          },
-          onStatus: (s) {
-            if ((s == 'done' || s == 'notListening') && mounted) {
-              _micPulseController.stop();
-              if (_isListening) setState(() => _isListening = false);
-            }
-          },
-        );
-        if (!_sttAvailable) return;
-      }
-
-      setState(() {
-        _isListening = true;
-        _recognizedWord = '';
-        _hasSpoken = false;
-      });
-      _micPulseController.repeat(reverse: true);
-
-      await _stt.listen(
-        onResult: (result) {
-          setState(() {
-            _recognizedWord = result.recognizedWords;
-          });
-
-          if (result.finalResult && _recognizedWord.isNotEmpty) {
-            _stt.stop();
-            _micPulseController.stop();
-
-            final expectedWord = _items[_currentIndex].word;
-            final correct = _checkAnswer(_recognizedWord, expectedWord);
-
-            // Yanıt süresini hesapla
-            final responseTimeSec = _questionStartTime != null
-                ? DateTime.now().difference(_questionStartTime!).inMilliseconds / 1000.0
-                : 5.0;
-
-            // RL ajanını güncelle → yeni zorluk belirle
-            _rlAgent.processAnswer(
-              isCorrect: correct,
-              responseTimeSec: responseTimeSec,
-            );
-
-            // TTS hızını yeni zorluğa göre güncelle
-            _tts.setSpeechRate(_rlAgent.config.ttsRate);
-
-            setState(() {
-              _isListening = false;
-              _hasSpoken = true;
-              _isCorrect = correct;
-              _showHint = false;
-              if (correct) _stars = min(_stars + 1, 5);
-            });
-
-            _wordRevealController.reset();
-            _wordRevealController.forward();
-
-            if (correct) {
-              _tts.speak('Aferin! Bu bir $expectedWord!');
-              _rewardService.addCorrect().then((newRewards) {
-                if (mounted && newRewards.isNotEmpty) {
-                  Future.delayed(const Duration(milliseconds: 800), () {
-                    if (mounted) _showRewardCelebration(newRewards.first);
-                  });
-                }
-              });
-            } else {
-              _tts.speak('Neredeyse! Bu bir $expectedWord. Tekrar deneyelim!');
-            }
-
-            Future.delayed(const Duration(seconds: 3), _nextItem);
-          }
-        },
-        localeId: 'tr_TR',
-      );
+      await _startListening();
     }
   }
 
@@ -315,7 +299,6 @@ class _QuizScreenState extends State<QuizScreen> with TickerProviderStateMixin {
         _recognizedWord = '';
         _hasSpoken = false;
         _isCorrect = false;
-        _showHint = false;
       });
       _cardController.reset();
       _cardController.forward();
@@ -418,35 +401,6 @@ class _QuizScreenState extends State<QuizScreen> with TickerProviderStateMixin {
                         // Resim kartı
                         _buildImageCard(item),
 
-                        // İpucu (kolay modda, gecikmeli gösterilir)
-                        if (_showHint && !_hasSpoken)
-                          Padding(
-                            padding: const EdgeInsets.only(top: 12),
-                            child: Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
-                              decoration: BoxDecoration(
-                                color: const Color(0xFF4CAF50).withOpacity(0.12),
-                                borderRadius: BorderRadius.circular(14),
-                                border: Border.all(color: const Color(0xFF4CAF50).withOpacity(0.4)),
-                              ),
-                              child: Row(
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  const Icon(Icons.lightbulb_outline, size: 16, color: Color(0xFF4CAF50)),
-                                  const SizedBox(width: 6),
-                                  Text(
-                                    item.word,
-                                    style: GoogleFonts.fredoka(
-                                      fontSize: 20,
-                                      fontWeight: FontWeight.bold,
-                                      color: const Color(0xFF4CAF50),
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ),
-
                         const SizedBox(height: 28),
 
                         // Tanınan kelime (çocuk söylediğinde belirir)
@@ -509,14 +463,18 @@ class _QuizScreenState extends State<QuizScreen> with TickerProviderStateMixin {
                 ),
               ),
               const Spacer(),
-              // Yıldızlar
+              // Yıldızlar (her 5 doğruda döngü yapar)
               Row(
                 children: List.generate(5, (i) => Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 2),
                   child: Icon(
-                    i < _stars ? Icons.star_rounded : Icons.star_outline_rounded,
+                    i < (_stars % 5 == 0 && _stars > 0 ? 5 : _stars % 5)
+                        ? Icons.star_rounded
+                        : Icons.star_outline_rounded,
                     size: 28,
-                    color: i < _stars ? const Color(0xFFFFC107) : const Color(0xFFD0D0D0),
+                    color: i < (_stars % 5 == 0 && _stars > 0 ? 5 : _stars % 5)
+                        ? const Color(0xFFFFC107)
+                        : const Color(0xFFD0D0D0),
                   ),
                 )),
               ),
