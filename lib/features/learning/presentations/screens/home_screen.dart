@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../providers/auth_provider.dart';
 import 'quiz_screen.dart';
+import '../../../parent/screens/parent_pin_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -133,35 +134,62 @@ class _HomeScreenState extends State<HomeScreen>
             ),
           ],
         ),
-        // Avatar
-        Container(
-          width: 48,
-          height: 48,
-          decoration: BoxDecoration(
-            shape: BoxShape.circle,
-            color: Colors.white,
-            border: Border.all(
-              color: AppColors.primary.withOpacity(0.3),
-              width: 2,
-            ),
-            boxShadow: [
-              BoxShadow(
-                color: AppColors.primary.withOpacity(0.15),
-                blurRadius: 10,
+        Row(
+          children: [
+            GestureDetector(
+              onTap: () => Navigator.push(
+                context,
+                MaterialPageRoute(builder: (_) => const ParentPinScreen()),
               ),
-            ],
-          ),
-          child: ClipOval(
-            child: Image.asset(
-              'assets/images/bilbil1.png',
-              fit: BoxFit.cover,
-              errorBuilder: (_, __, ___) => Icon(
-                Icons.flutter_dash,
-                color: AppColors.primary,
-                size: 28,
+              child: Container(
+                width: 40,
+                height: 40,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: Colors.white,
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withOpacity(0.08),
+                      blurRadius: 8,
+                    ),
+                  ],
+                ),
+                child: const Icon(Icons.lock_outline_rounded,
+                    size: 20, color: Color(0xFF9B91FF)),
               ),
             ),
-          ),
+            const SizedBox(width: 10),
+            // Avatar
+            Container(
+              width: 48,
+              height: 48,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color: Colors.white,
+                border: Border.all(
+                  color: AppColors.primary.withOpacity(0.3),
+                  width: 2,
+                ),
+                boxShadow: [
+                  BoxShadow(
+                    color: AppColors.primary.withOpacity(0.15),
+                    blurRadius: 10,
+                  ),
+                ],
+              ),
+              child: ClipOval(
+                child: Image.asset(
+                  'assets/images/bilbil1.png',
+                  fit: BoxFit.cover,
+                  errorBuilder: (_, __, ___) => Icon(
+                    Icons.flutter_dash,
+                    color: AppColors.primary,
+                    size: 28,
+                  ),
+                ),
+              ),
+            ),
+          ],
         ),
       ],
     );

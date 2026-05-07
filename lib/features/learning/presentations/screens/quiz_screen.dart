@@ -12,6 +12,7 @@ import '../../../../core/theme/app_colors.dart';
 import '../../../../data/models/quiz_item.dart';
 import '../../../../services/rewards/reward_service.dart';
 import '../../../../services/rl_agent/rl_agent.dart';
+import '../../../../services/stats/stats_service.dart';
 import 'answer_checker.dart';
 import 'reward_celebration_dialog.dart';
 
@@ -35,8 +36,10 @@ class _QuizScreenState extends State<QuizScreen> with TickerProviderStateMixin {
   // ── Servisler ───────────────────────────────────────────────────────────────
   final FlutterTts _tts = FlutterTts();
   final SpeechToText _stt = SpeechToText();
-  final RLAgent _rlAgent = RLAgent(epsilon: 0.2);
+  late RLAgent _rlAgent;
   late RewardService _rewardService;
+  late StatsService _statsService;
+  bool _servicesInitialized = false;
 
   // ── STT durumu ──────────────────────────────────────────────────────────────
   bool _isListening = false;
@@ -88,6 +91,15 @@ class _QuizScreenState extends State<QuizScreen> with TickerProviderStateMixin {
   void didChangeDependencies() {
     super.didChangeDependencies();
     _rewardService = Provider.of<RewardService>(context, listen: false);
+    _statsService = Provider.of<StatsService>(context, listen: false);
+    if (!_servicesInitialized) {
+      _servicesInitialized = true;
+      _rlAgent = RLAgent(
+        epsilon: 0.2,
+        initialDifficulty: _statsService.startingDifficulty,
+      );
+      _activeDifficulty = _statsService.startingDifficulty;
+    }
   }
 
   @override
@@ -342,10 +354,11 @@ class _QuizScreenState extends State<QuizScreen> with TickerProviderStateMixin {
   }
 
   void _updateRlAgent(bool correct, double responseTimeSec) {
-    final prevDiff = _rlAgent.currentDifficulty;
+    final diff = _rlAgent.currentDifficulty;
     _rlAgent.processAnswer(isCorrect: correct, responseTimeSec: responseTimeSec);
+    _statsService.recordAnswer(correct: correct, difficulty: diff);
     _tts.setSpeechRate(_rlAgent.config.ttsRate);
-    if (_rlAgent.currentDifficulty != prevDiff) {
+    if (_rlAgent.currentDifficulty != diff) {
       _activeDifficulty = _rlAgent.currentDifficulty;
     }
   }

@@ -13,6 +13,7 @@ import 'domain/usecases/logout_usecase.dart';
 import 'features/learning/presentations/providers/auth_provider.dart';
 import 'features/learning/presentations/screens/splash_screen.dart';
 import 'services/rewards/reward_service.dart';
+import 'services/stats/stats_service.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -27,12 +28,16 @@ void main() async {
   final rewardService = RewardService();
   await rewardService.init();
 
-  runApp(MyApp(rewardService: rewardService));
+  final statsService = StatsService();
+  await statsService.init();
+
+  runApp(MyApp(rewardService: rewardService, statsService: statsService));
 }
 
 class MyApp extends StatelessWidget {
   final RewardService rewardService;
-  const MyApp({super.key, required this.rewardService});
+  final StatsService statsService;
+  const MyApp({super.key, required this.rewardService, required this.statsService});
 
   @override
   Widget build(BuildContext context) {
@@ -50,6 +55,7 @@ class MyApp extends StatelessWidget {
           ),
         ),
         ChangeNotifierProvider<RewardService>.value(value: rewardService),
+        ChangeNotifierProvider<StatsService>.value(value: statsService),
       ],
       child: MaterialApp(
         title: 'Bilbil',

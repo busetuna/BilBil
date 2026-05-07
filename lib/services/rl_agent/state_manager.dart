@@ -4,7 +4,9 @@ class PerformanceState {
 
   final List<bool> _recentAnswers = [];
   final List<double> _responseTimes = [];
-  int currentDifficulty = 0; // 0=kolay, 1=orta, 2=zor
+  int currentDifficulty;
+
+  PerformanceState({int initialDifficulty = 0}) : currentDifficulty = initialDifficulty;
 
   void addAnswer(bool correct, double responseTimeSec) {
     _recentAnswers.add(correct);

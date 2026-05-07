@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../services/rewards/reward_service.dart';
 import 'home_screen.dart';
+import '../../../parent/screens/parent_pin_screen.dart';
 
 class MainNavigation extends StatefulWidget {
   const MainNavigation({super.key});
@@ -18,7 +19,7 @@ class _MainNavigationState extends State<MainNavigation> {
   final List<Widget> _screens = [
     const HomeScreen(),
     const _RewardsScreen(),
-    const _ParentScreen(),
+    const HomeScreen(), // placeholder — Ebeveynler tapped navigates via push
   ];
 
   @override
@@ -51,7 +52,12 @@ class _MainNavigationState extends State<MainNavigation> {
             children: [
               _buildNavItem(0, Icons.home_rounded, 'Ana Sayfa'),
               _buildNavItem(1, Icons.emoji_events_rounded, 'Ödüller'),
-              _buildNavItem(2, Icons.shield_rounded, 'Ebeveynler'),
+              _buildNavItem(2, Icons.shield_rounded, 'Ebeveynler',
+                  onTap: () => Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                            builder: (_) => const ParentPinScreen()),
+                      )),
             ],
           ),
         ),
@@ -59,11 +65,12 @@ class _MainNavigationState extends State<MainNavigation> {
     );
   }
 
-  Widget _buildNavItem(int index, IconData icon, String label) {
+  Widget _buildNavItem(int index, IconData icon, String label,
+      {VoidCallback? onTap}) {
     final isSelected = _currentIndex == index;
 
     return GestureDetector(
-      onTap: () => setState(() => _currentIndex = index),
+      onTap: onTap ?? () => setState(() => _currentIndex = index),
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 200),
         padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
@@ -333,46 +340,6 @@ class _RewardCard extends StatelessWidget {
               ),
             ),
         ],
-      ),
-    );
-  }
-}
-
-class _ParentScreen extends StatelessWidget {
-  const _ParentScreen();
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: const Color(0xFFEDF4FF),
-      body: Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(
-              Icons.shield_rounded,
-              size: 80,
-              color: AppColors.secondary,
-            ),
-            const SizedBox(height: 16),
-            Text(
-              'Ebeveyn Paneli',
-              style: GoogleFonts.fredoka(
-                fontSize: 28,
-                fontWeight: FontWeight.bold,
-                color: AppColors.textPrimary,
-              ),
-            ),
-            const SizedBox(height: 8),
-            Text(
-              'Yakında geliyor! 👨‍👩‍👧',
-              style: GoogleFonts.poppins(
-                fontSize: 14,
-                color: AppColors.textSecondary,
-              ),
-            ),
-          ],
-        ),
       ),
     );
   }

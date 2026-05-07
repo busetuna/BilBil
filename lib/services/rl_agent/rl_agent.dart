@@ -38,9 +38,9 @@ class RLAgent {
     ),
   ];
 
-  RLAgent({double epsilon = 0.2})
+  RLAgent({double epsilon = 0.2, int initialDifficulty = 0})
       : _bandit = EpsilonGreedyBandit(epsilon: epsilon),
-        _state = PerformanceState();
+        _state = PerformanceState(initialDifficulty: initialDifficulty.clamp(0, 2));
 
   int get currentDifficulty => _state.currentDifficulty;
   DifficultyConfig get config => configs[_state.currentDifficulty];
