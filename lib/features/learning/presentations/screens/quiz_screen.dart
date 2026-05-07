@@ -14,17 +14,20 @@ import '../../../../services/rl_agent/rl_agent.dart';
 import 'package:permission_handler/permission_handler.dart';
 
 class QuizScreen extends StatefulWidget {
-  final String category;
-  const QuizScreen({super.key, this.category = 'animals'});
+  const QuizScreen({super.key});
 
   @override
   State<QuizScreen> createState() => _QuizScreenState();
 }
 
 class _QuizScreenState extends State<QuizScreen> with TickerProviderStateMixin {
-  late List<QuizItem> _items;
+  // Her zorluk için ayrı soru havuzu
+  late Map<int, List<QuizItem>> _pools;
+  int _activeDifficulty = 0; // hangi havuz aktif
   int _currentIndex = 0;
   int _stars = 0;
+
+  List<QuizItem> get _items => _pools[_rlAgent.currentDifficulty]!;
 
   final FlutterTts _tts = FlutterTts();
   final SpeechToText _stt = SpeechToText();
@@ -44,10 +47,17 @@ class _QuizScreenState extends State<QuizScreen> with TickerProviderStateMixin {
   late AnimationController _wordRevealController;
   late Animation<double> _wordRevealAnimation;
 
+  List<QuizItem> _buildPool(int diff) {
+    return RLAgent.configs[diff].categories
+        .expand((c) => QuizData.byCategory(c))
+        .toList()
+      ..shuffle(Random());
+  }
+
   @override
   void initState() {
     super.initState();
-    _items = List.from(QuizData.byCategory(widget.category))..shuffle(Random());
+    _pools = {for (var i = 0; i < RLAgent.configs.length; i++) i: _buildPool(i)};
 
     _micPulseController = AnimationController(
       vsync: this,
@@ -245,8 +255,12 @@ class _QuizScreenState extends State<QuizScreen> with TickerProviderStateMixin {
               ? DateTime.now().difference(_questionStartTime!).inMilliseconds / 1000.0
               : 5.0;
 
+          final prevDiff = _rlAgent.currentDifficulty;
           _rlAgent.processAnswer(isCorrect: correct, responseTimeSec: responseTimeSec);
           _tts.setSpeechRate(_rlAgent.config.ttsRate);
+          if (_rlAgent.currentDifficulty != prevDiff) {
+            _activeDifficulty = _rlAgent.currentDifficulty;
+          }
 
           setState(() {
             _isListening = false;
@@ -293,20 +307,31 @@ class _QuizScreenState extends State<QuizScreen> with TickerProviderStateMixin {
 
   void _nextItem() {
     if (!mounted) return;
-    if (_currentIndex < _items.length - 1) {
-      setState(() {
-        _currentIndex++;
-        _recognizedWord = '';
-        _hasSpoken = false;
-        _isCorrect = false;
-      });
-      _cardController.reset();
-      _cardController.forward();
-      _wordRevealController.reset();
-      _startQuestion();
+    final currentDiff = _rlAgent.currentDifficulty;
+
+    int nextIndex;
+    if (currentDiff != _activeDifficulty) {
+      // Zorluk değişti → yeni havuzun başından başla
+      _activeDifficulty = currentDiff;
+      nextIndex = 0;
+    } else if (_currentIndex < _items.length - 1) {
+      nextIndex = _currentIndex + 1;
     } else {
-      _showFinishDialog();
+      // Havuz bitti → karıştır ve başa dön
+      _pools[currentDiff]!.shuffle(Random());
+      nextIndex = 0;
     }
+
+    setState(() {
+      _currentIndex = nextIndex;
+      _recognizedWord = '';
+      _hasSpoken = false;
+      _isCorrect = false;
+    });
+    _cardController.reset();
+    _cardController.forward();
+    _wordRevealController.reset();
+    _startQuestion();
   }
 
   void _showFinishDialog() {
@@ -338,9 +363,10 @@ class _QuizScreenState extends State<QuizScreen> with TickerProviderStateMixin {
             onPressed: () {
               Navigator.pop(context);
               setState(() {
-                _items.shuffle(Random());
+                _pools = {for (var i = 0; i < RLAgent.configs.length; i++) i: _buildPool(i)};
+                _activeDifficulty = 0;
                 _currentIndex = 0;
-                _stars = 0; // yeni oyunda sıfırla
+                _stars = 0;
                 _recognizedWord = '';
                 _hasSpoken = false;
                 _isCorrect = false;
