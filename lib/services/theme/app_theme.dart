@@ -65,5 +65,16 @@ class AppTheme {
     card: Color(0xFFE0F7F0),
   );
 
-  static const List<AppTheme> all = [lavender, cotton, sunny, mint];
+  static const ocean = AppTheme(
+    id: 'ocean',
+    name: 'Mavi',
+    emoji: '💙',
+    background: Color(0xFFEDF4FF),
+    primary: Color(0xFF2979FF),
+    primaryLight: Color(0xFF82B1FF),
+    accent: Color(0xFF448AFF),
+    card: Color(0xFFE3F0FF),
+  );
+
+  static const List<AppTheme> all = [lavender, cotton, sunny, mint, ocean];
 }

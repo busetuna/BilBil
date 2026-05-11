@@ -62,7 +62,7 @@ class _RestScreenState extends State<RestScreen>
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFF0F4FF),
+      backgroundColor: AppColors.background,
       body: SafeArea(
         child: Column(
           children: [
@@ -116,13 +116,13 @@ class _RestScreenState extends State<RestScreen>
               height: 160,
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
-                gradient: const RadialGradient(
-                  colors: [Color(0xFFB8B0FF), Color(0xFF9B91FF)],
+                gradient: RadialGradient(
+                  colors: [AppColors.primaryLight, AppColors.primary],
                   radius: 0.8,
                 ),
                 boxShadow: [
                   BoxShadow(
-                    color: const Color(0xFF9B91FF).withOpacity(0.4),
+                    color: AppColors.primary.withOpacity(0.4),
                     blurRadius: 30,
                     spreadRadius: 8,
                   ),
@@ -162,7 +162,7 @@ class _RestScreenState extends State<RestScreen>
         height: 200,
         decoration: BoxDecoration(
           shape: BoxShape.circle,
-          color: const Color(0xFF9B91FF).withOpacity(0.08),
+          color: AppColors.primary.withOpacity(0.08),
         ),
       ),
       Container(
@@ -170,7 +170,7 @@ class _RestScreenState extends State<RestScreen>
         height: 175,
         decoration: BoxDecoration(
           shape: BoxShape.circle,
-          color: const Color(0xFF9B91FF).withOpacity(0.10),
+          color: AppColors.primary.withOpacity(0.10),
         ),
       ),
     ];
@@ -273,15 +273,15 @@ class _RestScreenState extends State<RestScreen>
               child: Container(
                 padding: const EdgeInsets.symmetric(vertical: 18),
                 decoration: BoxDecoration(
-                  gradient: const LinearGradient(
-                    colors: [Color(0xFFB8B0FF), Color(0xFF9B91FF)],
+                  gradient: LinearGradient(
+                    colors: [AppColors.primaryLight, AppColors.primary],
                     begin: Alignment.topLeft,
                     end: Alignment.bottomRight,
                   ),
                   borderRadius: BorderRadius.circular(22),
                   boxShadow: [
                     BoxShadow(
-                      color: const Color(0xFF9B91FF).withOpacity(0.45),
+                      color: AppColors.primary.withOpacity(0.45),
                       blurRadius: 20,
                       offset: const Offset(0, 6),
                     ),
@@ -311,7 +311,7 @@ class _RestScreenState extends State<RestScreen>
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
               Icon(Icons.favorite_rounded,
-                  size: 14, color: const Color(0xFF9B91FF)),
+                  size: 14, color: AppColors.primary),
               const SizedBox(width: 4),
               Text(
                 '5 can geri gelir',

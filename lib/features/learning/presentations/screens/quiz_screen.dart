@@ -442,7 +442,7 @@ class _QuizScreenState extends State<QuizScreen> with TickerProviderStateMixin {
     }
 
     return Scaffold(
-      backgroundColor: const Color(0xFFF0F4FF),
+      backgroundColor: AppColors.background,
       body: SafeArea(
         child: Column(
           children: [
@@ -455,7 +455,7 @@ class _QuizScreenState extends State<QuizScreen> with TickerProviderStateMixin {
                   child: Container(
                     width: double.infinity,
                     decoration: BoxDecoration(
-                      color: const Color(0xFFFFFDE7),
+                      color: AppColors.card,
                       borderRadius: BorderRadius.circular(32),
                       boxShadow: [
                         BoxShadow(
@@ -769,12 +769,10 @@ class _QuizScreenState extends State<QuizScreen> with TickerProviderStateMixin {
           height: 76,
           decoration: BoxDecoration(
             shape: BoxShape.circle,
-            color: _isListening ? AppColors.secondary : const Color(0xFF5B9BFF),
+            color: _isListening ? AppColors.secondary : AppColors.primary,
             boxShadow: [
               BoxShadow(
-                color: (_isListening
-                        ? AppColors.secondary
-                        : const Color(0xFF5B9BFF))
+                color: (_isListening ? AppColors.secondary : AppColors.primary)
                     .withOpacity(0.45),
                 blurRadius: 24,
                 spreadRadius: 4,

@@ -69,7 +69,7 @@ class _ParentPinScreenState extends State<ParentPinScreen>
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFF0F4FF),
+      backgroundColor: AppColors.background,
       appBar: AppBar(
         backgroundColor: Colors.transparent,
         elevation: 0,
@@ -84,7 +84,7 @@ class _ParentPinScreenState extends State<ParentPinScreen>
       body: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          const Icon(Icons.lock_outline_rounded, size: 64, color: Color(0xFF9B91FF)),
+          Icon(Icons.lock_outline_rounded, size: 64, color: AppColors.primary),
           const SizedBox(height: 16),
           Text('PIN Kodunu Gir',
               style: GoogleFonts.fredoka(
@@ -113,10 +113,10 @@ class _ParentPinScreenState extends State<ParentPinScreen>
                   decoration: BoxDecoration(
                     shape: BoxShape.circle,
                     color: filled
-                        ? const Color(0xFF9B91FF)
+                        ? AppColors.primary
                         : Colors.white,
                     border: Border.all(
-                      color: const Color(0xFF9B91FF),
+                      color: AppColors.primary,
                       width: 2,
                     ),
                   ),
@@ -195,9 +195,9 @@ class _ParentPinScreenState extends State<ParentPinScreen>
                   color: Colors.black.withOpacity(0.08), blurRadius: 8)
             ],
           ),
-          child: const Center(
+          child: Center(
             child: Icon(Icons.backspace_outlined,
-                size: 24, color: Color(0xFF9B91FF)),
+                size: 24, color: AppColors.primary),
           ),
         ),
       );

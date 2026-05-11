@@ -32,9 +32,9 @@ class _ParentPanelScreenState extends State<ParentPanelScreen>
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFF0F4FF),
+      backgroundColor: AppColors.background,
       appBar: AppBar(
-        backgroundColor: const Color(0xFF9B91FF),
+        backgroundColor: AppColors.primary,
         elevation: 0,
         leading: BackButton(color: Colors.white),
         title: Text('Ebeveyn Paneli',
@@ -131,7 +131,7 @@ class _StatsTab extends StatelessWidget {
                   label: 'Başarı Oranı',
                   value: '%$rate',
                   icon: Icons.percent_rounded,
-                  color: const Color(0xFF9B91FF),
+                  color: AppColors.primary,
                 ),
               ),
             ],
@@ -344,20 +344,20 @@ class _ChartTab extends StatelessWidget {
                               FlSpot(e.key.toDouble(), e.value.toDouble()))
                           .toList(),
                       isCurved: true,
-                      color: const Color(0xFF9B91FF),
+                      color: AppColors.primary,
                       barWidth: 3,
                       dotData: FlDotData(
                         show: history.length <= 30,
                         getDotPainter: (_, __, ___, ____) =>
                             FlDotCirclePainter(
                           radius: 4,
-                          color: const Color(0xFF9B91FF),
+                          color: AppColors.primary,
                           strokeWidth: 0,
                         ),
                       ),
                       belowBarData: BarAreaData(
                         show: true,
-                        color: const Color(0xFF9B91FF).withOpacity(0.10),
+                        color: AppColors.primary.withOpacity(0.10),
                       ),
                     ),
                   ],
@@ -615,7 +615,7 @@ class _SettingsTabState extends State<_SettingsTab> {
                   style: ButtonStyle(
                     backgroundColor: WidgetStateProperty.resolveWith((states) {
                       if (states.contains(WidgetState.selected)) {
-                        return const Color(0xFF9B91FF);
+                        return AppColors.primary;
                       }
                       return Colors.white;
                     }),
@@ -674,7 +674,7 @@ class _SettingsTabState extends State<_SettingsTab> {
                   child: ElevatedButton(
                     onPressed: () => _changePin(stats),
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color(0xFF9B91FF),
+                      backgroundColor: AppColors.primary,
                       shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(12)),
                       padding: const EdgeInsets.symmetric(vertical: 12),
