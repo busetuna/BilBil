@@ -34,6 +34,9 @@ dependencies:
   fl_chart: ^0.68.0
   animations: ^2.0.11
 
+  # Ads
+  google_mobile_ads: ^5.1.0
+
   # Utils
   path_provider: ^2.1.2
   permission_handler: ^11.2.0
@@ -68,3 +71,4 @@ flutter:
     - assets/images/weather/
     - assets/sounds/
     - assets/models/
+    - bilbil-puzzle/

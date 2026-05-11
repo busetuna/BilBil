@@ -112,33 +112,128 @@ class _RewardsScreen extends StatelessWidget {
       builder: (context, service, _) {
         final active = service.activeReward;
         final total = service.totalCorrect;
+        final pieces =
+            active != null ? service.puzzlePiecesFor(active.id) : 0;
 
         return Scaffold(
           backgroundColor: const Color(0xFFEDF4FF),
-          body: SafeArea(
-            child: Column(
-              children: [
-                _buildHeader(total, active, service),
-                Expanded(
-                  child: GridView.builder(
-                    padding: const EdgeInsets.all(20),
-                    gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                      crossAxisCount: 2,
-                      mainAxisSpacing: 16,
-                      crossAxisSpacing: 16,
-                      childAspectRatio: 0.82,
-                    ),
-                    itemCount: RewardService.allRewards.length,
-                    itemBuilder: (context, i) {
+          body: CustomScrollView(
+            slivers: [
+              // ── Üst banner (SliverAppBar) ───────────────────────────────
+              SliverAppBar(
+                expandedHeight: 200,
+                pinned: true,
+                automaticallyImplyLeading: false,
+                backgroundColor: const Color(0xFF9B91FF),
+                flexibleSpace: FlexibleSpaceBar(
+                  background: Stack(
+                    fit: StackFit.expand,
+                    children: [
+                      // Aktif ödülün resmi banner arka planı
+                      if (active != null)
+                        Image.asset(active.imagePath,
+                            fit: BoxFit.cover,
+                            errorBuilder: (_, __, ___) => Container(
+                                color: const Color(0xFF9B91FF)))
+                      else
+                        Container(
+                          decoration: const BoxDecoration(
+                            gradient: LinearGradient(
+                              colors: [Color(0xFFB8B0FF), Color(0xFF9B91FF)],
+                              begin: Alignment.topLeft,
+                              end: Alignment.bottomRight,
+                            ),
+                          ),
+                        ),
+                      // Gradient overlay
+                      Container(
+                        decoration: BoxDecoration(
+                          gradient: LinearGradient(
+                            begin: Alignment.topCenter,
+                            end: Alignment.bottomCenter,
+                            colors: [
+                              Colors.black.withOpacity(0.15),
+                              Colors.black.withOpacity(0.55),
+                            ],
+                          ),
+                        ),
+                      ),
+                      // İçerik
+                      Positioned(
+                        bottom: 16,
+                        left: 20,
+                        right: 20,
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Text(
+                              'Ödül Koleksiyonu',
+                              style: GoogleFonts.fredoka(
+                                fontSize: 28,
+                                fontWeight: FontWeight.bold,
+                                color: Colors.white,
+                              ),
+                            ),
+                            const SizedBox(height: 6),
+                            if (active != null) ...[
+                              Text(
+                                '${active.emoji} ${active.title} — $pieces/${RewardService.puzzlePieceCount} parça',
+                                style: GoogleFonts.poppins(
+                                    fontSize: 12,
+                                    color: Colors.white.withOpacity(0.9)),
+                              ),
+                              const SizedBox(height: 6),
+                              ClipRRect(
+                                borderRadius: BorderRadius.circular(6),
+                                child: LinearProgressIndicator(
+                                  value: pieces / RewardService.puzzlePieceCount,
+                                  backgroundColor:
+                                      Colors.white.withOpacity(0.25),
+                                  valueColor:
+                                      const AlwaysStoppedAnimation<Color>(
+                                          Colors.white),
+                                  minHeight: 7,
+                                ),
+                              ),
+                            ] else
+                              Text(
+                                'Tüm rozetleri kazandın! 👑',
+                                style: GoogleFonts.poppins(
+                                    fontSize: 13,
+                                    fontWeight: FontWeight.w600,
+                                    color: Colors.white),
+                              ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+
+              // ── Koleksiyon grid ─────────────────────────────────────────
+              SliverPadding(
+                padding: const EdgeInsets.fromLTRB(16, 16, 16, 24),
+                sliver: SliverGrid(
+                  gridDelegate:
+                      const SliverGridDelegateWithFixedCrossAxisCount(
+                    crossAxisCount: 2,
+                    mainAxisSpacing: 14,
+                    crossAxisSpacing: 14,
+                    childAspectRatio: 0.72,
+                  ),
+                  delegate: SliverChildBuilderDelegate(
+                    (context, i) {
                       final reward = RewardService.allRewards[i];
                       final isEarned = service.isEarned(reward.id);
                       final isActive = active?.id == reward.id;
-                      final pieces = service.puzzlePiecesFor(reward.id);
+                      final p = service.puzzlePiecesFor(reward.id);
                       return _RewardCard(
                         reward: reward,
                         isEarned: isEarned,
                         isActive: isActive,
-                        piecesEarned: pieces,
+                        piecesEarned: p,
                         onTap: (isEarned || isActive)
                             ? () => Navigator.push(
                                   context,
@@ -150,98 +245,14 @@ class _RewardsScreen extends StatelessWidget {
                             : null,
                       );
                     },
+                    childCount: RewardService.allRewards.length,
                   ),
                 ),
-              ],
-            ),
+              ),
+            ],
           ),
         );
       },
-    );
-  }
-
-  Widget _buildHeader(int total, Reward? active, RewardService service) {
-    final pieces = active != null ? service.puzzlePiecesFor(active.id) : 0;
-    final total9 = RewardService.puzzlePieceCount;
-
-    return Container(
-      margin: const EdgeInsets.fromLTRB(20, 16, 20, 0),
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        gradient: const LinearGradient(
-          colors: [Color(0xFFB8B0FF), Color(0xFF9B91FF)],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-        ),
-        borderRadius: BorderRadius.circular(24),
-        boxShadow: [
-          BoxShadow(
-            color: const Color(0xFF9B91FF).withOpacity(0.35),
-            blurRadius: 20,
-            offset: const Offset(0, 6),
-          ),
-        ],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            'Ödüllerim',
-            style: GoogleFonts.fredoka(
-              fontSize: 26,
-              fontWeight: FontWeight.bold,
-              color: Colors.white,
-            ),
-          ),
-          const SizedBox(height: 4),
-          Text(
-            'Toplam $total doğru cevap',
-            style: GoogleFonts.poppins(
-              fontSize: 13,
-              color: Colors.white.withOpacity(0.85),
-            ),
-          ),
-          if (active != null) ...[
-            const SizedBox(height: 12),
-            Text(
-              'Aktif Yapboz: ${active.emoji} ${active.title}',
-              style: GoogleFonts.poppins(
-                fontSize: 12,
-                fontWeight: FontWeight.w600,
-                color: Colors.white,
-              ),
-            ),
-            const SizedBox(height: 6),
-            ClipRRect(
-              borderRadius: BorderRadius.circular(8),
-              child: LinearProgressIndicator(
-                value: pieces / total9,
-                backgroundColor: Colors.white.withOpacity(0.25),
-                valueColor: const AlwaysStoppedAnimation<Color>(Colors.white),
-                minHeight: 8,
-              ),
-            ),
-            const SizedBox(height: 4),
-            Text(
-              '$pieces / $total9 parça',
-              style: GoogleFonts.poppins(
-                fontSize: 11,
-                color: Colors.white.withOpacity(0.8),
-              ),
-            ),
-          ] else ...[
-            const SizedBox(height: 8),
-            Text(
-              'Tüm rozetleri kazandın! 👑',
-              style: GoogleFonts.poppins(
-                fontSize: 13,
-                fontWeight: FontWeight.w600,
-                color: Colors.white,
-              ),
-            ),
-          ],
-        ],
-      ),
     );
   }
 }
@@ -265,207 +276,255 @@ class _RewardCard extends StatelessWidget {
   Widget build(BuildContext context) {
     return GestureDetector(
       onTap: onTap,
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 400),
-        decoration: BoxDecoration(
-          color: isEarned
-              ? Colors.white
-              : isActive
-                  ? Colors.white
-                  : const Color(0xFFEEEEEE),
-          borderRadius: BorderRadius.circular(24),
-          boxShadow: (isEarned || isActive)
-              ? [
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // ── Resim kartı ─────────────────────────────────────────────────
+          Expanded(
+            child: Container(
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(18),
+                boxShadow: [
                   BoxShadow(
-                    color: reward.color.withOpacity(0.2),
-                    blurRadius: 14,
+                    color: (isEarned || isActive)
+                        ? reward.color.withOpacity(0.25)
+                        : Colors.black.withOpacity(0.08),
+                    blurRadius: 12,
                     offset: const Offset(0, 4),
                   ),
-                ]
-              : [],
-          border: isEarned
-              ? Border.all(color: reward.color.withOpacity(0.4), width: 2)
-              : isActive
-                  ? Border.all(
-                      color: reward.color.withOpacity(0.3), width: 1.5)
-                  : null,
-        ),
-        child: Stack(
-          children: [
-            Padding(
-              padding: const EdgeInsets.fromLTRB(14, 16, 14, 12),
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  _buildIcon(),
-                  const SizedBox(height: 10),
-                  Text(
-                    reward.title,
-                    style: GoogleFonts.fredoka(
-                      fontSize: 15,
-                      fontWeight: FontWeight.bold,
-                      color: isEarned
-                          ? reward.color
-                          : isActive
-                              ? const Color(0xFF555555)
-                              : Colors.grey,
-                    ),
-                    textAlign: TextAlign.center,
-                  ),
-                  const SizedBox(height: 4),
-                  if (isActive && !isEarned) ...[
-                    Text(
-                      '$piecesEarned/${RewardService.puzzlePieceCount} parça',
-                      style: GoogleFonts.poppins(
-                        fontSize: 11,
-                        fontWeight: FontWeight.w600,
-                        color: reward.color,
-                      ),
-                    ),
-                    const SizedBox(height: 5),
-                    ClipRRect(
-                      borderRadius: BorderRadius.circular(6),
-                      child: LinearProgressIndicator(
-                        value: piecesEarned / RewardService.puzzlePieceCount,
-                        backgroundColor: Colors.grey[200],
-                        valueColor:
-                            AlwaysStoppedAnimation<Color>(reward.color),
-                        minHeight: 6,
-                      ),
-                    ),
-                  ] else if (isEarned)
-                    Text(
-                      reward.badgeLabel,
-                      style: GoogleFonts.poppins(
-                        fontSize: 11,
-                        color: Colors.grey[500],
-                      ),
-                      textAlign: TextAlign.center,
-                    )
-                  else
-                    Text(
-                      'Kilitli',
-                      style: GoogleFonts.poppins(
-                        fontSize: 11,
-                        color: Colors.grey[400],
-                      ),
-                    ),
                 ],
               ),
-            ),
-            // Tıklanabilir ok
-            if (isActive && !isEarned)
-              Positioned(
-                top: 8,
-                right: 8,
-                child: Icon(Icons.chevron_right_rounded,
-                    size: 18, color: Colors.grey[400]),
-              ),
-            // Tamamlandı tik
-            if (isEarned)
-              Positioned(
-                top: 8,
-                right: 8,
-                child: Container(
-                  width: 22,
-                  height: 22,
-                  decoration: BoxDecoration(
-                    shape: BoxShape.circle,
-                    color: reward.color,
-                  ),
-                  child: const Icon(Icons.check_rounded,
-                      color: Colors.white, size: 14),
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(18),
+                child: Stack(
+                  fit: StackFit.expand,
+                  children: [
+                    // Tam resim
+                    _buildCardImage(),
+
+                    // Alt gradient
+                    Positioned(
+                      bottom: 0,
+                      left: 0,
+                      right: 0,
+                      child: Container(
+                        height: 70,
+                        decoration: BoxDecoration(
+                          gradient: LinearGradient(
+                            begin: Alignment.bottomCenter,
+                            end: Alignment.topCenter,
+                            colors: [
+                              Colors.black.withOpacity(0.7),
+                              Colors.transparent,
+                            ],
+                          ),
+                        ),
+                      ),
+                    ),
+
+                    // Alt başlık chip
+                    Positioned(
+                      bottom: 8,
+                      left: 8,
+                      right: 8,
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 8, vertical: 4),
+                        decoration: BoxDecoration(
+                          color: isEarned
+                              ? reward.color
+                              : isActive
+                                  ? reward.color.withOpacity(0.85)
+                                  : Colors.grey.withOpacity(0.7),
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: Text(
+                          reward.title,
+                          style: GoogleFonts.fredoka(
+                            fontSize: 13,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.white,
+                          ),
+                          textAlign: TextAlign.center,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                    ),
+
+                    // Kilitli overlay
+                    if (!isEarned && !isActive)
+                      Container(
+                        color: Colors.black.withOpacity(0.45),
+                        child: Center(
+                          child: Column(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              const Icon(Icons.lock_rounded,
+                                  color: Colors.white70, size: 32),
+                              const SizedBox(height: 4),
+                              Text(
+                                'Kilitli',
+                                style: GoogleFonts.poppins(
+                                    color: Colors.white70, fontSize: 11),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+
+                    // Kazanıldı rozeti
+                    if (isEarned)
+                      Positioned(
+                        top: 8,
+                        right: 8,
+                        child: Container(
+                          width: 26,
+                          height: 26,
+                          decoration: BoxDecoration(
+                            shape: BoxShape.circle,
+                            color: reward.color,
+                            border: Border.all(
+                                color: Colors.white, width: 2),
+                          ),
+                          child: const Icon(Icons.check_rounded,
+                              color: Colors.white, size: 14),
+                        ),
+                      ),
+
+                    // Aktif yapboz rozeti
+                    if (isActive && !isEarned)
+                      Positioned(
+                        top: 8,
+                        right: 8,
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 6, vertical: 3),
+                          decoration: BoxDecoration(
+                            color: Colors.white,
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Icon(Icons.extension_rounded,
+                                  size: 10, color: reward.color),
+                              const SizedBox(width: 2),
+                              Text(
+                                'Aktif',
+                                style: GoogleFonts.poppins(
+                                  fontSize: 9,
+                                  fontWeight: FontWeight.w700,
+                                  color: reward.color,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                  ],
                 ),
               ),
+            ),
+          ),
+
+          // ── Progress / status bar ────────────────────────────────────────
+          const SizedBox(height: 7),
+          if (isActive && !isEarned) ...[
+            Row(
+              children: [
+                Expanded(
+                  child: ClipRRect(
+                    borderRadius: BorderRadius.circular(6),
+                    child: LinearProgressIndicator(
+                      value: piecesEarned / RewardService.puzzlePieceCount,
+                      backgroundColor: Colors.grey[200],
+                      valueColor:
+                          AlwaysStoppedAnimation<Color>(reward.color),
+                      minHeight: 7,
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 6),
+                Text(
+                  '$piecesEarned/${RewardService.puzzlePieceCount}',
+                  style: GoogleFonts.poppins(
+                    fontSize: 10,
+                    fontWeight: FontWeight.w700,
+                    color: reward.color,
+                  ),
+                ),
+              ],
+            ),
+          ] else if (isEarned) ...[
+            Row(
+              children: [
+                Icon(Icons.verified_rounded, size: 13, color: reward.color),
+                const SizedBox(width: 4),
+                Expanded(
+                  child: Text(
+                    reward.badgeLabel,
+                    style: GoogleFonts.poppins(
+                      fontSize: 10,
+                      fontWeight: FontWeight.w600,
+                      color: reward.color,
+                    ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ),
+              ],
+            ),
+          ] else ...[
+            Row(
+              children: [
+                Icon(Icons.lock_outline_rounded,
+                    size: 12, color: Colors.grey[400]),
+                const SizedBox(width: 4),
+                Text(
+                  'Önce aktif yapbozu tamamla',
+                  style: GoogleFonts.poppins(
+                      fontSize: 9, color: Colors.grey[400]),
+                ),
+              ],
+            ),
           ],
-        ),
+        ],
       ),
     );
   }
 
-  Widget _buildIcon() {
-    if (isEarned) {
-      return Container(
-        width: 72,
-        height: 72,
-        decoration: BoxDecoration(
-          shape: BoxShape.circle,
-          color: reward.color.withOpacity(0.12),
-        ),
-        child: ClipOval(
-          child: Padding(
-            padding: const EdgeInsets.all(10),
-            child: Image.asset(
-              reward.imagePath,
-              fit: BoxFit.contain,
-              errorBuilder: (_, __, ___) =>
-                  Text(reward.emoji, style: const TextStyle(fontSize: 34)),
-            ),
-          ),
+  Widget _buildCardImage() {
+    if (isEarned || isActive) {
+      return Image.asset(
+        reward.imagePath,
+        fit: BoxFit.cover,
+        errorBuilder: (_, __, ___) => Container(
+          color: reward.color.withOpacity(0.15),
+          child: Center(
+              child: Text(reward.emoji,
+                  style: const TextStyle(fontSize: 48))),
         ),
       );
     }
-
-    if (isActive) {
-      // Yapboz ön izleme — kazanılan parça sayısı kadar dolmuş mini grid
-      return SizedBox(
-        width: 72,
-        height: 72,
-        child: ClipRRect(
-          borderRadius: BorderRadius.circular(12),
-          child: GridView.builder(
-            physics: const NeverScrollableScrollPhysics(),
-            gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-              crossAxisCount: 3,
-              mainAxisSpacing: 2,
-              crossAxisSpacing: 2,
-            ),
-            itemCount: 9,
-            itemBuilder: (_, i) {
-              final row = i ~/ 3;
-              final col = i % 3;
-              final has = i < piecesEarned;
-              if (!has) {
-                return Container(color: Colors.grey[200]);
-              }
-              return LayoutBuilder(
-                builder: (context, constraints) {
-                  final w = constraints.maxWidth * 3;
-                  final h = constraints.maxHeight * 3;
-                  final ax = col / 2 * 2.0 - 1.0;
-                  final ay = row / 2 * 2.0 - 1.0;
-                  return ClipRect(
-                    child: OverflowBox(
-                      maxWidth: w,
-                      maxHeight: h,
-                      alignment: Alignment(ax, ay),
-                      child: Image.asset(
-                        reward.imagePath,
-                        width: w,
-                        height: h,
-                        fit: BoxFit.cover,
-                        errorBuilder: (_, __, ___) =>
-                            Container(color: reward.color.withOpacity(0.3)),
-                      ),
-                    ),
-                  );
-                },
-              );
-            },
-          ),
+    // Kilitli — gri tonlu
+    return ColorFiltered(
+      colorFilter: const ColorFilter.matrix([
+        0.2126, 0.7152, 0.0722, 0, 0,
+        0.2126, 0.7152, 0.0722, 0, 0,
+        0.2126, 0.7152, 0.0722, 0, 0,
+        0,      0,      0,      1, 0,
+      ]),
+      child: Image.asset(
+        reward.imagePath,
+        fit: BoxFit.cover,
+        errorBuilder: (_, __, ___) => Container(
+          color: Colors.grey[300],
+          child: Center(
+              child: Text(reward.emoji,
+                  style: const TextStyle(fontSize: 48))),
         ),
-      );
-    }
-
-    // Future — kilitli
-    return Container(
-      width: 72,
-      height: 72,
-      decoration: BoxDecoration(
-        shape: BoxShape.circle,
-        color: Colors.grey.withOpacity(0.15),
       ),
-      child: const Icon(Icons.lock_rounded, size: 30, color: Colors.grey),
     );
   }
 }

@@ -14,6 +14,7 @@ import 'features/learning/presentations/providers/auth_provider.dart';
 import 'features/learning/presentations/screens/splash_screen.dart';
 import 'services/rewards/reward_service.dart';
 import 'services/stats/stats_service.dart';
+import 'services/lives/lives_service.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -31,13 +32,26 @@ void main() async {
   final statsService = StatsService();
   await statsService.init();
 
-  runApp(MyApp(rewardService: rewardService, statsService: statsService));
+  final livesService = LivesService();
+  await livesService.init();
+
+  runApp(MyApp(
+    rewardService: rewardService,
+    statsService: statsService,
+    livesService: livesService,
+  ));
 }
 
 class MyApp extends StatelessWidget {
   final RewardService rewardService;
   final StatsService statsService;
-  const MyApp({super.key, required this.rewardService, required this.statsService});
+  final LivesService livesService;
+  const MyApp({
+    super.key,
+    required this.rewardService,
+    required this.statsService,
+    required this.livesService,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -56,6 +70,7 @@ class MyApp extends StatelessWidget {
         ),
         ChangeNotifierProvider<RewardService>.value(value: rewardService),
         ChangeNotifierProvider<StatsService>.value(value: statsService),
+        ChangeNotifierProvider<LivesService>.value(value: livesService),
       ],
       child: MaterialApp(
         title: 'Bilbil',

@@ -13,6 +13,8 @@ import '../../../../data/models/quiz_item.dart';
 import '../../../../services/rewards/reward_service.dart';
 import '../../../../services/rl_agent/rl_agent.dart';
 import '../../../../services/stats/stats_service.dart';
+import '../../../../services/lives/lives_service.dart';
+import 'rest_screen.dart';
 import 'answer_checker.dart';
 import 'reward_celebration_dialog.dart';
 
@@ -39,6 +41,7 @@ class _QuizScreenState extends State<QuizScreen> with TickerProviderStateMixin {
   late RLAgent _rlAgent;
   late RewardService _rewardService;
   late StatsService _statsService;
+  late LivesService _livesService;
   bool _servicesInitialized = false;
 
   // ── STT durumu ──────────────────────────────────────────────────────────────
@@ -92,6 +95,7 @@ class _QuizScreenState extends State<QuizScreen> with TickerProviderStateMixin {
     super.didChangeDependencies();
     _rewardService = Provider.of<RewardService>(context, listen: false);
     _statsService = Provider.of<StatsService>(context, listen: false);
+    _livesService = Provider.of<LivesService>(context, listen: false);
     if (!_servicesInitialized) {
       _servicesInitialized = true;
       _rlAgent = RLAgent(
@@ -334,7 +338,7 @@ class _QuizScreenState extends State<QuizScreen> with TickerProviderStateMixin {
       _speak('Neredeyse! Bu bir $expected. Tekrar deneyelim!');
     }
 
-    Future.delayed(const Duration(seconds: 3), _nextItem);
+    _scheduleNextOrRest();
   }
 
   Future<void> _toggleListening() async {
@@ -361,6 +365,7 @@ class _QuizScreenState extends State<QuizScreen> with TickerProviderStateMixin {
     if (_rlAgent.currentDifficulty != diff) {
       _activeDifficulty = _rlAgent.currentDifficulty;
     }
+    if (!correct) _livesService.loseLife();
   }
 
   void _handleNoAnswer() {
@@ -381,7 +386,23 @@ class _QuizScreenState extends State<QuizScreen> with TickerProviderStateMixin {
       ..reset()
       ..forward();
     _speak('Bu bir $expected. Tekrar deneyelim!');
-    Future.delayed(const Duration(seconds: 3), _nextItem);
+    _scheduleNextOrRest();
+  }
+
+  void _scheduleNextOrRest() {
+    if (_livesService.lives == 0) {
+      Future.delayed(const Duration(seconds: 2), () {
+        if (!mounted) return;
+        Navigator.push(
+          context,
+          MaterialPageRoute(builder: (_) => const RestScreen()),
+        ).then((_) {
+          if (mounted) _nextItem();
+        });
+      });
+    } else {
+      Future.delayed(const Duration(seconds: 3), _nextItem);
+    }
   }
 
   void _nextItem() {
@@ -548,27 +569,50 @@ class _QuizScreenState extends State<QuizScreen> with TickerProviderStateMixin {
             ],
           ),
           const SizedBox(height: 6),
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 3),
-            decoration: BoxDecoration(
-              color: diffColor.withOpacity(0.15),
-              borderRadius: BorderRadius.circular(10),
-              border: Border.all(color: diffColor.withOpacity(0.4)),
-            ),
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Icon(Icons.auto_graph_rounded, size: 13, color: diffColor),
-                const SizedBox(width: 4),
-                Text(
-                  'Seviye: ${_rlAgent.config.label}',
-                  style: GoogleFonts.poppins(
-                      fontSize: 11,
-                      fontWeight: FontWeight.w600,
-                      color: diffColor),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Container(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 10, vertical: 3),
+                decoration: BoxDecoration(
+                  color: diffColor.withOpacity(0.15),
+                  borderRadius: BorderRadius.circular(10),
+                  border: Border.all(color: diffColor.withOpacity(0.4)),
                 ),
-              ],
-            ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(Icons.auto_graph_rounded, size: 13, color: diffColor),
+                    const SizedBox(width: 4),
+                    Text(
+                      'Seviye: ${_rlAgent.config.label}',
+                      style: GoogleFonts.poppins(
+                          fontSize: 11,
+                          fontWeight: FontWeight.w600,
+                          color: diffColor),
+                    ),
+                  ],
+                ),
+              ),
+              Consumer<LivesService>(
+                builder: (_, lives, __) => Row(
+                  children: List.generate(
+                    LivesService.maxLives,
+                    (i) => Padding(
+                      padding: const EdgeInsets.only(left: 3),
+                      child: Icon(
+                        Icons.favorite_rounded,
+                        size: 18,
+                        color: i < lives.lives
+                            ? const Color(0xFFFF4F6D)
+                            : Colors.grey[300],
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            ],
           ),
         ],
       ),
