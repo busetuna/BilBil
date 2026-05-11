@@ -10,6 +10,8 @@ class AuthProvider extends ChangeNotifier {
   final RegisterUseCase registerUseCase;
   final LogoutUseCase logoutUseCase;
   final AuthRepository authRepository;
+  final Future<void> Function(String uid) onSignedIn;
+  final Future<void> Function() onSignedOut;
 
   User? _currentUser;
   bool _isLoading = false;
@@ -25,6 +27,8 @@ class AuthProvider extends ChangeNotifier {
     required this.registerUseCase,
     required this.logoutUseCase,
     required this.authRepository,
+    required this.onSignedIn,
+    required this.onSignedOut,
   }) {
     _checkCurrentUser();
   }
@@ -37,9 +41,9 @@ class AuthProvider extends ChangeNotifier {
   Future<bool> login(String email, String password) async {
     _setLoading(true);
     _clearError();
-
     try {
       _currentUser = await loginUseCase(email, password);
+      await onSignedIn(_currentUser!.id);
       _setLoading(false);
       return true;
     } catch (e) {
@@ -57,7 +61,6 @@ class AuthProvider extends ChangeNotifier {
   }) async {
     _setLoading(true);
     _clearError();
-
     try {
       _currentUser = await registerUseCase(
         email: email,
@@ -65,6 +68,7 @@ class AuthProvider extends ChangeNotifier {
         name: name,
         userType: userType,
       );
+      await onSignedIn(_currentUser!.id);
       _setLoading(false);
       return true;
     } catch (e) {
@@ -76,6 +80,7 @@ class AuthProvider extends ChangeNotifier {
 
   Future<void> logout() async {
     await logoutUseCase();
+    await onSignedOut();
     _currentUser = null;
     notifyListeners();
   }

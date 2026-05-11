@@ -1,17 +1,18 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
+import 'package:firebase_auth/firebase_auth.dart' as fb;
 import 'package:hive_flutter/hive_flutter.dart';
 import 'package:provider/provider.dart';
 import 'features/learning/presentations/screens/main_navigation.dart';
 import 'firebase_options.dart';
-import 'data/datasources/local/auth_local_datasource.dart';
-import 'data/repositories/auth_repository_impl.dart';
 import 'data/models/user_model.dart';
+import 'data/repositories/auth_repository_impl.dart';
 import 'domain/usecases/login_usecase.dart';
 import 'domain/usecases/register_usecase.dart';
 import 'domain/usecases/logout_usecase.dart';
 import 'features/learning/presentations/providers/auth_provider.dart';
 import 'features/learning/presentations/screens/splash_screen.dart';
+import 'services/firestore/firestore_service.dart';
 import 'services/rewards/reward_service.dart';
 import 'services/stats/stats_service.dart';
 import 'services/lives/lives_service.dart';
@@ -20,12 +21,12 @@ import 'services/theme/theme_service.dart';
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
-  await Firebase.initializeApp(
-    options: DefaultFirebaseOptions.currentPlatform,
-  );
+  await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
 
   await Hive.initFlutter();
   Hive.registerAdapter(UserModelAdapter());
+
+  final firestoreService = FirestoreService();
 
   final rewardService = RewardService();
   await rewardService.init();
@@ -39,7 +40,22 @@ void main() async {
   final themeService = ThemeService();
   await themeService.init();
 
+  // Uygulama açılışında zaten oturum açıksa bulut verisini yükle
+  final fbUser = fb.FirebaseAuth.instance.currentUser;
+  if (fbUser != null) {
+    final cloudData = await firestoreService.loadUserData(fbUser.uid);
+    if (cloudData != null) {
+      await statsService.loadFromCloud(cloudData['stats'] as Map<String, dynamic>?);
+      await rewardService.loadFromCloud(cloudData['rewards'] as Map<String, dynamic>?);
+      await livesService.loadFromCloud(cloudData['lives']);
+    }
+    statsService.setCloudSync(fbUser.uid, firestoreService);
+    rewardService.setCloudSync(fbUser.uid, firestoreService);
+    livesService.setCloudSync(fbUser.uid, firestoreService);
+  }
+
   runApp(MyApp(
+    firestoreService: firestoreService,
     rewardService: rewardService,
     statsService: statsService,
     livesService: livesService,
@@ -48,6 +64,7 @@ void main() async {
 }
 
 class MyApp extends StatelessWidget {
+  final FirestoreService firestoreService;
   final RewardService rewardService;
   final StatsService statsService;
   final LivesService livesService;
@@ -55,16 +72,34 @@ class MyApp extends StatelessWidget {
 
   const MyApp({
     super.key,
+    required this.firestoreService,
     required this.rewardService,
     required this.statsService,
     required this.livesService,
     required this.themeService,
   });
 
+  Future<void> _onSignedIn(String uid) async {
+    final cloudData = await firestoreService.loadUserData(uid);
+    if (cloudData != null) {
+      await statsService.loadFromCloud(cloudData['stats'] as Map<String, dynamic>?);
+      await rewardService.loadFromCloud(cloudData['rewards'] as Map<String, dynamic>?);
+      await livesService.loadFromCloud(cloudData['lives']);
+    }
+    statsService.setCloudSync(uid, firestoreService);
+    rewardService.setCloudSync(uid, firestoreService);
+    livesService.setCloudSync(uid, firestoreService);
+  }
+
+  Future<void> _onSignedOut() async {
+    statsService.clearCloudSync();
+    rewardService.clearCloudSync();
+    livesService.clearCloudSync();
+  }
+
   @override
   Widget build(BuildContext context) {
-    final authLocalDataSource = AuthLocalDataSource();
-    final authRepository = AuthRepositoryImpl(authLocalDataSource);
+    final authRepository = AuthRepositoryImpl(firestoreService);
 
     return MultiProvider(
       providers: [
@@ -74,6 +109,8 @@ class MyApp extends StatelessWidget {
             registerUseCase: RegisterUseCase(authRepository),
             logoutUseCase: LogoutUseCase(authRepository),
             authRepository: authRepository,
+            onSignedIn: _onSignedIn,
+            onSignedOut: _onSignedOut,
           ),
         ),
         ChangeNotifierProvider<RewardService>.value(value: rewardService),

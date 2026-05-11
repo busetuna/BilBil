@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:hive_flutter/hive_flutter.dart';
+import '../firestore/firestore_service.dart';
 
 class Reward {
   final String id;
@@ -26,14 +27,15 @@ class RewardService extends ChangeNotifier {
   static const _totalCorrectKey = 'total_correct';
   static const _earnedIdsKey = 'earned_ids';
   static const _puzzlePiecesKey = 'puzzle_pieces';
-
-  // Her ödül için 3×3 yapboz
   static const int puzzlePieceCount = 9;
 
   late Box _box;
   int _totalCorrect = 0;
   List<String> _earnedIds = [];
-  Map<String, int> _puzzlePieces = {}; // rewardId -> kazanılan parça sayısı
+  Map<String, int> _puzzlePieces = {};
+
+  String? _uid;
+  FirestoreService? _firestore;
 
   static final List<Reward> allRewards = [
     const Reward(
@@ -95,7 +97,6 @@ class RewardService extends ChangeNotifier {
   int get totalCorrect => _totalCorrect;
   List<String> get earnedIds => List.unmodifiable(_earnedIds);
 
-  /// Şu an üzerinde çalışılan yapboz (kazanılmamış ilk ödül)
   Reward? get activeReward {
     for (final r in allRewards) {
       if (!_earnedIds.contains(r.id)) return r;
@@ -103,12 +104,46 @@ class RewardService extends ChangeNotifier {
     return null;
   }
 
-  /// Geriye dönük uyumluluk için
   Reward? get nextReward => activeReward;
 
-  /// Bir ödül için kazanılan parça sayısı
   int puzzlePiecesFor(String rewardId) =>
       (_puzzlePieces[rewardId] ?? 0).clamp(0, puzzlePieceCount);
+
+  bool isEarned(String id) => _earnedIds.contains(id);
+
+  void setCloudSync(String uid, FirestoreService svc) {
+    _uid = uid;
+    _firestore = svc;
+  }
+
+  void clearCloudSync() {
+    _uid = null;
+    _firestore = null;
+  }
+
+  Future<void> loadFromCloud(Map<String, dynamic>? data) async {
+    if (data == null) return;
+    _totalCorrect = (data['totalCorrect'] as num?)?.toInt() ?? 0;
+    _earnedIds = List<String>.from(data['earnedIds'] as List? ?? []);
+    final raw = data['puzzlePieces'] as Map? ?? {};
+    _puzzlePieces = raw.map((k, v) => MapEntry(k.toString(), (v as num).toInt()));
+
+    await _box.put(_totalCorrectKey, _totalCorrect);
+    await _box.put(_earnedIdsKey, _earnedIds);
+    await _box.put(_puzzlePiecesKey, _puzzlePieces.map((k, v) => MapEntry(k, v)));
+    notifyListeners();
+  }
+
+  void _syncToCloud() {
+    final uid = _uid;
+    final firestore = _firestore;
+    if (uid == null || firestore == null) return;
+    firestore.saveRewards(uid, {
+      'totalCorrect': _totalCorrect,
+      'earnedIds': _earnedIds,
+      'puzzlePieces': _puzzlePieces,
+    });
+  }
 
   Future<void> init() async {
     _box = await Hive.openBox(_boxName);
@@ -121,23 +156,20 @@ class RewardService extends ChangeNotifier {
     );
   }
 
-  bool isEarned(String id) => _earnedIds.contains(id);
-
   Future<List<Reward>> addCorrect() async {
     _totalCorrect++;
     await _box.put(_totalCorrectKey, _totalCorrect);
 
     final active = activeReward;
     if (active == null) {
+      _syncToCloud();
       notifyListeners();
       return [];
     }
 
-    // Aktif yapboza bir parça ekle
     final pieces = puzzlePiecesFor(active.id) + 1;
     _puzzlePieces[active.id] = pieces;
-    await _box.put(
-        _puzzlePiecesKey, _puzzlePieces.map((k, v) => MapEntry(k, v)));
+    await _box.put(_puzzlePiecesKey, _puzzlePieces.map((k, v) => MapEntry(k, v)));
 
     final newlyEarned = <Reward>[];
     if (pieces >= puzzlePieceCount && !_earnedIds.contains(active.id)) {
@@ -146,6 +178,7 @@ class RewardService extends ChangeNotifier {
       newlyEarned.add(active);
     }
 
+    _syncToCloud();
     notifyListeners();
     return newlyEarned;
   }
@@ -157,6 +190,7 @@ class RewardService extends ChangeNotifier {
     await _box.put(_totalCorrectKey, 0);
     await _box.put(_earnedIdsKey, <String>[]);
     await _box.put(_puzzlePiecesKey, <String, int>{});
+    _syncToCloud();
     notifyListeners();
   }
 }

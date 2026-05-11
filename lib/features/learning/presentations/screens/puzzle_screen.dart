@@ -1,31 +1,73 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../services/rewards/reward_service.dart';
 
-class PuzzleScreen extends StatelessWidget {
+class PuzzleScreen extends StatefulWidget {
   final Reward reward;
   static const int rows = 3, cols = 3;
   static const int total = rows * cols;
-
-  // Parçalar ortadan başlayıp dağılarak dolar (daha doğal görünüm)
   static const List<int> _fillOrder = [4, 0, 8, 2, 6, 1, 7, 3, 5];
 
   const PuzzleScreen({super.key, required this.reward});
 
   @override
+  State<PuzzleScreen> createState() => _PuzzleScreenState();
+}
+
+class _PuzzleScreenState extends State<PuzzleScreen> {
+  double _imageAspectRatio = 1.0;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadImageAspectRatio();
+  }
+
+  Future<void> _loadImageAspectRatio() async {
+    final provider = AssetImage(widget.reward.imagePath);
+    final completer = Completer<ImageInfo>();
+    final stream = provider.resolve(ImageConfiguration.empty);
+    late ImageStreamListener listener;
+    listener = ImageStreamListener(
+      (info, _) {
+        if (!completer.isCompleted) completer.complete(info);
+        stream.removeListener(listener);
+      },
+      onError: (_, __) {
+        if (!completer.isCompleted) {
+          completer.completeError('load error');
+        }
+        stream.removeListener(listener);
+      },
+    );
+    stream.addListener(listener);
+    try {
+      final info = await completer.future;
+      if (mounted) {
+        setState(() {
+          _imageAspectRatio = info.image.width / info.image.height;
+        });
+      }
+    } catch (_) {
+      // default 1.0 kalır
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
     return Consumer<RewardService>(
       builder: (context, svc, _) {
-        final pieces = svc.puzzlePiecesFor(reward.id);
-        final isEarned = svc.isEarned(reward.id);
-        final isActive = svc.activeReward?.id == reward.id;
+        final pieces = svc.puzzlePiecesFor(widget.reward.id);
+        final isEarned = svc.isEarned(widget.reward.id);
+        final isActive = svc.activeReward?.id == widget.reward.id;
         final isFuture = !isEarned && !isActive;
 
         final filledSlots = <int>{};
         for (int i = 0; i < pieces; i++) {
-          filledSlots.add(_fillOrder[i]);
+          filledSlots.add(PuzzleScreen._fillOrder[i]);
         }
 
         return Scaffold(
@@ -35,7 +77,7 @@ class PuzzleScreen extends StatelessWidget {
             elevation: 0,
             leading: BackButton(color: AppColors.textPrimary),
             title: Text(
-              reward.title,
+              widget.reward.title,
               style: GoogleFonts.fredoka(
                 fontSize: 22,
                 fontWeight: FontWeight.bold,
@@ -54,7 +96,7 @@ class PuzzleScreen extends StatelessWidget {
                 child: Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 24),
                   child: AspectRatio(
-                    aspectRatio: 1,
+                    aspectRatio: _imageAspectRatio,
                     child: _buildPuzzleGrid(filledSlots, isFuture),
                   ),
                 ),
@@ -91,12 +133,12 @@ class PuzzleScreen extends StatelessWidget {
           fit: StackFit.expand,
           children: [
             Image.asset(
-              reward.imagePath,
-              fit: BoxFit.contain,
+              widget.reward.imagePath,
+              fit: BoxFit.cover,
               errorBuilder: (_, __, ___) => Container(
-                color: reward.color.withOpacity(0.2),
+                color: widget.reward.color.withOpacity(0.2),
                 child: Center(
-                    child: Text(reward.emoji,
+                    child: Text(widget.reward.emoji,
                         style: const TextStyle(fontSize: 60))),
               ),
             ),
@@ -119,7 +161,6 @@ class PuzzleScreen extends StatelessWidget {
                   ),
                 ),
               ),
-            // Alt gradient + badge label
             Positioned(
               bottom: 0,
               left: 0,
@@ -138,7 +179,7 @@ class PuzzleScreen extends StatelessWidget {
                   ),
                 ),
                 child: Text(
-                  reward.badgeLabel,
+                  widget.reward.badgeLabel,
                   style: GoogleFonts.fredoka(
                       fontSize: 13,
                       color: Colors.white,
@@ -153,12 +194,12 @@ class PuzzleScreen extends StatelessWidget {
   }
 
   Widget _buildProgress(int pieces, bool isEarned, bool isFuture) {
-    final displayed = isEarned ? total : pieces;
+    final displayed = isEarned ? PuzzleScreen.total : pieces;
     final barColor = isFuture
         ? Colors.grey[300]!
         : isEarned
             ? const Color(0xFF43C659)
-            : reward.color;
+            : widget.reward.color;
 
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 20),
@@ -168,7 +209,7 @@ class PuzzleScreen extends StatelessWidget {
             child: ClipRRect(
               borderRadius: BorderRadius.circular(10),
               child: LinearProgressIndicator(
-                value: displayed / total,
+                value: displayed / PuzzleScreen.total,
                 backgroundColor: Colors.grey[200],
                 valueColor: AlwaysStoppedAnimation<Color>(barColor),
                 minHeight: 12,
@@ -187,7 +228,7 @@ class PuzzleScreen extends StatelessWidget {
               ],
             ),
             child: Text(
-              '$displayed/$total',
+              '$displayed/${PuzzleScreen.total}',
               style: GoogleFonts.poppins(
                 fontSize: 13,
                 fontWeight: FontWeight.w700,
@@ -203,24 +244,25 @@ class PuzzleScreen extends StatelessWidget {
   Widget _buildPuzzleGrid(Set<int> filledSlots, bool isFuture) {
     return GridView.builder(
       physics: const NeverScrollableScrollPhysics(),
-      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-        crossAxisCount: cols,
+      gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+        crossAxisCount: PuzzleScreen.cols,
         mainAxisSpacing: 6,
         crossAxisSpacing: 6,
+        childAspectRatio: _imageAspectRatio,
       ),
-      itemCount: total,
+      itemCount: PuzzleScreen.total,
       itemBuilder: (context, slotIndex) {
-        final row = slotIndex ~/ cols;
-        final col = slotIndex % cols;
+        final row = slotIndex ~/ PuzzleScreen.cols;
+        final col = slotIndex % PuzzleScreen.cols;
         final isFilled = !isFuture && filledSlots.contains(slotIndex);
         return _PuzzleTile(
           row: row,
           col: col,
-          rows: rows,
-          cols: cols,
-          imagePath: reward.imagePath,
+          rows: PuzzleScreen.rows,
+          cols: PuzzleScreen.cols,
+          imagePath: widget.reward.imagePath,
           isFilled: isFilled,
-          accentColor: reward.color,
+          accentColor: widget.reward.color,
         );
       },
     );
@@ -233,39 +275,40 @@ class PuzzleScreen extends StatelessWidget {
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: reward.color.withOpacity(0.3), width: 1.5),
+        border:
+            Border.all(color: widget.reward.color.withOpacity(0.3), width: 1.5),
         boxShadow: [
-          BoxShadow(
-              color: Colors.black.withOpacity(0.05), blurRadius: 8)
+          BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 8)
         ],
       ),
       child: GridView.builder(
         shrinkWrap: true,
         physics: const NeverScrollableScrollPhysics(),
         gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-          crossAxisCount: total,
+          crossAxisCount: PuzzleScreen.total,
           mainAxisSpacing: 4,
           crossAxisSpacing: 4,
         ),
-        itemCount: total,
+        itemCount: PuzzleScreen.total,
         itemBuilder: (context, i) {
           final collected = !isFuture && i < pieces;
           return AnimatedContainer(
             duration: const Duration(milliseconds: 300),
             decoration: BoxDecoration(
               color: collected
-                  ? reward.color.withOpacity(0.15)
+                  ? widget.reward.color.withOpacity(0.15)
                   : const Color(0xFFF0F0F5),
               borderRadius: BorderRadius.circular(6),
               border: Border.all(
                 color: collected
-                    ? reward.color.withOpacity(0.5)
+                    ? widget.reward.color.withOpacity(0.5)
                     : Colors.grey[300]!,
                 width: 1,
               ),
             ),
             child: collected
-                ? Icon(Icons.check_rounded, color: reward.color, size: 12)
+                ? Icon(Icons.check_rounded,
+                    color: widget.reward.color, size: 12)
                 : null,
           );
         },
@@ -298,7 +341,8 @@ class PuzzleScreen extends StatelessWidget {
           child: Row(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Text(reward.emoji, style: const TextStyle(fontSize: 26)),
+              Text(widget.reward.emoji,
+                  style: const TextStyle(fontSize: 26)),
               const SizedBox(width: 10),
               Text(
                 'Rozet Kazanıldı!',
@@ -368,10 +412,18 @@ class _PuzzleTile extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return AnimatedSwitcher(
-      duration: const Duration(milliseconds: 500),
-      switchInCurve: Curves.elasticOut,
-      transitionBuilder: (child, anim) =>
-          ScaleTransition(scale: anim, child: child),
+      duration: const Duration(milliseconds: 700),
+      transitionBuilder: (child, anim) {
+        final isFilling = (child.key as ValueKey?)?.value == true;
+        if (isFilling) {
+          final slide = Tween<Offset>(
+            begin: const Offset(0, -2.5),
+            end: Offset.zero,
+          ).animate(CurvedAnimation(parent: anim, curve: Curves.bounceOut));
+          return SlideTransition(position: slide, child: child);
+        }
+        return FadeTransition(opacity: anim, child: child);
+      },
       child: isFilled ? _filled() : _empty(),
     );
   }
@@ -400,12 +452,11 @@ class _PuzzleTile extends StatelessWidget {
                   imagePath,
                   width: w,
                   height: h,
-                  fit: BoxFit.contain,
+                  fit: BoxFit.cover,
                   errorBuilder: (_, __, ___) => Container(
                     color: accentColor.withOpacity(0.3),
-                    child: Center(
-                      child:
-                          Icon(Icons.pets, color: Colors.white, size: 20),
+                    child: const Center(
+                      child: Icon(Icons.pets, color: Colors.white, size: 20),
                     ),
                   ),
                 ),
@@ -427,10 +478,10 @@ class _PuzzleTile extends StatelessWidget {
           borderRadius: BorderRadius.circular(10),
           border: Border.all(color: const Color(0xFFC5CDFF), width: 1.5),
         ),
-        child: Center(
+        child: const Center(
           child: Icon(
             Icons.extension_rounded,
-            color: const Color(0xFFADB8FF),
+            color: Color(0xFFADB8FF),
             size: 22,
           ),
         ),

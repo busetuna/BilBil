@@ -1,78 +1,109 @@
-import 'package:uuid/uuid.dart';
+import 'package:firebase_auth/firebase_auth.dart' as fb;
 import '../../domain/entities/user.dart';
 import '../../domain/repositories/auth_repository.dart';
-import '../datasources/local/auth_local_datasource.dart';
-import '../models/user_model.dart';
+import '../../services/firestore/firestore_service.dart';
 
 class AuthRepositoryImpl implements AuthRepository {
-  final AuthLocalDataSource localDataSource;
+  final FirestoreService _firestore;
+  final fb.FirebaseAuth _auth = fb.FirebaseAuth.instance;
 
-  AuthRepositoryImpl(this.localDataSource);
+  AuthRepositoryImpl(this._firestore);
 
   @override
   Future<User?> getCurrentUser() async {
-    final userModel = await localDataSource.getCurrentUser();
-    return userModel?.toEntity();
+    final fbUser = _auth.currentUser;
+    if (fbUser == null) return null;
+    final data = await _firestore.loadUserData(fbUser.uid);
+    return _buildUser(fbUser, data);
   }
 
   @override
   Future<User> login(String email, String password) async {
-    // Kullanıcıyı bul
-    final userModel = await localDataSource.findUserByEmail(email);
-
-    if (userModel == null) {
-      throw Exception('Kullanıcı bulunamadı. Lütfen önce kayıt olun.');
+    try {
+      final cred = await _auth.signInWithEmailAndPassword(
+        email: email,
+        password: password,
+      );
+      final data = await _firestore.loadUserData(cred.user!.uid);
+      return _buildUser(cred.user!, data);
+    } on fb.FirebaseAuthException catch (e) {
+      throw Exception(_authError(e.code));
     }
-
-    // Basit şifre kontrolü (gerçek uygulamada hash karşılaştırması yapılmalı)
-    final isValid = await localDataSource.validateCredentials(email, password);
-    if (!isValid) {
-      throw Exception('Email veya şifre hatalı');
-    }
-
-    // Kullanıcıyı current user olarak kaydet
-    await localDataSource.saveCurrentUser(userModel);
-
-    return userModel.toEntity();
   }
 
   @override
   Future<User> register(
-      String email,
-      String password,
-      String name,
-      UserType userType,
-      ) async {
-    // Email'in daha önce kullanılıp kullanılmadığını kontrol et
-    final existingUser = await localDataSource.findUserByEmail(email);
-    if (existingUser != null) {
-      throw Exception('Bu email adresi zaten kullanılıyor');
+    String email,
+    String password,
+    String name,
+    UserType userType,
+  ) async {
+    try {
+      final cred = await _auth.createUserWithEmailAndPassword(
+        email: email,
+        password: password,
+      );
+      final fbUser = cred.user!;
+      await fbUser.updateDisplayName(name);
+
+      final now = DateTime.now();
+      await _firestore.createUserProfile(
+        fbUser.uid,
+        name: name,
+        email: email,
+        userType: userType.toString(),
+        createdAt: now.toIso8601String(),
+      );
+
+      return User(
+        id: fbUser.uid,
+        email: email,
+        name: name,
+        userType: userType,
+        createdAt: now,
+      );
+    } on fb.FirebaseAuthException catch (e) {
+      throw Exception(_authError(e.code));
     }
-
-    // Yeni kullanıcı oluştur
-    final newUser = UserModel(
-      id: const Uuid().v4(),
-      email: email,
-      name: name,
-      userTypeString: userType.toString(),              // ✅ Doğru
-      createdAtString: DateTime.now().toIso8601String(), // ✅ Doğru
-    );
-
-    // Kullanıcıyı kaydet
-    await localDataSource.saveUser(newUser);
-    await localDataSource.saveCurrentUser(newUser);
-
-    return newUser.toEntity();
   }
 
   @override
   Future<void> logout() async {
-    await localDataSource.clearCurrentUser();
+    await _auth.signOut();
   }
 
   @override
-  Future<bool> isLoggedIn() async {
-    final user = await localDataSource.getCurrentUser();
-    return user != null;
+  Future<bool> isLoggedIn() async => _auth.currentUser != null;
+
+  User _buildUser(fb.User fbUser, Map<String, dynamic>? data) {
+    return User(
+      id: fbUser.uid,
+      email: fbUser.email ?? '',
+      name: data?['name'] ?? fbUser.displayName ?? '',
+      userType: UserType.values.firstWhere(
+        (t) => t.toString() == (data?['userType'] ?? ''),
+        orElse: () => UserType.child,
+      ),
+      createdAt: DateTime.tryParse(data?['createdAt'] ?? '') ?? DateTime.now(),
+    );
+  }
+
+  String _authError(String code) {
+    switch (code) {
+      case 'user-not-found':
+      case 'wrong-password':
+      case 'invalid-credential':
+        return 'Email veya şifre hatalı';
+      case 'email-already-in-use':
+        return 'Bu email zaten kullanılıyor';
+      case 'weak-password':
+        return 'Şifre en az 6 karakter olmalı';
+      case 'invalid-email':
+        return 'Geçersiz email adresi';
+      case 'too-many-requests':
+        return 'Çok fazla deneme. Lütfen bekleyin.';
+      default:
+        return 'Bir hata oluştu: $code';
+    }
   }
 }
