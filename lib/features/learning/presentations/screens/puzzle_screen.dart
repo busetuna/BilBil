@@ -92,7 +92,7 @@ class PuzzleScreen extends StatelessWidget {
           children: [
             Image.asset(
               reward.imagePath,
-              fit: BoxFit.cover,
+              fit: BoxFit.contain,
               errorBuilder: (_, __, ___) => Container(
                 color: reward.color.withOpacity(0.2),
                 child: Center(
@@ -400,7 +400,7 @@ class _PuzzleTile extends StatelessWidget {
                   imagePath,
                   width: w,
                   height: h,
-                  fit: BoxFit.cover,
+                  fit: BoxFit.contain,
                   errorBuilder: (_, __, ___) => Container(
                     color: accentColor.withOpacity(0.3),
                     child: Center(

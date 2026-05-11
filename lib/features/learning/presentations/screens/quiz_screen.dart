@@ -17,6 +17,10 @@ import '../../../../services/lives/lives_service.dart';
 import 'rest_screen.dart';
 import 'answer_checker.dart';
 import 'reward_celebration_dialog.dart';
+import '../widgets/quiz_top_bar.dart';
+import '../widgets/quiz_image_card.dart';
+import '../widgets/quiz_word_reveal.dart';
+import '../widgets/quiz_mic_button.dart';
 
 class QuizScreen extends StatefulWidget {
   const QuizScreen({super.key});
@@ -446,7 +450,14 @@ class _QuizScreenState extends State<QuizScreen> with TickerProviderStateMixin {
       body: SafeArea(
         child: Column(
           children: [
-            _buildTopBar(),
+            QuizTopBar(
+              difficulty: _rlAgent.currentDifficulty,
+              difficultyLabel: _rlAgent.config.label,
+              stars: _stars,
+              currentIndex: _currentIndex,
+              totalItems: _items.length,
+              onBack: () => Navigator.pop(context),
+            ),
             Expanded(
               child: Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 20),
@@ -468,11 +479,23 @@ class _QuizScreenState extends State<QuizScreen> with TickerProviderStateMixin {
                     child: Column(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        _buildImageCard(),
+                        QuizImageCard(imagePath: _currentItem.imagePath),
                         const SizedBox(height: 28),
-                        _buildWordReveal(),
+                        QuizWordReveal(
+                          hasSpoken: _hasSpoken,
+                          recognizedWord: _recognizedWord,
+                          correctWord: _currentItem.word,
+                          isListening: _isListening,
+                          isCorrect: _isCorrect,
+                          revealAnimation: _wordRevealAnimation,
+                        ),
                         const SizedBox(height: 28),
-                        _buildMicButton(),
+                        QuizMicButton(
+                          isListening: _isListening,
+                          sttAvailable: _sttAvailable,
+                          onTap: _toggleListening,
+                          pulseController: _micPulseController,
+                        ),
                         const SizedBox(height: 12),
                         Text(
                           _isListening ? 'Dinliyorum...' : 'Dokun ve Söyle',
@@ -491,299 +514,6 @@ class _QuizScreenState extends State<QuizScreen> with TickerProviderStateMixin {
             ),
             const SizedBox(height: 16),
           ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildTopBar() {
-    final diffColors = [
-      const Color(0xFF4CAF50),
-      const Color(0xFFFFC107),
-      const Color(0xFFF44336),
-    ];
-    final diffColor = diffColors[_rlAgent.currentDifficulty];
-    final starsShown = _stars % 5 == 0 && _stars > 0 ? 5 : _stars % 5;
-
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-      child: Column(
-        children: [
-          Row(
-            children: [
-              GestureDetector(
-                onTap: () => Navigator.pop(context),
-                child: Container(
-                  width: 40,
-                  height: 40,
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(12),
-                    boxShadow: [
-                      BoxShadow(
-                          color: Colors.black.withOpacity(0.08), blurRadius: 8)
-                    ],
-                  ),
-                  child: Icon(Icons.arrow_back_ios_new_rounded,
-                      size: 18, color: AppColors.textPrimary),
-                ),
-              ),
-              const Spacer(),
-              Row(
-                children: List.generate(
-                  5,
-                  (i) => Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 2),
-                    child: Icon(
-                      i < starsShown
-                          ? Icons.star_rounded
-                          : Icons.star_outline_rounded,
-                      size: 28,
-                      color: i < starsShown
-                          ? const Color(0xFFFFC107)
-                          : const Color(0xFFD0D0D0),
-                    ),
-                  ),
-                ),
-              ),
-              const Spacer(),
-              Container(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(12),
-                  boxShadow: [
-                    BoxShadow(
-                        color: Colors.black.withOpacity(0.08), blurRadius: 8)
-                  ],
-                ),
-                child: Text(
-                  '${_currentIndex + 1}/${_items.length}',
-                  style: GoogleFonts.poppins(
-                      fontSize: 13,
-                      fontWeight: FontWeight.w600,
-                      color: AppColors.textSecondary),
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 6),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Container(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 10, vertical: 3),
-                decoration: BoxDecoration(
-                  color: diffColor.withOpacity(0.15),
-                  borderRadius: BorderRadius.circular(10),
-                  border: Border.all(color: diffColor.withOpacity(0.4)),
-                ),
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Icon(Icons.auto_graph_rounded, size: 13, color: diffColor),
-                    const SizedBox(width: 4),
-                    Text(
-                      'Seviye: ${_rlAgent.config.label}',
-                      style: GoogleFonts.poppins(
-                          fontSize: 11,
-                          fontWeight: FontWeight.w600,
-                          color: diffColor),
-                    ),
-                  ],
-                ),
-              ),
-              Consumer<LivesService>(
-                builder: (_, lives, __) => Row(
-                  children: List.generate(
-                    LivesService.maxLives,
-                    (i) => Padding(
-                      padding: const EdgeInsets.only(left: 3),
-                      child: Icon(
-                        Icons.favorite_rounded,
-                        size: 18,
-                        color: i < lives.lives
-                            ? const Color(0xFFFF4F6D)
-                            : Colors.grey[300],
-                      ),
-                    ),
-                  ),
-                ),
-              ),
-            ],
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildImageCard() {
-    return Container(
-      width: 260,
-      height: 220,
-      margin: const EdgeInsets.only(top: 28),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(28),
-        boxShadow: [
-          BoxShadow(
-              color: Colors.black.withOpacity(0.07),
-              blurRadius: 16,
-              offset: const Offset(0, 4))
-        ],
-      ),
-      child: ClipRRect(
-        borderRadius: BorderRadius.circular(28),
-        child: Image.asset(
-          _currentItem.imagePath,
-          fit: BoxFit.contain,
-          errorBuilder: (_, __, ___) => Center(
-            child: Icon(Icons.image_not_supported_outlined,
-                size: 60, color: Colors.grey[300]),
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildWordReveal() {
-    // Sessiz kaldı
-    if (_hasSpoken && _recognizedWord.isEmpty) {
-      return ScaleTransition(
-        scale: _wordRevealAnimation,
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Container(
-              padding:
-                  const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-              decoration: BoxDecoration(
-                color: const Color(0xFFFFF3E0),
-                borderRadius: BorderRadius.circular(20),
-                border: Border.all(
-                    color: const Color(0xFFFF9800).withOpacity(0.6), width: 2),
-              ),
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  const Text('🤫', style: TextStyle(fontSize: 24)),
-                  const SizedBox(width: 8),
-                  Text(
-                    _currentItem.word,
-                    style: GoogleFonts.fredoka(
-                        fontSize: 32,
-                        fontWeight: FontWeight.bold,
-                        color: const Color(0xFFFF9800)),
-                  ),
-                ],
-              ),
-            ),
-            const SizedBox(height: 6),
-            Text('Tekrar deneyelim!',
-                style: GoogleFonts.poppins(
-                    fontSize: 13,
-                    color: const Color(0xFFFF9800),
-                    fontWeight: FontWeight.w600)),
-          ],
-        ),
-      );
-    }
-
-    final feedbackColor =
-        _isCorrect ? const Color(0xFF4CAF50) : const Color(0xFFF44336);
-    final feedbackIcon = _isCorrect ? '✅' : '❌';
-
-    return AnimatedSwitcher(
-      duration: const Duration(milliseconds: 400),
-      child: _hasSpoken && _recognizedWord.isNotEmpty
-          ? ScaleTransition(
-              key: ValueKey(_recognizedWord),
-              scale: _wordRevealAnimation,
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Container(
-                    padding: const EdgeInsets.symmetric(
-                        horizontal: 32, vertical: 12),
-                    decoration: BoxDecoration(
-                      color: feedbackColor.withOpacity(0.12),
-                      borderRadius: BorderRadius.circular(20),
-                      border: Border.all(
-                          color: feedbackColor.withOpacity(0.5), width: 2),
-                    ),
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Text(feedbackIcon,
-                            style: const TextStyle(fontSize: 24)),
-                        const SizedBox(width: 8),
-                        Text(
-                          _recognizedWord,
-                          style: GoogleFonts.fredoka(
-                              fontSize: 32,
-                              fontWeight: FontWeight.bold,
-                              color: feedbackColor),
-                        ),
-                      ],
-                    ),
-                  ),
-                  if (!_isCorrect) ...[
-                    const SizedBox(height: 8),
-                    Text(
-                      'Doğrusu: ${_currentItem.word}',
-                      style: GoogleFonts.poppins(
-                          fontSize: 13,
-                          color: const Color(0xFF4CAF50),
-                          fontWeight: FontWeight.w600),
-                    ),
-                  ],
-                ],
-              ),
-            )
-          : SizedBox(
-              height: 60,
-              child: Center(
-                child: Text(
-                  _isListening ? '🎤 ...' : '❓',
-                  style: const TextStyle(fontSize: 32),
-                ),
-              ),
-            ),
-    );
-  }
-
-  Widget _buildMicButton() {
-    return GestureDetector(
-      onTap: _sttAvailable ? _toggleListening : null,
-      child: AnimatedBuilder(
-        animation: _micPulseController,
-        builder: (context, child) {
-          final scale =
-              _isListening ? 1.0 + (_micPulseController.value * 0.15) : 1.0;
-          return Transform.scale(scale: scale, child: child);
-        },
-        child: Container(
-          width: 76,
-          height: 76,
-          decoration: BoxDecoration(
-            shape: BoxShape.circle,
-            color: _isListening ? AppColors.secondary : AppColors.primary,
-            boxShadow: [
-              BoxShadow(
-                color: (_isListening ? AppColors.secondary : AppColors.primary)
-                    .withOpacity(0.45),
-                blurRadius: 24,
-                spreadRadius: 4,
-              ),
-            ],
-          ),
-          child: Icon(
-            _isListening ? Icons.mic_rounded : Icons.mic_none_rounded,
-            color: Colors.white,
-            size: 36,
-          ),
         ),
       ),
     );

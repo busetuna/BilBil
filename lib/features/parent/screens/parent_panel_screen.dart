@@ -437,7 +437,7 @@ class _RewardsTab extends StatelessWidget {
               crossAxisCount: 3,
               mainAxisSpacing: 12,
               crossAxisSpacing: 12,
-              childAspectRatio: 0.85,
+              childAspectRatio: 0.75,
             ),
             itemCount: all.length,
             itemBuilder: (_, i) {
@@ -456,32 +456,44 @@ class _RewardsTab extends StatelessWidget {
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    earned
-                        ? Image.asset(reward.imagePath,
-                            width: 48,
-                            height: 48,
-                            fit: BoxFit.contain,
-                            errorBuilder: (_, __, ___) =>
-                                Text(reward.emoji,
-                                    style: const TextStyle(fontSize: 36)))
-                        : const Icon(Icons.lock_rounded,
-                            size: 36, color: Color(0xFFD0D0D0)),
-                    const SizedBox(height: 6),
-                    Text(
-                      reward.title,
-                      style: GoogleFonts.poppins(
-                        fontSize: 11,
-                        fontWeight: FontWeight.w600,
-                        color: earned
-                            ? AppColors.textPrimary
-                            : AppColors.textSecondary,
+                    Expanded(
+                      child: Padding(
+                        padding: const EdgeInsets.fromLTRB(8, 10, 8, 4),
+                        child: earned
+                            ? Image.asset(
+                                reward.imagePath,
+                                fit: BoxFit.contain,
+                                errorBuilder: (_, __, ___) => Text(
+                                    reward.emoji,
+                                    style: const TextStyle(fontSize: 36)),
+                              )
+                            : const Icon(Icons.lock_rounded,
+                                size: 36, color: Color(0xFFD0D0D0)),
                       ),
-                      textAlign: TextAlign.center,
                     ),
-                    Text(
-                      earned ? reward.badgeLabel : 'Kilitli',
-                      style: GoogleFonts.poppins(
-                          fontSize: 10, color: AppColors.textSecondary),
+                    Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 4),
+                      child: Text(
+                        reward.title,
+                        style: GoogleFonts.poppins(
+                          fontSize: 11,
+                          fontWeight: FontWeight.w600,
+                          color: earned
+                              ? AppColors.textPrimary
+                              : AppColors.textSecondary,
+                        ),
+                        textAlign: TextAlign.center,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
+                    Padding(
+                      padding: const EdgeInsets.only(bottom: 8),
+                      child: Text(
+                        earned ? reward.badgeLabel : 'Kilitli',
+                        style: GoogleFonts.poppins(
+                            fontSize: 10, color: AppColors.textSecondary),
+                      ),
                     ),
                   ],
                 ),
