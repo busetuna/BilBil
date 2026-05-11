@@ -1,10 +1,8 @@
+import 'dart:async';
 import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:flutter_tts/flutter_tts.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:speech_to_text/speech_to_text.dart';
-import 'package:speech_to_text/speech_recognition_error.dart';
-import 'package:speech_to_text/speech_recognition_result.dart';
 import 'package:provider/provider.dart';
 import 'package:permission_handler/permission_handler.dart';
 
@@ -14,6 +12,7 @@ import '../../../../services/rewards/reward_service.dart';
 import '../../../../services/rl_agent/rl_agent.dart';
 import '../../../../services/stats/stats_service.dart';
 import '../../../../services/lives/lives_service.dart';
+import '../../../../services/asr/vosk_asr_service.dart';
 import 'rest_screen.dart';
 import 'answer_checker.dart';
 import 'reward_celebration_dialog.dart';
@@ -41,20 +40,20 @@ class _QuizScreenState extends State<QuizScreen> with TickerProviderStateMixin {
 
   // ── Servisler ───────────────────────────────────────────────────────────────
   final FlutterTts _tts = FlutterTts();
-  final SpeechToText _stt = SpeechToText();
+  late VoskAsrService _vosk;
   late RLAgent _rlAgent;
   late RewardService _rewardService;
   late StatsService _statsService;
   late LivesService _livesService;
   bool _servicesInitialized = false;
 
-  // ── STT durumu ──────────────────────────────────────────────────────────────
+  // ── ASR durumu ──────────────────────────────────────────────────────────────
   bool _isListening = false;
-  bool _sttAvailable = false;
   String _recognizedWord = '';
   bool _hasSpoken = false;
   bool _isCorrect = false;
   DateTime? _questionStartTime;
+  Timer? _silenceTimer;
 
   // ── Animasyonlar ────────────────────────────────────────────────────────────
   late AnimationController _micPulseController;
@@ -90,7 +89,6 @@ class _QuizScreenState extends State<QuizScreen> with TickerProviderStateMixin {
 
     _cardController.forward();
     _initTts();
-    _initStt();
     _startQuestion();
   }
 
@@ -100,6 +98,7 @@ class _QuizScreenState extends State<QuizScreen> with TickerProviderStateMixin {
     _rewardService = Provider.of<RewardService>(context, listen: false);
     _statsService = Provider.of<StatsService>(context, listen: false);
     _livesService = Provider.of<LivesService>(context, listen: false);
+    _vosk = Provider.of<VoskAsrService>(context, listen: false);
     if (!_servicesInitialized) {
       _servicesInitialized = true;
       _rlAgent = RLAgent(
@@ -107,13 +106,15 @@ class _QuizScreenState extends State<QuizScreen> with TickerProviderStateMixin {
         initialDifficulty: _statsService.startingDifficulty,
       );
       _activeDifficulty = _statsService.startingDifficulty;
+      _vosk.initialize();
     }
   }
 
   @override
   void dispose() {
     _tts.stop();
-    _stt.stop();
+    _silenceTimer?.cancel();
+    if (_isListening) _vosk.stopListening();
     _micPulseController.dispose();
     _cardController.dispose();
     _wordRevealController.dispose();
@@ -187,48 +188,7 @@ class _QuizScreenState extends State<QuizScreen> with TickerProviderStateMixin {
     );
   }
 
-  // ── STT ─────────────────────────────────────────────────────────────────────
-
-  Future<void> _initStt() async {
-    final status = await Permission.microphone.request();
-    if (status.isPermanentlyDenied) {
-      setState(() => _sttAvailable = false);
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        if (mounted) _showMicPermissionDialog(permanent: true);
-      });
-      return;
-    }
-    if (status.isDenied) {
-      setState(() => _sttAvailable = false);
-      return;
-    }
-    _sttAvailable =
-        await _stt.initialize(onError: _onSttError, onStatus: _onSttStatus);
-    setState(() {});
-  }
-
-  void _onSttStatus(String s) {
-    if ((s == 'done' || s == 'notListening') && mounted) {
-      _micPulseController.stop();
-      final wasListening = _isListening;
-      if (_isListening) setState(() => _isListening = false);
-      if (wasListening && !_hasSpoken) _handleNoAnswer();
-    }
-  }
-
-  void _onSttError(SpeechRecognitionError error) {
-    if (!mounted) return;
-    _micPulseController.stop();
-    setState(() => _isListening = false);
-    if (error.permanent) {
-      Permission.microphone.status.then((perm) {
-        if (!perm.isGranted && mounted) {
-          setState(() => _sttAvailable = false);
-          _showMicPermissionDialog(permanent: perm.isPermanentlyDenied);
-        }
-      });
-    }
-  }
+  // ── ASR (Vosk on-device) ────────────────────────────────────────────────────
 
   void _showMicPermissionDialog({required bool permanent}) {
     showDialog(
@@ -268,7 +228,7 @@ class _QuizScreenState extends State<QuizScreen> with TickerProviderStateMixin {
   }
 
   Future<void> _startListening() async {
-    if (_isListening) return;
+    if (_isListening || !_vosk.isReady) return;
 
     final perm = await Permission.microphone.status;
     if (perm.isPermanentlyDenied) {
@@ -280,48 +240,57 @@ class _QuizScreenState extends State<QuizScreen> with TickerProviderStateMixin {
       if (!result.isGranted) return;
     }
 
-    if (!_sttAvailable) {
-      _sttAvailable =
-          await _stt.initialize(onError: _onSttError, onStatus: _onSttStatus);
-      if (mounted) setState(() {});
-      if (!_sttAvailable) return;
-    }
-
     setState(() {
       _isListening = true;
       _recognizedWord = '';
       _hasSpoken = false;
     });
     _micPulseController.repeat(reverse: true);
+    _resetSilenceTimer();
 
-    await _stt.listen(
-      onResult: _onSttResult,
-      localeId: 'tr_TR',
-      listenFor: const Duration(seconds: 30),
-      pauseFor: const Duration(seconds: 4),
-      listenOptions: SpeechListenOptions(cancelOnError: false),
+    _vosk.startListening(
+      onPartial: (text) {
+        if (!mounted) return;
+        setState(() => _recognizedWord = text);
+        _resetSilenceTimer();
+      },
+      onFinal: (text) {
+        if (!mounted || _hasSpoken) return;
+        _silenceTimer?.cancel();
+        _handleFinalResult(text);
+      },
     );
   }
 
-  void _onSttResult(SpeechRecognitionResult result) {
-    setState(() => _recognizedWord = result.recognizedWords);
-    if (!result.finalResult || _recognizedWord.isEmpty) return;
+  void _resetSilenceTimer() {
+    _silenceTimer?.cancel();
+    _silenceTimer = Timer(const Duration(seconds: 5), () {
+      if (!mounted || !_isListening || _hasSpoken) return;
+      _vosk.stopListening();
+      _micPulseController.stop();
+      setState(() => _isListening = false);
+      _handleNoAnswer();
+    });
+  }
 
-    _stt.stop();
+  void _handleFinalResult(String recognized) {
+    _vosk.stopListening();
     _micPulseController.stop();
 
     final expected = _currentItem.word;
-    final correct = AnswerChecker.check(_recognizedWord, expected);
-    final responseTimeSec = _questionStartTime != null
-        ? DateTime.now().difference(_questionStartTime!).inMilliseconds / 1000.0
-        : 5.0;
+    final correct = AnswerChecker.check(recognized, expected);
+    final latencyMs = _questionStartTime != null
+        ? DateTime.now().difference(_questionStartTime!).inMilliseconds
+        : 5000;
 
-    _updateRlAgent(correct, responseTimeSec);
+    _statsService.recordAsrResult(isMatch: correct, latencyMs: latencyMs);
+    _updateRlAgent(correct, latencyMs / 1000.0);
 
     setState(() {
       _isListening = false;
       _hasSpoken = true;
       _isCorrect = correct;
+      _recognizedWord = recognized;
       if (correct) _stars++;
     });
 
@@ -345,13 +314,14 @@ class _QuizScreenState extends State<QuizScreen> with TickerProviderStateMixin {
     _scheduleNextOrRest();
   }
 
-  Future<void> _toggleListening() async {
+  void _toggleListening() {
     if (_isListening) {
-      await _stt.stop();
+      _silenceTimer?.cancel();
+      _vosk.stopListening();
       _micPulseController.stop();
       setState(() => _isListening = false);
     } else {
-      await _startListening();
+      _startListening();
     }
   }
 
@@ -437,6 +407,62 @@ class _QuizScreenState extends State<QuizScreen> with TickerProviderStateMixin {
     _startQuestion();
   }
 
+  // ── Model indirme UI ────────────────────────────────────────────────────────
+
+  Widget _buildModelDownloadIndicator(double progress) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 24),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Text(
+            'Ses modeli indiriliyor...',
+            style: GoogleFonts.poppins(
+                fontSize: 13,
+                fontWeight: FontWeight.w600,
+                color: AppColors.textSecondary),
+          ),
+          const SizedBox(height: 8),
+          ClipRRect(
+            borderRadius: BorderRadius.circular(8),
+            child: LinearProgressIndicator(
+              value: progress > 0 ? progress : null,
+              minHeight: 8,
+              backgroundColor: AppColors.primary.withValues(alpha: 0.15),
+              valueColor: AlwaysStoppedAnimation<Color>(AppColors.primary),
+            ),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            progress > 0 ? '%${(progress * 100).toInt()}' : 'Bağlanıyor...',
+            style: GoogleFonts.poppins(
+                fontSize: 11, color: AppColors.textSecondary),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildModelErrorWidget(VoskAsrService vosk) {
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Icon(Icons.error_outline, color: AppColors.error, size: 32),
+        const SizedBox(height: 4),
+        Text(
+          'Model yüklenemedi',
+          style: GoogleFonts.poppins(
+              fontSize: 13, color: AppColors.error, fontWeight: FontWeight.w600),
+        ),
+        TextButton(
+          onPressed: vosk.initialize,
+          child: Text('Tekrar Dene',
+              style: GoogleFonts.poppins(color: AppColors.primary)),
+        ),
+      ],
+    );
+  }
+
   // ── Build ────────────────────────────────────────────────────────────────────
 
   @override
@@ -470,7 +496,7 @@ class _QuizScreenState extends State<QuizScreen> with TickerProviderStateMixin {
                       borderRadius: BorderRadius.circular(32),
                       boxShadow: [
                         BoxShadow(
-                          color: Colors.black.withOpacity(0.06),
+                          color: Colors.black.withValues(alpha: 0.06),
                           blurRadius: 20,
                           offset: const Offset(0, 6),
                         ),
@@ -490,11 +516,21 @@ class _QuizScreenState extends State<QuizScreen> with TickerProviderStateMixin {
                           revealAnimation: _wordRevealAnimation,
                         ),
                         const SizedBox(height: 28),
-                        QuizMicButton(
-                          isListening: _isListening,
-                          sttAvailable: _sttAvailable,
-                          onTap: _toggleListening,
-                          pulseController: _micPulseController,
+                        Consumer<VoskAsrService>(
+                          builder: (_, vosk, _noChild) {
+                            if (vosk.isDownloading) {
+                              return _buildModelDownloadIndicator(vosk.downloadProgress);
+                            }
+                            if (vosk.status == AsrModelStatus.error) {
+                              return _buildModelErrorWidget(vosk);
+                            }
+                            return QuizMicButton(
+                              isListening: _isListening,
+                              sttAvailable: vosk.isReady,
+                              onTap: _toggleListening,
+                              pulseController: _micPulseController,
+                            );
+                          },
                         ),
                         const SizedBox(height: 12),
                         Text(

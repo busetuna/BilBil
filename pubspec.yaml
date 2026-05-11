@@ -29,7 +29,10 @@ dependencies:
 
   # AI Services
   flutter_tts: ^3.8.0
-  speech_to_text: ^7.0.0  # ← GÜNCELLENDİ (6.5.1'den 7.0.0'a)
+  speech_to_text: ^7.0.0
+  vosk_flutter: ^0.3.0+1
+  record: ^5.0.0
+  archive: ^3.4.0
 
   # UI & Charts
   fl_chart: ^0.68.0
@@ -43,6 +46,10 @@ dependencies:
   permission_handler: ^11.2.0
   intl: ^0.19.0
   google_fonts: ^6.1.0
+
+dependency_overrides:
+  permission_handler: ^11.2.0
+  http: ^1.2.0
 
 dev_dependencies:
   flutter_test:

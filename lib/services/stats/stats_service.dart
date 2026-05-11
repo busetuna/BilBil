@@ -45,6 +45,9 @@ class StatsService extends ChangeNotifier {
       'difficultyHistory': difficultyHistory,
       'startingDifficulty': startingDifficulty,
       'pin': pin,
+      'totalAsrAttempts': totalAsrAttempts,
+      'exactAsrMatches': exactAsrMatches,
+      'totalLatencyMs': totalLatencyMs,
     });
   }
 
@@ -55,6 +58,18 @@ class StatsService extends ChangeNotifier {
   int get totalAnswers => totalCorrect + totalWrong;
   double get successRate =>
       totalAnswers == 0 ? 0.0 : totalCorrect / totalAnswers;
+
+  // ASR metrics
+  int get totalAsrAttempts =>
+      (_box.get('totalAsrAttempts', defaultValue: 0) as num).toInt();
+  int get exactAsrMatches =>
+      (_box.get('exactAsrMatches', defaultValue: 0) as num).toInt();
+  int get totalLatencyMs =>
+      (_box.get('totalLatencyMs', defaultValue: 0) as num).toInt();
+  double get asrAccuracy =>
+      totalAsrAttempts == 0 ? 0.0 : exactAsrMatches / totalAsrAttempts;
+  double get avgLatencyMs =>
+      totalAsrAttempts == 0 ? 0.0 : totalLatencyMs / totalAsrAttempts;
 
   List<int> get difficultyHistory {
     final raw = _box.get('difficultyHistory');
@@ -77,6 +92,14 @@ class StatsService extends ChangeNotifier {
     if (history.length > 300) history.removeAt(0);
     _box.put('difficultyHistory', history);
 
+    _syncToCloud();
+    notifyListeners();
+  }
+
+  void recordAsrResult({required bool isMatch, required int latencyMs}) {
+    _box.put('totalAsrAttempts', totalAsrAttempts + 1);
+    if (isMatch) _box.put('exactAsrMatches', exactAsrMatches + 1);
+    _box.put('totalLatencyMs', totalLatencyMs + latencyMs);
     _syncToCloud();
     notifyListeners();
   }

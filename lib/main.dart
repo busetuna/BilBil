@@ -17,6 +17,7 @@ import 'services/rewards/reward_service.dart';
 import 'services/stats/stats_service.dart';
 import 'services/lives/lives_service.dart';
 import 'services/theme/theme_service.dart';
+import 'services/asr/vosk_asr_service.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -40,6 +41,8 @@ void main() async {
   final themeService = ThemeService();
   await themeService.init();
 
+  final voskAsrService = VoskAsrService();
+
   // Uygulama açılışında zaten oturum açıksa bulut verisini yükle
   final fbUser = fb.FirebaseAuth.instance.currentUser;
   if (fbUser != null) {
@@ -60,6 +63,7 @@ void main() async {
     statsService: statsService,
     livesService: livesService,
     themeService: themeService,
+    voskAsrService: voskAsrService,
   ));
 }
 
@@ -69,6 +73,7 @@ class MyApp extends StatelessWidget {
   final StatsService statsService;
   final LivesService livesService;
   final ThemeService themeService;
+  final VoskAsrService voskAsrService;
 
   const MyApp({
     super.key,
@@ -77,6 +82,7 @@ class MyApp extends StatelessWidget {
     required this.statsService,
     required this.livesService,
     required this.themeService,
+    required this.voskAsrService,
   });
 
   Future<void> _onSignedIn(String uid) async {
@@ -117,6 +123,7 @@ class MyApp extends StatelessWidget {
         ChangeNotifierProvider<StatsService>.value(value: statsService),
         ChangeNotifierProvider<LivesService>.value(value: livesService),
         ChangeNotifierProvider<ThemeService>.value(value: themeService),
+        ChangeNotifierProvider<VoskAsrService>.value(value: voskAsrService),
       ],
       child: Consumer<ThemeService>(
         builder: (context, themeService, _) => MaterialApp(

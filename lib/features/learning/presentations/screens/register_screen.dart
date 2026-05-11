@@ -18,7 +18,6 @@ class _RegisterScreenState extends State<RegisterScreen> {
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
   bool _isPasswordVisible = false;
-  UserType _selectedUserType = UserType.child;
 
   @override
   void dispose() {
@@ -119,11 +118,6 @@ class _RegisterScreenState extends State<RegisterScreen> {
 
                       // Şifre
                       _buildPasswordField(),
-
-                      const SizedBox(height: 24),
-
-                      // Kullanıcı tipi seçimi
-                      _buildUserTypeSelector(),
 
                       const SizedBox(height: 32),
 
@@ -277,100 +271,6 @@ class _RegisterScreenState extends State<RegisterScreen> {
     );
   }
 
-  Widget _buildUserTypeSelector() {
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        boxShadow: [
-          BoxShadow(
-            color: AppColors.primary.withOpacity(0.1),
-            blurRadius: 20,
-            offset: const Offset(0, 4),
-          ),
-        ],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            'Hesap Tipi',
-            style: GoogleFonts.poppins(
-              fontSize: 14,
-              fontWeight: FontWeight.w600,
-              color: AppColors.textPrimary,
-            ),
-          ),
-          const SizedBox(height: 12),
-          Row(
-            children: [
-              Expanded(
-                child: _buildUserTypeOption(
-                  type: UserType.child,
-                  icon: Icons.child_care,
-                  label: 'Çocuk',
-                ),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: _buildUserTypeOption(
-                  type: UserType.parent,
-                  icon: Icons.shield_outlined,
-                  label: 'Ebeveyn',
-                ),
-              ),
-            ],
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildUserTypeOption({
-    required UserType type,
-    required IconData icon,
-    required String label,
-  }) {
-    final isSelected = _selectedUserType == type;
-    return GestureDetector(
-      onTap: () {
-        setState(() {
-          _selectedUserType = type;
-        });
-      },
-      child: Container(
-        padding: const EdgeInsets.symmetric(vertical: 12),
-        decoration: BoxDecoration(
-          color: isSelected ? AppColors.primary : Colors.grey[100],
-          borderRadius: BorderRadius.circular(12),
-          border: Border.all(
-            color: isSelected ? AppColors.primary : Colors.grey[300]!,
-            width: 2,
-          ),
-        ),
-        child: Column(
-          children: [
-            Icon(
-              icon,
-              color: isSelected ? Colors.white : AppColors.textSecondary,
-              size: 32,
-            ),
-            const SizedBox(height: 4),
-            Text(
-              label,
-              style: GoogleFonts.poppins(
-                fontSize: 12,
-                fontWeight: FontWeight.w600,
-                color: isSelected ? Colors.white : AppColors.textSecondary,
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
   Widget _buildRegisterButton(AuthProvider authProvider) {
     return SizedBox(
       width: double.infinity,
@@ -420,7 +320,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
       email: _emailController.text.trim(),
       password: _passwordController.text,
       name: _nameController.text.trim(),
-      userType: _selectedUserType,
+      userType: UserType.child,
     );
 
     if (mounted) {

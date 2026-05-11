@@ -174,10 +174,6 @@ class _LoginScreenState extends State<LoginScreen>
                                 // Kayıt ol butonu
                                 _buildRegisterButton(),
 
-                                const SizedBox(height: 32),
-
-                                // Ebeveyn girişi
-                                _buildParentLoginButton(),
                               ],
                             ),
                           ),
@@ -470,35 +466,6 @@ class _LoginScreenState extends State<LoginScreen>
             const SizedBox(width: 8),
             const Icon(Icons.celebration_outlined, size: 20),
           ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildParentLoginButton() {
-    return TextButton.icon(
-      onPressed: () {
-        // TODO: Ebeveyn girişi
-      },
-      icon: Icon(
-        Icons.shield_outlined,
-        color: AppColors.textSecondary,
-        size: 20,
-      ),
-      label: Text(
-        'EBEVEYN GİRİŞİ',
-        style: GoogleFonts.poppins(
-          fontSize: 11,
-          fontWeight: FontWeight.bold,
-          letterSpacing: 1.2,
-          color: AppColors.textSecondary,
-        ),
-      ),
-      style: TextButton.styleFrom(
-        backgroundColor: Colors.white.withOpacity(0.5),
-        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(30),
         ),
       ),
     );
