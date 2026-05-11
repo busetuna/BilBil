@@ -213,7 +213,7 @@ class _SplashScreenState extends State<SplashScreen>
                   const SizedBox(height: 32),
 
                   // Title
-                  const Text(
+                  Text(
                     'Bilbil',
                     style: TextStyle(
                       fontSize: 64,
@@ -372,7 +372,7 @@ class _SplashScreenState extends State<SplashScreen>
                   'assets/images/giris_bilbil.png',
                   fit: BoxFit.cover,  // contain yerine cover kullan
                   errorBuilder: (context, error, stackTrace) {
-                    return const Icon(
+                    return Icon(
                       Icons.flutter_dash,
                       size: 120,
                       color: AppColors.primary,

@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
 import '../../../../core/theme/app_colors.dart';
+import '../../../../services/theme/app_theme.dart';
+import '../../../../services/theme/theme_service.dart';
 import '../providers/auth_provider.dart';
 import 'quiz_screen.dart';
 import '../../../parent/screens/parent_pin_screen.dart';
@@ -17,6 +19,7 @@ class _HomeScreenState extends State<HomeScreen>
     with SingleTickerProviderStateMixin {
   late AnimationController _pulseController;
   late Animation<double> _pulseAnimation;
+  bool _showThemePicker = false;
 
   @override
   void initState() {
@@ -43,7 +46,7 @@ class _HomeScreenState extends State<HomeScreen>
     final userName = authProvider.currentUser?.name ?? 'Kullanıcı';
 
     return Scaffold(
-      backgroundColor: const Color(0xFFEDF4FF),
+      backgroundColor: AppColors.background,
       body: SafeArea(
         child: Padding(
           padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
@@ -52,6 +55,9 @@ class _HomeScreenState extends State<HomeScreen>
             children: [
               // Top bar
               _buildTopBar(userName),
+
+              // Tema seçici paneli
+              _buildThemePickerPanel(),
 
               Expanded(
                 child: Center(
@@ -136,6 +142,30 @@ class _HomeScreenState extends State<HomeScreen>
         ),
         Row(
           children: [
+            // Tema seçici butonu
+            GestureDetector(
+              onTap: () => setState(() => _showThemePicker = !_showThemePicker),
+              child: AnimatedContainer(
+                duration: const Duration(milliseconds: 200),
+                width: 40,
+                height: 40,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: _showThemePicker
+                      ? AppColors.primary.withOpacity(0.12)
+                      : Colors.white,
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withOpacity(0.08),
+                      blurRadius: 8,
+                    ),
+                  ],
+                ),
+                child: Icon(Icons.palette_rounded,
+                    size: 20, color: AppColors.primary),
+              ),
+            ),
+            const SizedBox(width: 8),
             GestureDetector(
               onTap: () => Navigator.push(
                 context,
@@ -154,8 +184,8 @@ class _HomeScreenState extends State<HomeScreen>
                     ),
                   ],
                 ),
-                child: const Icon(Icons.lock_outline_rounded,
-                    size: 20, color: Color(0xFF9B91FF)),
+                child: Icon(Icons.lock_outline_rounded,
+                    size: 20, color: AppColors.primary),
               ),
             ),
             const SizedBox(width: 10),
@@ -195,6 +225,88 @@ class _HomeScreenState extends State<HomeScreen>
     );
   }
 
+  Widget _buildThemePickerPanel() {
+    return AnimatedSize(
+      duration: const Duration(milliseconds: 250),
+      curve: Curves.easeInOut,
+      child: _showThemePicker
+          ? _buildThemeSelector(context)
+          : const SizedBox.shrink(),
+    );
+  }
+
+  Widget _buildThemeSelector(BuildContext context) {
+    final themeService = context.watch<ThemeService>();
+    return Container(
+      margin: const EdgeInsets.only(top: 8, bottom: 4),
+      padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(20),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.07),
+            blurRadius: 12,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Text(
+            'Tema Seç',
+            style: GoogleFonts.poppins(
+              fontSize: 12,
+              fontWeight: FontWeight.w600,
+              color: AppColors.textSecondary,
+            ),
+          ),
+          const SizedBox(height: 10),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: AppTheme.all.map((theme) {
+              final isSelected = themeService.current.id == theme.id;
+              return GestureDetector(
+                onTap: () {
+                  themeService.setTheme(theme);
+                  setState(() => _showThemePicker = false);
+                },
+                child: AnimatedContainer(
+                  duration: const Duration(milliseconds: 200),
+                  margin: const EdgeInsets.symmetric(horizontal: 10),
+                  width: isSelected ? 44 : 36,
+                  height: isSelected ? 44 : 36,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    color: theme.primary,
+                    border: isSelected
+                        ? Border.all(color: Colors.white, width: 3)
+                        : null,
+                    boxShadow: [
+                      BoxShadow(
+                        color: theme.primary.withOpacity(isSelected ? 0.5 : 0.2),
+                        blurRadius: isSelected ? 14 : 6,
+                        spreadRadius: isSelected ? 2 : 0,
+                      ),
+                    ],
+                  ),
+                  child: Center(
+                    child: isSelected
+                        ? const Icon(Icons.check_rounded,
+                            color: Colors.white, size: 18)
+                        : Text(theme.emoji,
+                            style: const TextStyle(fontSize: 16)),
+                  ),
+                ),
+              );
+            }).toList(),
+          ),
+        ],
+      ),
+    );
+  }
+
   Widget _buildQuizButton() {
     return GestureDetector(
       onTap: () {
@@ -218,23 +330,23 @@ class _HomeScreenState extends State<HomeScreen>
           height: 240,
           decoration: BoxDecoration(
             shape: BoxShape.circle,
-            gradient: const LinearGradient(
+            gradient: LinearGradient(
               begin: Alignment.topLeft,
               end: Alignment.bottomRight,
               colors: [
-                Color(0xFFB8B0FF), // soft lavender
-                Color(0xFF9B91FF), // slightly deeper purple
+                AppColors.primaryLight,
+                AppColors.primary,
               ],
             ),
             boxShadow: [
               BoxShadow(
-                color: const Color(0xFF9B91FF).withOpacity(0.4),
+                color: AppColors.primary.withOpacity(0.4),
                 blurRadius: 40,
                 spreadRadius: 8,
                 offset: const Offset(0, 10),
               ),
               BoxShadow(
-                color: const Color(0xFFB8B0FF).withOpacity(0.2),
+                color: AppColors.primaryLight.withOpacity(0.2),
                 blurRadius: 70,
                 spreadRadius: 15,
               ),

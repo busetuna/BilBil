@@ -1,0 +1,20 @@
+I want to add a theme system to the BilBil Flutter app. Please implement the following:
+
+1. Create a ThemeModel with 4 predefined themes:
+
+   - Lavender Dream: background #F5F0FF, primary #7C4DFF, accent #B39DDB, card #EDE7F6
+   - Cotton Candy: background #FFF0F5, primary #FF6B9D, accent #FFB3D1, card #FFE4EF
+   - Sunny Day: background #FFF8F0, primary #FF8C42, accent #FFB347, card #FFF0E0
+   - Mint Forest: background #F0FFF8, primary #4CAF82, accent #80CBC4, card #E0F7F0
+
+2. Create a ThemeService (ChangeNotifier) that:
+   - Saves and loads the selected theme using Hive
+   - Exposes current theme colors
+
+3. Update AppColors to read from ThemeService instead of hardcoded values
+
+4. Add a theme selector widget — 4 colored circles that the child can tap to switch themes instantly, place it on the home screen
+
+5. Register ThemeService in the Provider setup in main.dart
+
+Use the existing Clean Architecture folder structure under lib/features/. Keep it simple and child-friendly.

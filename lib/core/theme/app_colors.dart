@@ -1,10 +1,15 @@
 import 'package:flutter/material.dart';
 
 class AppColors {
-  // Ana Renkler
-  static const Color primary = Color(0xFF6C63FF);
+  // Tema renkleri — ThemeService tarafından güncellenir
+  static Color primary = const Color(0xFF7C4DFF);
+  static Color primaryLight = const Color(0xFFB8B0FF);
+  static Color accent = const Color(0xFFB39DDB);
+  static Color background = const Color(0xFFF5F0FF);
+  static Color card = const Color(0xFFEDE7F6);
+
+  // Ana Renkler (sabit)
   static const Color secondary = Color(0xFFFF6B9D);
-  static const Color accent = Color(0xFFFFC857);
 
   // Gradient Renkler
   static const Color gradientStart = Color(0xFFE8F5FF);
@@ -22,8 +27,7 @@ class AppColors {
   static const Color textSecondary = Color(0xFF9E9E9E);
   static const Color textLight = Color(0xFFB0B0B0);
 
-  // Arka Plan Renkler
-  static const Color background = Color(0xFFFAFAFA);
+  // Arka Plan Renkler (sabit)
   static const Color surface = Color(0xFFFFFFFF);
   static const Color surfaceVariant = Color(0xFFF5F5F5);
 

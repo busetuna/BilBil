@@ -16,7 +16,7 @@ class AppTheme {
       scaffoldBackgroundColor: AppColors.background,
 
       // Color scheme
-      colorScheme: const ColorScheme.light(
+      colorScheme: ColorScheme.light(
         primary: AppColors.primary,
         secondary: AppColors.secondary,
         tertiary: AppColors.accent,
@@ -86,7 +86,7 @@ class AppTheme {
       outlinedButtonTheme: OutlinedButtonThemeData(
         style: OutlinedButton.styleFrom(
           foregroundColor: AppColors.primary,
-          side: const BorderSide(color: AppColors.primary, width: 2),
+          side: BorderSide(color: AppColors.primary, width: 2),
           padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 16),
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(16),
@@ -119,7 +119,7 @@ class AppTheme {
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(16),
-          borderSide: const BorderSide(color: AppColors.primary, width: 2),
+          borderSide: BorderSide(color: AppColors.primary, width: 2),
         ),
         errorBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(16),
@@ -197,7 +197,7 @@ class AppTheme {
       ),
 
       // Progress Indicator Teması
-      progressIndicatorTheme: const ProgressIndicatorThemeData(
+      progressIndicatorTheme: ProgressIndicatorThemeData(
         color: AppColors.primary,
         linearTrackColor: AppColors.surfaceVariant,
         circularTrackColor: AppColors.surfaceVariant,

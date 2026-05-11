@@ -26,7 +26,7 @@ class _MainNavigationState extends State<MainNavigation> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFEDF4FF),
+      backgroundColor: AppColors.background,
       body: _screens[_currentIndex],
       bottomNavigationBar: _buildBottomNav(),
     );
@@ -116,7 +116,7 @@ class _RewardsScreen extends StatelessWidget {
             active != null ? service.puzzlePiecesFor(active.id) : 0;
 
         return Scaffold(
-          backgroundColor: const Color(0xFFEDF4FF),
+          backgroundColor: AppColors.background,
           body: CustomScrollView(
             slivers: [
               // ── Üst banner (SliverAppBar) ───────────────────────────────

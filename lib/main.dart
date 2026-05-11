@@ -15,6 +15,7 @@ import 'features/learning/presentations/screens/splash_screen.dart';
 import 'services/rewards/reward_service.dart';
 import 'services/stats/stats_service.dart';
 import 'services/lives/lives_service.dart';
+import 'services/theme/theme_service.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -35,10 +36,14 @@ void main() async {
   final livesService = LivesService();
   await livesService.init();
 
+  final themeService = ThemeService();
+  await themeService.init();
+
   runApp(MyApp(
     rewardService: rewardService,
     statsService: statsService,
     livesService: livesService,
+    themeService: themeService,
   ));
 }
 
@@ -46,11 +51,14 @@ class MyApp extends StatelessWidget {
   final RewardService rewardService;
   final StatsService statsService;
   final LivesService livesService;
+  final ThemeService themeService;
+
   const MyApp({
     super.key,
     required this.rewardService,
     required this.statsService,
     required this.livesService,
+    required this.themeService,
   });
 
   @override
@@ -71,23 +79,23 @@ class MyApp extends StatelessWidget {
         ChangeNotifierProvider<RewardService>.value(value: rewardService),
         ChangeNotifierProvider<StatsService>.value(value: statsService),
         ChangeNotifierProvider<LivesService>.value(value: livesService),
+        ChangeNotifierProvider<ThemeService>.value(value: themeService),
       ],
-      child: MaterialApp(
-        title: 'Bilbil',
-        debugShowCheckedModeBanner: false,
-        theme: ThemeData(
-          useMaterial3: true,
-        ),
-        home: Consumer<AuthProvider>(
-          builder: (context, authProvider, _) {
-            if (authProvider.isLoading) {
-              return const SplashScreen();
-            }
-            if (authProvider.isLoggedIn) {
-              return const MainNavigation();
-            }
-            return const SplashScreen();
-          },
+      child: Consumer<ThemeService>(
+        builder: (context, themeService, _) => MaterialApp(
+          title: 'Bilbil',
+          debugShowCheckedModeBanner: false,
+          theme: ThemeData(useMaterial3: true),
+          home: KeyedSubtree(
+            key: ValueKey(themeService.current.id),
+            child: Consumer<AuthProvider>(
+              builder: (context, authProvider, _) {
+                if (authProvider.isLoading) return const SplashScreen();
+                if (authProvider.isLoggedIn) return const MainNavigation();
+                return const SplashScreen();
+              },
+            ),
+          ),
         ),
       ),
     );
