@@ -1,3 +1,4 @@
+
 import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -138,6 +139,75 @@ class _StatsTab extends StatelessWidget {
           ),
           const SizedBox(height: 24),
 
+          // ASR metrikleri
+          Text('ASR Performansı',
+              style: GoogleFonts.fredoka(
+                  fontSize: 20,
+                  fontWeight: FontWeight.bold,
+                  color: AppColors.textPrimary)),
+          const SizedBox(height: 16),
+          Row(
+            children: [
+              Expanded(
+                child: _StatCard(
+                  label: 'Ses Tanıma',
+                  value: '%${(stats.asrAccuracy * 100).toStringAsFixed(1)}',
+                  icon: Icons.mic_rounded,
+                  color: const Color(0xFF5B9BFF),
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: _StatCard(
+                  label: 'Ort. Yanıt',
+                  value: '${(stats.avgLatencyMs / 1000).toStringAsFixed(1)}s',
+                  icon: Icons.timer_rounded,
+                  color: const Color(0xFFFF9800),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          Row(
+            children: [
+              Expanded(
+                child: _StatCard(
+                  label: 'ASR Deneme',
+                  value: '${stats.totalAsrAttempts}',
+                  icon: Icons.graphic_eq_rounded,
+                  color: const Color(0xFF9C27B0),
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: _StatCard(
+                  label: 'Hedef ≤500ms',
+                  value: stats.avgLatencyMs <= 500 ? '✓' : '✗',
+                  icon: Icons.speed_rounded,
+                  color: stats.avgLatencyMs <= 500 || stats.totalAsrAttempts == 0
+                      ? const Color(0xFF4CAF50)
+                      : const Color(0xFFF44336),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 24),
+
+          // En çok zorlanan kategoriler
+          const SizedBox(height: 24),
+          Text('En Çok Zorlanan Kategoriler',
+              style: GoogleFonts.fredoka(
+                  fontSize: 20,
+                  fontWeight: FontWeight.bold,
+                  color: AppColors.textPrimary)),
+          const SizedBox(height: 6),
+          Text('Yanlış cevap oranına göre sıralı',
+              style: GoogleFonts.poppins(
+                  fontSize: 13, color: AppColors.textSecondary)),
+          const SizedBox(height: 16),
+          _CategoryBreakdown(stats: stats),
+          const SizedBox(height: 24),
+
           // Başarı çubuğu
           Text('Başarı Çubuğu',
               style: GoogleFonts.fredoka(
@@ -184,6 +254,130 @@ class _StatsTab extends StatelessWidget {
             ),
           ),
         ],
+      ),
+    );
+  }
+}
+
+class _CategoryBreakdown extends StatelessWidget {
+  final StatsService stats;
+  const _CategoryBreakdown({required this.stats});
+
+  static const _catNames = {
+    'animals': 'Hayvanlar',
+    'fruits_vegetables': 'Meyve-Sebze',
+    'colors': 'Renkler',
+    'shapes': 'Şekiller',
+    'body_parts': 'Vücut Bölümleri',
+    'clothes': 'Kıyafetler',
+    'daily_objects': 'Günlük Eşyalar',
+    'weather': 'Hava Durumu',
+    'actions': 'Eylemler',
+    'adjectives': 'Basit Sıfatlar',
+  };
+
+  @override
+  Widget build(BuildContext context) {
+    final totals = stats.categoryTotalCounts;
+    final wrongs = stats.categoryWrongCounts;
+
+    if (totals.isEmpty) {
+      return Container(
+        padding: const EdgeInsets.all(24),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(16),
+          boxShadow: [
+            BoxShadow(
+                color: Colors.black.withOpacity(0.05), blurRadius: 8)
+          ],
+        ),
+        child: Center(
+          child: Column(
+            children: [
+              const Icon(Icons.category_rounded,
+                  size: 48, color: Color(0xFFD0D0D0)),
+              const SizedBox(height: 10),
+              Text('Henüz kategori verisi yok',
+                  style: GoogleFonts.poppins(
+                      fontSize: 13, color: AppColors.textSecondary)),
+            ],
+          ),
+        ),
+      );
+    }
+
+    // Sadece oynanmış kategorileri al, yanlış oranına göre sırala
+    final entries = totals.entries.toList()
+      ..sort((a, b) {
+        final rateA = (wrongs[a.key] ?? 0) / a.value;
+        final rateB = (wrongs[b.key] ?? 0) / b.value;
+        return rateB.compareTo(rateA);
+      });
+
+    final maxWrong = entries
+        .map((e) => wrongs[e.key] ?? 0)
+        .fold(1, (a, b) => a > b ? a : b)
+        .toDouble();
+
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 8)
+        ],
+      ),
+      child: Column(
+        children: entries.map((entry) {
+          final name = _catNames[entry.key] ?? entry.key;
+          final total = entry.value;
+          final wrong = wrongs[entry.key] ?? 0;
+          final correct = total - wrong;
+          final wrongRate = total == 0 ? 0.0 : wrong / total;
+          final barFill = maxWrong == 0 ? 0.0 : wrong / maxWrong;
+
+          return Padding(
+            padding: const EdgeInsets.only(bottom: 14),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text(name,
+                        style: GoogleFonts.poppins(
+                            fontSize: 13,
+                            fontWeight: FontWeight.w600,
+                            color: AppColors.textPrimary)),
+                    Text(
+                      '$correct✓  $wrong✗  (%${(wrongRate * 100).toStringAsFixed(0)} hata)',
+                      style: GoogleFonts.poppins(
+                          fontSize: 11, color: AppColors.textSecondary),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 6),
+                ClipRRect(
+                  borderRadius: BorderRadius.circular(6),
+                  child: LinearProgressIndicator(
+                    value: barFill,
+                    minHeight: 10,
+                    backgroundColor: const Color(0xFFF5F5F5),
+                    valueColor: AlwaysStoppedAnimation(
+                      wrongRate > 0.6
+                          ? const Color(0xFFF44336)
+                          : wrongRate > 0.3
+                              ? const Color(0xFFFFC107)
+                              : const Color(0xFF4CAF50),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          );
+        }).toList(),
       ),
     );
   }
@@ -240,13 +434,15 @@ class _ChartTab extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final stats = context.watch<StatsService>();
-    final history = stats.difficultyHistory;
+    final diffHistory = stats.difficultyHistory;
+    final latHistory = stats.latencyHistory;
 
     return SingleChildScrollView(
       padding: const EdgeInsets.all(20),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
+          // ── Zorluk grafiği ──────────────────────────────────────────────
           Text('Zorluk Seviyesi Değişimi',
               style: GoogleFonts.fredoka(
                   fontSize: 20,
@@ -256,116 +452,12 @@ class _ChartTab extends StatelessWidget {
           Text('RL algoritmasının adaptasyonu',
               style: GoogleFonts.poppins(
                   fontSize: 13, color: AppColors.textSecondary)),
-          const SizedBox(height: 20),
-          if (history.isEmpty)
-            Center(
-              child: Padding(
-                padding: const EdgeInsets.all(40),
-                child: Column(
-                  children: [
-                    const Icon(Icons.auto_graph_rounded,
-                        size: 64, color: Color(0xFFD0D0D0)),
-                    const SizedBox(height: 12),
-                    Text('Henüz veri yok',
-                        style: GoogleFonts.poppins(
-                            fontSize: 14, color: AppColors.textSecondary)),
-                    Text('Quiz oynadıkça grafik oluşur',
-                        style: GoogleFonts.poppins(
-                            fontSize: 12, color: AppColors.textSecondary)),
-                  ],
-                ),
-              ),
-            )
+          const SizedBox(height: 16),
+          if (diffHistory.isEmpty)
+            _EmptyChart(message: 'Quiz oynadıkça grafik oluşur')
           else
-            Container(
-              height: 260,
-              padding: const EdgeInsets.fromLTRB(8, 16, 16, 8),
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(20),
-                boxShadow: [
-                  BoxShadow(
-                      color: Colors.black.withOpacity(0.05), blurRadius: 10)
-                ],
-              ),
-              child: LineChart(
-                LineChartData(
-                  minY: -0.2,
-                  maxY: 2.2,
-                  gridData: FlGridData(
-                    show: true,
-                    horizontalInterval: 1,
-                    getDrawingHorizontalLine: (v) => FlLine(
-                      color: Colors.grey.withOpacity(0.15),
-                      strokeWidth: 1,
-                    ),
-                    drawVerticalLine: false,
-                  ),
-                  titlesData: FlTitlesData(
-                    leftTitles: AxisTitles(
-                      sideTitles: SideTitles(
-                        showTitles: true,
-                        interval: 1,
-                        reservedSize: 52,
-                        getTitlesWidget: (v, _) {
-                          const labels = ['Kolay', 'Orta', 'Zor'];
-                          final i = v.toInt();
-                          if (i < 0 || i > 2) return const SizedBox();
-                          return Text(labels[i],
-                              style: GoogleFonts.poppins(
-                                  fontSize: 11,
-                                  color: AppColors.textSecondary));
-                        },
-                      ),
-                    ),
-                    bottomTitles: AxisTitles(
-                      sideTitles: SideTitles(
-                        showTitles: true,
-                        interval: (history.length / 5).ceilToDouble().clamp(1, double.infinity),
-                        getTitlesWidget: (v, _) => Text(
-                          '${v.toInt() + 1}',
-                          style: GoogleFonts.poppins(
-                              fontSize: 10, color: AppColors.textSecondary),
-                        ),
-                      ),
-                    ),
-                    topTitles: const AxisTitles(
-                        sideTitles: SideTitles(showTitles: false)),
-                    rightTitles: const AxisTitles(
-                        sideTitles: SideTitles(showTitles: false)),
-                  ),
-                  borderData: FlBorderData(show: false),
-                  lineBarsData: [
-                    LineChartBarData(
-                      spots: history
-                          .asMap()
-                          .entries
-                          .map((e) =>
-                              FlSpot(e.key.toDouble(), e.value.toDouble()))
-                          .toList(),
-                      isCurved: true,
-                      color: AppColors.primary,
-                      barWidth: 3,
-                      dotData: FlDotData(
-                        show: history.length <= 30,
-                        getDotPainter: (_, __, ___, ____) =>
-                            FlDotCirclePainter(
-                          radius: 4,
-                          color: AppColors.primary,
-                          strokeWidth: 0,
-                        ),
-                      ),
-                      belowBarData: BarAreaData(
-                        show: true,
-                        color: AppColors.primary.withOpacity(0.10),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-          const SizedBox(height: 20),
-          // Renk açıklaması
+            _DifficultyChart(history: diffHistory),
+          const SizedBox(height: 8),
           Row(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
@@ -376,7 +468,253 @@ class _ChartTab extends StatelessWidget {
               _LegendDot(color: const Color(0xFFF44336), label: 'Zor'),
             ],
           ),
+
+          // ── Yanıt süresi grafiği ────────────────────────────────────────
+          const SizedBox(height: 32),
+          Text('Yanıt Süresi Değişimi',
+              style: GoogleFonts.fredoka(
+                  fontSize: 20,
+                  fontWeight: FontWeight.bold,
+                  color: AppColors.textPrimary)),
+          const SizedBox(height: 6),
+          Text('Her cevapta geçen süre (saniye)',
+              style: GoogleFonts.poppins(
+                  fontSize: 13, color: AppColors.textSecondary)),
+          const SizedBox(height: 16),
+          if (latHistory.isEmpty)
+            _EmptyChart(message: 'Sesli cevap verdikçe grafik oluşur')
+          else
+            _LatencyChart(history: latHistory),
+          const SizedBox(height: 8),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              _LegendDot(color: const Color(0xFF4CAF50), label: '≤0.5s (hedef)'),
+              const SizedBox(width: 20),
+              _LegendDot(color: const Color(0xFFFF9800), label: '>0.5s'),
+            ],
+          ),
+          const SizedBox(height: 20),
         ],
+      ),
+    );
+  }
+}
+
+class _EmptyChart extends StatelessWidget {
+  final String message;
+  const _EmptyChart({required this.message});
+
+  @override
+  Widget build(BuildContext context) => Center(
+        child: Padding(
+          padding: const EdgeInsets.symmetric(vertical: 32),
+          child: Column(
+            children: [
+              const Icon(Icons.auto_graph_rounded,
+                  size: 56, color: Color(0xFFD0D0D0)),
+              const SizedBox(height: 10),
+              Text('Henüz veri yok',
+                  style: GoogleFonts.poppins(
+                      fontSize: 14, color: AppColors.textSecondary)),
+              Text(message,
+                  style: GoogleFonts.poppins(
+                      fontSize: 12, color: AppColors.textSecondary)),
+            ],
+          ),
+        ),
+      );
+}
+
+class _DifficultyChart extends StatelessWidget {
+  final List<int> history;
+  const _DifficultyChart({required this.history});
+
+  @override
+  Widget build(BuildContext context) => Container(
+        height: 220,
+        padding: const EdgeInsets.fromLTRB(8, 16, 16, 8),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(20),
+          boxShadow: [
+            BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 10)
+          ],
+        ),
+        child: LineChart(
+          LineChartData(
+            minY: -0.2,
+            maxY: 2.2,
+            gridData: FlGridData(
+              show: true,
+              horizontalInterval: 1,
+              getDrawingHorizontalLine: (v) =>
+                  FlLine(color: Colors.grey.withOpacity(0.15), strokeWidth: 1),
+              drawVerticalLine: false,
+            ),
+            titlesData: FlTitlesData(
+              leftTitles: AxisTitles(
+                sideTitles: SideTitles(
+                  showTitles: true,
+                  interval: 1,
+                  reservedSize: 52,
+                  getTitlesWidget: (v, _) {
+                    const labels = ['Kolay', 'Orta', 'Zor'];
+                    final i = v.toInt();
+                    if (i < 0 || i > 2) return const SizedBox();
+                    return Text(labels[i],
+                        style: GoogleFonts.poppins(
+                            fontSize: 11, color: AppColors.textSecondary));
+                  },
+                ),
+              ),
+              bottomTitles: AxisTitles(
+                sideTitles: SideTitles(
+                  showTitles: true,
+                  interval: (history.length / 5).ceilToDouble().clamp(1, double.infinity),
+                  getTitlesWidget: (v, _) => Text(
+                    '${v.toInt() + 1}',
+                    style: GoogleFonts.poppins(
+                        fontSize: 10, color: AppColors.textSecondary),
+                  ),
+                ),
+              ),
+              topTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
+              rightTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
+            ),
+            borderData: FlBorderData(show: false),
+            lineBarsData: [
+              LineChartBarData(
+                spots: history
+                    .asMap()
+                    .entries
+                    .map((e) => FlSpot(e.key.toDouble(), e.value.toDouble()))
+                    .toList(),
+                isCurved: true,
+                color: AppColors.primary,
+                barWidth: 3,
+                dotData: FlDotData(
+                  show: history.length <= 30,
+                  getDotPainter: (_, __, ___, ____) => FlDotCirclePainter(
+                    radius: 4,
+                    color: AppColors.primary,
+                    strokeWidth: 0,
+                  ),
+                ),
+                belowBarData: BarAreaData(
+                  show: true,
+                  color: AppColors.primary.withOpacity(0.10),
+                ),
+              ),
+            ],
+          ),
+        ),
+      );
+}
+
+class _LatencyChart extends StatelessWidget {
+  final List<int> history;
+  const _LatencyChart({required this.history});
+
+  @override
+  Widget build(BuildContext context) {
+    // ms → saniyeye çevir, 15 saniyede kes
+    final spots = history
+        .asMap()
+        .entries
+        .map((e) => FlSpot(e.key.toDouble(), (e.value / 1000).clamp(0.0, 15.0)))
+        .toList();
+
+    return Container(
+      height: 220,
+      padding: const EdgeInsets.fromLTRB(8, 16, 16, 8),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(20),
+        boxShadow: [
+          BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 10)
+        ],
+      ),
+      child: LineChart(
+        LineChartData(
+          minY: 0,
+          maxY: 15,
+          gridData: FlGridData(
+            show: true,
+            horizontalInterval: 5,
+            getDrawingHorizontalLine: (v) =>
+                FlLine(color: Colors.grey.withOpacity(0.15), strokeWidth: 1),
+            drawVerticalLine: false,
+          ),
+          // hedef çizgisi: 0.5s
+          extraLinesData: ExtraLinesData(
+            horizontalLines: [
+              HorizontalLine(
+                y: 0.5,
+                color: const Color(0xFF4CAF50).withOpacity(0.6),
+                strokeWidth: 1.5,
+                dashArray: [6, 4],
+                label: HorizontalLineLabel(
+                  show: true,
+                  alignment: Alignment.topRight,
+                  labelResolver: (_) => 'hedef',
+                  style: GoogleFonts.poppins(
+                      fontSize: 10, color: const Color(0xFF4CAF50)),
+                ),
+              ),
+            ],
+          ),
+          titlesData: FlTitlesData(
+            leftTitles: AxisTitles(
+              sideTitles: SideTitles(
+                showTitles: true,
+                interval: 5,
+                reservedSize: 36,
+                getTitlesWidget: (v, _) => Text(
+                  '${v.toInt()}s',
+                  style: GoogleFonts.poppins(
+                      fontSize: 10, color: AppColors.textSecondary),
+                ),
+              ),
+            ),
+            bottomTitles: AxisTitles(
+              sideTitles: SideTitles(
+                showTitles: true,
+                interval: (history.length / 5).ceilToDouble().clamp(1, double.infinity),
+                getTitlesWidget: (v, _) => Text(
+                  '${v.toInt() + 1}',
+                  style: GoogleFonts.poppins(
+                      fontSize: 10, color: AppColors.textSecondary),
+                ),
+              ),
+            ),
+            topTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
+            rightTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
+          ),
+          borderData: FlBorderData(show: false),
+          lineBarsData: [
+            LineChartBarData(
+              spots: spots,
+              isCurved: true,
+              color: const Color(0xFFFF9800),
+              barWidth: 3,
+              dotData: FlDotData(
+                show: history.length <= 30,
+                getDotPainter: (spot, _, __, ___) => FlDotCirclePainter(
+                  radius: 4,
+                  color: spot.y <= 0.5
+                      ? const Color(0xFF4CAF50)
+                      : const Color(0xFFFF9800),
+                  strokeWidth: 0,
+                ),
+              ),
+              belowBarData: BarAreaData(
+                show: true,
+                color: const Color(0xFFFF9800).withOpacity(0.08),
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -597,6 +935,125 @@ class _SettingsTabState extends State<_SettingsTab> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
+          // ASR motor seçimi
+          _SectionHeader('Ses Tanıma Motoru'),
+          const SizedBox(height: 8),
+          Container(
+            padding: const EdgeInsets.all(16),
+            decoration: _cardDeco(),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Hangi ses tanıma motoru kullanılsın?',
+                  style: GoogleFonts.poppins(
+                      fontSize: 13, color: AppColors.textSecondary),
+                ),
+                const SizedBox(height: 12),
+                SegmentedButton<String>(
+                  segments: const [
+                    ButtonSegment(
+                      value: 'vosk',
+                      label: Text('Vosk'),
+                      icon: Icon(Icons.cloud_off_rounded, size: 15),
+                    ),
+                    ButtonSegment(
+                      value: 'platform',
+                      label: Text('Platform ASR'),
+                      icon: Icon(Icons.mic_rounded, size: 15),
+                    ),
+                  ],
+                  selected: {stats.asrEngine},
+                  onSelectionChanged: (s) => stats.setAsrEngine(s.first),
+                  style: ButtonStyle(
+                    backgroundColor: WidgetStateProperty.resolveWith((states) {
+                      if (states.contains(WidgetState.selected)) {
+                        return AppColors.primary;
+                      }
+                      return Colors.white;
+                    }),
+                    foregroundColor: WidgetStateProperty.resolveWith((states) {
+                      if (states.contains(WidgetState.selected)) {
+                        return Colors.white;
+                      }
+                      return AppColors.textPrimary;
+                    }),
+                  ),
+                ),
+                const SizedBox(height: 10),
+                Text(
+                  stats.asrEngine == 'vosk'
+                      ? 'Vosk: Tamamen çevrimdışı, Türkçe model indirir (~50 MB).'
+                      : 'Platform ASR: Cihazın yerleşik ses tanımasını kullanır.',
+                  style: GoogleFonts.poppins(
+                      fontSize: 11, color: AppColors.textSecondary),
+                ),
+              ],
+            ),
+          ),
+
+          const SizedBox(height: 24),
+
+          // Çocuğun yaşı
+          _SectionHeader('Çocuğun Yaşı'),
+          const SizedBox(height: 8),
+          Container(
+            padding: const EdgeInsets.all(16),
+            decoration: _cardDeco(),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Yaşa göre içerik kategorileri ve maksimum zorluk seviyesi otomatik ayarlanır.',
+                  style: GoogleFonts.poppins(
+                      fontSize: 13, color: AppColors.textSecondary),
+                ),
+                const SizedBox(height: 12),
+                SegmentedButton<int>(
+                  segments: const [
+                    ButtonSegment(value: 2, label: Text('2 yaş')),
+                    ButtonSegment(value: 3, label: Text('3 yaş')),
+                    ButtonSegment(value: 4, label: Text('4 yaş')),
+                    ButtonSegment(value: 5, label: Text('5 yaş')),
+                  ],
+                  selected: {stats.childAge},
+                  onSelectionChanged: (s) => stats.setChildAge(s.first),
+                  style: ButtonStyle(
+                    backgroundColor: WidgetStateProperty.resolveWith((states) {
+                      if (states.contains(WidgetState.selected)) {
+                        return AppColors.primary;
+                      }
+                      return Colors.white;
+                    }),
+                    foregroundColor: WidgetStateProperty.resolveWith((states) {
+                      if (states.contains(WidgetState.selected)) {
+                        return Colors.white;
+                      }
+                      return AppColors.textPrimary;
+                    }),
+                  ),
+                ),
+                const SizedBox(height: 10),
+                Text(
+                  () {
+                    switch (stats.childAge) {
+                      case 2:
+                        return '2 yaş: Yalnızca Kolay kategoriler (hayvanlar, renkler, şekiller).';
+                      case 3:
+                        return '3 yaş: Kolay + Orta kategoriler (+ meyve-sebze, vücut bölümleri, kıyafetler).';
+                      default:
+                        return '${stats.childAge} yaş: Tüm kategoriler ve zorluk seviyeleri açık.';
+                    }
+                  }(),
+                  style: GoogleFonts.poppins(
+                      fontSize: 11, color: AppColors.textSecondary),
+                ),
+              ],
+            ),
+          ),
+
+          const SizedBox(height: 24),
+
           // Başlangıç zorluğu
           _SectionHeader('Başlangıç Zorluğu'),
           const SizedBox(height: 8),

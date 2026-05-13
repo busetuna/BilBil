@@ -32,6 +32,15 @@ class StatsService extends ChangeNotifier {
     await _box.put('startingDifficulty',
         (data['startingDifficulty'] as num?)?.toInt() ?? 0);
     await _box.put('pin', data['pin'] as String? ?? '1234');
+    await _box.put('totalAsrAttempts', (data['totalAsrAttempts'] as num?)?.toInt() ?? 0);
+    await _box.put('exactAsrMatches', (data['exactAsrMatches'] as num?)?.toInt() ?? 0);
+    await _box.put('totalLatencyMs', (data['totalLatencyMs'] as num?)?.toInt() ?? 0);
+    await _box.put('latencyHistory', List<int>.from((data['latencyHistory'] as List? ?? [])));
+    await _box.put('categoryWrong', Map<String, int>.from(
+        (data['categoryWrong'] as Map? ?? {}).map((k, v) => MapEntry(k.toString(), (v as num).toInt()))));
+    await _box.put('categoryTotal', Map<String, int>.from(
+        (data['categoryTotal'] as Map? ?? {}).map((k, v) => MapEntry(k.toString(), (v as num).toInt()))));
+    await _box.put('childAge', (data['childAge'] as num?)?.toInt() ?? 3);
     notifyListeners();
   }
 
@@ -48,6 +57,10 @@ class StatsService extends ChangeNotifier {
       'totalAsrAttempts': totalAsrAttempts,
       'exactAsrMatches': exactAsrMatches,
       'totalLatencyMs': totalLatencyMs,
+      'latencyHistory': latencyHistory,
+      'categoryWrong': categoryWrongCounts,
+      'categoryTotal': categoryTotalCounts,
+      'childAge': childAge,
     });
   }
 
@@ -70,6 +83,24 @@ class StatsService extends ChangeNotifier {
       totalAsrAttempts == 0 ? 0.0 : exactAsrMatches / totalAsrAttempts;
   double get avgLatencyMs =>
       totalAsrAttempts == 0 ? 0.0 : totalLatencyMs / totalAsrAttempts;
+
+  List<int> get latencyHistory {
+    final raw = _box.get('latencyHistory');
+    if (raw == null) return [];
+    return List<int>.from(raw as List);
+  }
+
+  Map<String, int> get categoryWrongCounts {
+    final raw = _box.get('categoryWrong');
+    if (raw == null) return {};
+    return Map<String, int>.from(raw as Map);
+  }
+
+  Map<String, int> get categoryTotalCounts {
+    final raw = _box.get('categoryTotal');
+    if (raw == null) return {};
+    return Map<String, int>.from(raw as Map);
+  }
 
   List<int> get difficultyHistory {
     final raw = _box.get('difficultyHistory');
@@ -100,7 +131,26 @@ class StatsService extends ChangeNotifier {
     _box.put('totalAsrAttempts', totalAsrAttempts + 1);
     if (isMatch) _box.put('exactAsrMatches', exactAsrMatches + 1);
     _box.put('totalLatencyMs', totalLatencyMs + latencyMs);
+
+    final lHistory = latencyHistory;
+    lHistory.add(latencyMs);
+    if (lHistory.length > 300) lHistory.removeAt(0);
+    _box.put('latencyHistory', lHistory);
+
     _syncToCloud();
+    notifyListeners();
+  }
+
+  void recordCategoryAnswer({required String category, required bool correct}) {
+    final totals = categoryTotalCounts;
+    totals[category] = (totals[category] ?? 0) + 1;
+    _box.put('categoryTotal', totals);
+
+    if (!correct) {
+      final wrongs = categoryWrongCounts;
+      wrongs[category] = (wrongs[category] ?? 0) + 1;
+      _box.put('categoryWrong', wrongs);
+    }
     notifyListeners();
   }
 
@@ -116,12 +166,48 @@ class StatsService extends ChangeNotifier {
     notifyListeners();
   }
 
+  // ── Çocuk yaşı ────────────────────────────────────────────────────────────
+  /// 2–5 arası yaş. Yaşa göre RL agent'ın erişebileceği zorluk seviyesi kısıtlanır.
+  int get childAge => (_box.get('childAge', defaultValue: 3) as num).toInt();
+
+  void setChildAge(int age) {
+    _box.put('childAge', age.clamp(2, 5));
+    _syncToCloud();
+    notifyListeners();
+  }
+
+  /// Yaştan maksimum zorluk seviyesi: 2yaş→0, 3yaş→1, 4-5yaş→2
+  int get maxDifficultyForAge {
+    final age = childAge;
+    if (age <= 2) return 0;
+    if (age == 3) return 1;
+    return 2;
+  }
+
+  // ── ASR motor seçimi ───────────────────────────────────────────────────────
+  /// 'vosk' veya 'platform'
+  String get asrEngine =>
+      _box.get('asrEngine', defaultValue: 'vosk') as String;
+
+  void setAsrEngine(String engine) {
+    assert(engine == 'vosk' || engine == 'platform');
+    _box.put('asrEngine', engine);
+    _syncToCloud();
+    notifyListeners();
+  }
+
   bool verifyPin(String entered) => entered == pin;
 
   Future<void> resetStats() async {
     await _box.put('totalCorrect', 0);
     await _box.put('totalWrong', 0);
     await _box.put('difficultyHistory', <int>[]);
+    await _box.put('latencyHistory', <int>[]);
+    await _box.put('totalAsrAttempts', 0);
+    await _box.put('exactAsrMatches', 0);
+    await _box.put('totalLatencyMs', 0);
+    await _box.put('categoryWrong', <String, int>{});
+    await _box.put('categoryTotal', <String, int>{});
     _syncToCloud();
     notifyListeners();
   }

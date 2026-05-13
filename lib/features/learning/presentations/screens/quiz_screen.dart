@@ -13,6 +13,7 @@ import '../../../../services/rl_agent/rl_agent.dart';
 import '../../../../services/stats/stats_service.dart';
 import '../../../../services/lives/lives_service.dart';
 import '../../../../services/asr/vosk_asr_service.dart';
+import '../../../../services/asr/whisper_asr_service.dart';
 import 'rest_screen.dart';
 import 'answer_checker.dart';
 import 'reward_celebration_dialog.dart';
@@ -41,6 +42,7 @@ class _QuizScreenState extends State<QuizScreen> with TickerProviderStateMixin {
   // ── Servisler ───────────────────────────────────────────────────────────────
   final FlutterTts _tts = FlutterTts();
   late VoskAsrService _vosk;
+  late WhisperAsrService _whisper;
   late RLAgent _rlAgent;
   late RewardService _rewardService;
   late StatsService _statsService;
@@ -99,14 +101,22 @@ class _QuizScreenState extends State<QuizScreen> with TickerProviderStateMixin {
     _statsService = Provider.of<StatsService>(context, listen: false);
     _livesService = Provider.of<LivesService>(context, listen: false);
     _vosk = Provider.of<VoskAsrService>(context, listen: false);
+    _whisper = Provider.of<WhisperAsrService>(context, listen: false);
     if (!_servicesInitialized) {
       _servicesInitialized = true;
+      final maxDiff = _statsService.maxDifficultyForAge;
+      final startDiff = _statsService.startingDifficulty.clamp(0, maxDiff);
       _rlAgent = RLAgent(
         epsilon: 0.2,
-        initialDifficulty: _statsService.startingDifficulty,
+        initialDifficulty: startDiff,
+        maxDifficulty: maxDiff,
       );
-      _activeDifficulty = _statsService.startingDifficulty;
-      _vosk.initialize();
+      _activeDifficulty = startDiff;
+      if (_statsService.asrEngine == 'platform') {
+        _whisper.initialize();
+      } else {
+        _vosk.initialize();
+      }
     }
   }
 
@@ -114,7 +124,7 @@ class _QuizScreenState extends State<QuizScreen> with TickerProviderStateMixin {
   void dispose() {
     _tts.stop();
     _silenceTimer?.cancel();
-    if (_isListening) _vosk.stopListening();
+    if (_isListening) _stopAsr();
     _micPulseController.dispose();
     _cardController.dispose();
     _wordRevealController.dispose();
@@ -227,8 +237,31 @@ class _QuizScreenState extends State<QuizScreen> with TickerProviderStateMixin {
     );
   }
 
+  bool get _asrIsReady => _statsService.asrEngine == 'platform'
+      ? _whisper.isReady
+      : _vosk.isReady;
+
+  void _stopAsr() {
+    if (_statsService.asrEngine == 'platform') {
+      _whisper.stopListening();
+    } else {
+      _stopAsr();
+    }
+  }
+
+  void _startAsr({
+    required void Function(String) onPartial,
+    required void Function(String) onFinal,
+  }) {
+    if (_statsService.asrEngine == 'platform') {
+      _whisper.startListening(onPartial: onPartial, onFinal: onFinal);
+    } else {
+      _vosk.startListening(onPartial: onPartial, onFinal: onFinal);
+    }
+  }
+
   Future<void> _startListening() async {
-    if (_isListening || !_vosk.isReady) return;
+    if (_isListening || !_asrIsReady) return;
 
     final perm = await Permission.microphone.status;
     if (perm.isPermanentlyDenied) {
@@ -248,7 +281,7 @@ class _QuizScreenState extends State<QuizScreen> with TickerProviderStateMixin {
     _micPulseController.repeat(reverse: true);
     _resetSilenceTimer();
 
-    _vosk.startListening(
+    _startAsr(
       onPartial: (text) {
         if (!mounted) return;
         setState(() => _recognizedWord = text);
@@ -266,7 +299,7 @@ class _QuizScreenState extends State<QuizScreen> with TickerProviderStateMixin {
     _silenceTimer?.cancel();
     _silenceTimer = Timer(const Duration(seconds: 5), () {
       if (!mounted || !_isListening || _hasSpoken) return;
-      _vosk.stopListening();
+      _stopAsr();
       _micPulseController.stop();
       setState(() => _isListening = false);
       _handleNoAnswer();
@@ -274,7 +307,7 @@ class _QuizScreenState extends State<QuizScreen> with TickerProviderStateMixin {
   }
 
   void _handleFinalResult(String recognized) {
-    _vosk.stopListening();
+    _stopAsr();
     _micPulseController.stop();
 
     final expected = _currentItem.word;
@@ -284,6 +317,7 @@ class _QuizScreenState extends State<QuizScreen> with TickerProviderStateMixin {
         : 5000;
 
     _statsService.recordAsrResult(isMatch: correct, latencyMs: latencyMs);
+    _statsService.recordCategoryAnswer(category: _currentItem.category, correct: correct);
     _updateRlAgent(correct, latencyMs / 1000.0);
 
     setState(() {
@@ -317,7 +351,7 @@ class _QuizScreenState extends State<QuizScreen> with TickerProviderStateMixin {
   void _toggleListening() {
     if (_isListening) {
       _silenceTimer?.cancel();
-      _vosk.stopListening();
+      _stopAsr();
       _micPulseController.stop();
       setState(() => _isListening = false);
     } else {
@@ -349,6 +383,7 @@ class _QuizScreenState extends State<QuizScreen> with TickerProviderStateMixin {
         ? DateTime.now().difference(_questionStartTime!).inMilliseconds / 1000.0
         : 30.0;
 
+    _statsService.recordCategoryAnswer(category: _currentItem.category, correct: false);
     _updateRlAgent(false, responseTimeSec);
 
     setState(() {
@@ -516,10 +551,21 @@ class _QuizScreenState extends State<QuizScreen> with TickerProviderStateMixin {
                           revealAnimation: _wordRevealAnimation,
                         ),
                         const SizedBox(height: 28),
-                        Consumer<VoskAsrService>(
-                          builder: (_, vosk, _noChild) {
+                        Consumer2<VoskAsrService, WhisperAsrService>(
+                          builder: (context, vosk, whisper, _) {
+                            final usePlatform =
+                                _statsService.asrEngine == 'platform';
+                            if (usePlatform) {
+                              return QuizMicButton(
+                                isListening: _isListening,
+                                sttAvailable: whisper.isReady,
+                                onTap: _toggleListening,
+                                pulseController: _micPulseController,
+                              );
+                            }
                             if (vosk.isDownloading) {
-                              return _buildModelDownloadIndicator(vosk.downloadProgress);
+                              return _buildModelDownloadIndicator(
+                                  vosk.downloadProgress);
                             }
                             if (vosk.status == AsrModelStatus.error) {
                               return _buildModelErrorWidget(vosk);

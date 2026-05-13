@@ -38,9 +38,13 @@ class RLAgent {
     ),
   ];
 
-  RLAgent({double epsilon = 0.2, int initialDifficulty = 0})
-      : _bandit = EpsilonGreedyBandit(epsilon: epsilon),
-        _state = PerformanceState(initialDifficulty: initialDifficulty.clamp(0, 2));
+  final int _maxDifficulty;
+
+  RLAgent({double epsilon = 0.2, int initialDifficulty = 0, int maxDifficulty = 2})
+      : _maxDifficulty = maxDifficulty.clamp(0, 2),
+        _bandit = EpsilonGreedyBandit(epsilon: epsilon),
+        _state = PerformanceState(
+            initialDifficulty: initialDifficulty.clamp(0, maxDifficulty.clamp(0, 2)));
 
   int get currentDifficulty => _state.currentDifficulty;
   DifficultyConfig get config => configs[_state.currentDifficulty];
@@ -66,7 +70,7 @@ class RLAgent {
     // 3. Kol seç: yeterli veri varsa performans eşiği öncelikli
     if (_state.totalAnswers >= 3) {
       final rate = _state.correctRate;
-      if (rate >= 0.8 && _state.currentDifficulty < 2) {
+      if (rate >= 0.8 && _state.currentDifficulty < _maxDifficulty) {
         _lastArm = 2; // son 3+ cevabın 80%'i doğru → zorlaştır
       } else if (rate <= 0.3 && _state.currentDifficulty > 0) {
         _lastArm = 0; // 30% veya altında → kolaylaştır
@@ -77,11 +81,11 @@ class RLAgent {
       _lastArm = _bandit.selectArm();
     }
 
-    // 4. Zorluk güncelle
+    // 4. Zorluk güncelle (yaş sınırını aşamaz)
     _state.currentDifficulty = ActionSelector.adjustDifficulty(
       _state.currentDifficulty,
       _lastArm,
-    );
+    ).clamp(0, _maxDifficulty);
 
     return _state.currentDifficulty;
   }

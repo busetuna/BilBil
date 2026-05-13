@@ -4,6 +4,7 @@ import 'package:flutter/foundation.dart';
 import 'package:record/record.dart';
 import 'package:vosk_flutter/vosk_flutter.dart';
 import 'model_manager.dart';
+import 'audio_proprocessing/vad_detector.dart';
 
 enum AsrModelStatus { idle, downloading, ready, error }
 
@@ -66,6 +67,9 @@ class VoskAsrService extends ChangeNotifier {
 
     _sub = stream.listen(
       (chunk) async {
+        // VAD: sessiz chunk'ları Vosk'a gönderme — CPU ve latency tasarrufu
+        if (!VadDetector.hasSpeech(chunk)) return;
+
         final accepted = await _recognizer!.acceptWaveformBytes(chunk);
         if (accepted) {
           final text = _parseText(await _recognizer!.getResult());
