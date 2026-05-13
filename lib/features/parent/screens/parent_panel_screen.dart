@@ -1208,3 +1208,4 @@ class _SectionHeader extends StatelessWidget {
             color: AppColors.textPrimary),
       );
 }
+
