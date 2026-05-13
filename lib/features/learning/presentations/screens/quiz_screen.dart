@@ -17,10 +17,12 @@ import '../../../../services/asr/whisper_asr_service.dart';
 import 'rest_screen.dart';
 import 'answer_checker.dart';
 import 'reward_celebration_dialog.dart';
+import 'quiz_dialogs.dart';
 import '../widgets/quiz_top_bar.dart';
 import '../widgets/quiz_image_card.dart';
 import '../widgets/quiz_word_reveal.dart';
 import '../widgets/quiz_mic_button.dart';
+import '../widgets/asr_status_widget.dart';
 
 class QuizScreen extends StatefulWidget {
   const QuizScreen({super.key});
@@ -147,7 +149,7 @@ class _QuizScreenState extends State<QuizScreen> with TickerProviderStateMixin {
     }
     if (!langSet) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
-        if (mounted) _showTtsSetupDialog();
+        if (mounted) showTtsSetupDialog(context);
       });
     }
     await _tts.setSpeechRate(_rlAgent.config.ttsRate);
@@ -160,82 +162,8 @@ class _QuizScreenState extends State<QuizScreen> with TickerProviderStateMixin {
     if (mounted) _tts.speak(text);
   }
 
-  void _showTtsSetupDialog() {
-    showDialog(
-      context: context,
-      builder: (_) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        title: Text('Sesli Okuma Kapalı',
-            style: GoogleFonts.fredoka(fontSize: 20, fontWeight: FontWeight.bold)),
-        content: Text(
-          'Türkçe ses paketi yüklü değil.\n\n'
-          '📱 Şu adımları izle:\n'
-          '1. Telefon Ayarları\'nı aç\n'
-          '2. "Erişilebilirlik" seç\n'
-          '3. "Metin Okuma" veya "TTS" seç\n'
-          '4. "Türkçe" dil paketini indir\n'
-          '5. Uygulamaya geri dön',
-          style: GoogleFonts.poppins(fontSize: 13, height: 1.6),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: Text('Tamam',
-                style: GoogleFonts.poppins(color: AppColors.textSecondary)),
-          ),
-          ElevatedButton(
-            onPressed: () {
-              Navigator.pop(context);
-              openAppSettings();
-            },
-            style: ElevatedButton.styleFrom(backgroundColor: AppColors.primary),
-            child: Text('Ayarları Aç',
-                style: GoogleFonts.poppins(
-                    color: Colors.white, fontWeight: FontWeight.w600)),
-          ),
-        ],
-      ),
-    );
-  }
-
   // ── ASR (Vosk on-device) ────────────────────────────────────────────────────
 
-  void _showMicPermissionDialog({required bool permanent}) {
-    showDialog(
-      context: context,
-      builder: (_) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        title: Text('Mikrofon İzni Gerekli',
-            style: GoogleFonts.fredoka(fontSize: 20, fontWeight: FontWeight.bold)),
-        content: Text(
-          permanent
-              ? 'Mikrofon izni kalıcı olarak reddedildi.\n'
-                  'Uygulama ayarlarından "Mikrofon" iznini açmanız gerekiyor.'
-              : 'Sesli cevap verebilmek için mikrofon iznine ihtiyaç var.',
-          style: GoogleFonts.poppins(fontSize: 13),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: Text('Tamam',
-                style: GoogleFonts.poppins(color: AppColors.textSecondary)),
-          ),
-          if (permanent)
-            ElevatedButton(
-              onPressed: () {
-                Navigator.pop(context);
-                openAppSettings();
-              },
-              style:
-                  ElevatedButton.styleFrom(backgroundColor: AppColors.primary),
-              child: Text('Ayarları Aç',
-                  style: GoogleFonts.poppins(
-                      color: Colors.white, fontWeight: FontWeight.w600)),
-            ),
-        ],
-      ),
-    );
-  }
 
   bool get _asrIsReady => _statsService.asrEngine == 'platform'
       ? _whisper.isReady
@@ -245,7 +173,7 @@ class _QuizScreenState extends State<QuizScreen> with TickerProviderStateMixin {
     if (_statsService.asrEngine == 'platform') {
       _whisper.stopListening();
     } else {
-      _stopAsr();
+      _vosk.stopListening();
     }
   }
 
@@ -265,7 +193,7 @@ class _QuizScreenState extends State<QuizScreen> with TickerProviderStateMixin {
 
     final perm = await Permission.microphone.status;
     if (perm.isPermanentlyDenied) {
-      _showMicPermissionDialog(permanent: true);
+      if (mounted) showMicPermissionDialog(context, permanent: true);
       return;
     }
     if (!perm.isGranted) {
@@ -442,62 +370,6 @@ class _QuizScreenState extends State<QuizScreen> with TickerProviderStateMixin {
     _startQuestion();
   }
 
-  // ── Model indirme UI ────────────────────────────────────────────────────────
-
-  Widget _buildModelDownloadIndicator(double progress) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 24),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Text(
-            'Ses modeli indiriliyor...',
-            style: GoogleFonts.poppins(
-                fontSize: 13,
-                fontWeight: FontWeight.w600,
-                color: AppColors.textSecondary),
-          ),
-          const SizedBox(height: 8),
-          ClipRRect(
-            borderRadius: BorderRadius.circular(8),
-            child: LinearProgressIndicator(
-              value: progress > 0 ? progress : null,
-              minHeight: 8,
-              backgroundColor: AppColors.primary.withValues(alpha: 0.15),
-              valueColor: AlwaysStoppedAnimation<Color>(AppColors.primary),
-            ),
-          ),
-          const SizedBox(height: 4),
-          Text(
-            progress > 0 ? '%${(progress * 100).toInt()}' : 'Bağlanıyor...',
-            style: GoogleFonts.poppins(
-                fontSize: 11, color: AppColors.textSecondary),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildModelErrorWidget(VoskAsrService vosk) {
-    return Column(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        Icon(Icons.error_outline, color: AppColors.error, size: 32),
-        const SizedBox(height: 4),
-        Text(
-          'Model yüklenemedi',
-          style: GoogleFonts.poppins(
-              fontSize: 13, color: AppColors.error, fontWeight: FontWeight.w600),
-        ),
-        TextButton(
-          onPressed: vosk.initialize,
-          child: Text('Tekrar Dene',
-              style: GoogleFonts.poppins(color: AppColors.primary)),
-        ),
-      ],
-    );
-  }
-
   // ── Build ────────────────────────────────────────────────────────────────────
 
   @override
@@ -564,11 +436,11 @@ class _QuizScreenState extends State<QuizScreen> with TickerProviderStateMixin {
                               );
                             }
                             if (vosk.isDownloading) {
-                              return _buildModelDownloadIndicator(
-                                  vosk.downloadProgress);
+                              return AsrDownloadIndicator(
+                                  progress: vosk.downloadProgress);
                             }
                             if (vosk.status == AsrModelStatus.error) {
-                              return _buildModelErrorWidget(vosk);
+                              return AsrErrorWidget(vosk: vosk);
                             }
                             return QuizMicButton(
                               isListening: _isListening,
