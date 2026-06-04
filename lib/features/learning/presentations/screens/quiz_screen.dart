@@ -68,9 +68,7 @@ class _QuizScreenState extends State<QuizScreen> with TickerProviderStateMixin {
 
   // ── Yaşam döngüsü ───────────────────────────────────────────────────────────
 
-  List<QuizItem> _buildPool(int diff) => RLAgent.configs[diff].categories
-      .expand((c) => QuizData.byCategory(c))
-      .toList()
+  List<QuizItem> _buildPool(int diff) => QuizData.byDifficulty(diff)
     ..shuffle(Random());
 
   @override

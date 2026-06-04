@@ -68,16 +68,9 @@ flutter:
   # Assets
   assets:
     - assets/images/
-    - assets/images/animals/
-    - assets/images/actions/
-    - assets/images/adjectives/
-    - assets/images/body_parts/
-    - assets/images/clothes/
-    - assets/images/colors/
-    - assets/images/daily_objects/
-    - assets/images/fruits_vegetables/
-    - assets/images/shapes/
-    - assets/images/weather/
+    - assets/images/kolay/
+    - assets/images/orta/
+    - assets/images/zor/
     - assets/sounds/
     - assets/models/
     - bilbil-puzzle/

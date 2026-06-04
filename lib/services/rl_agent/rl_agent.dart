@@ -6,12 +6,10 @@ import 'action_selector.dart';
 class DifficultyConfig {
   final double ttsRate;
   final String label;
-  final List<String> categories;
 
   const DifficultyConfig({
     required this.ttsRate,
     required this.label,
-    required this.categories,
   });
 }
 
@@ -21,21 +19,9 @@ class RLAgent {
   int _lastArm = 1;
 
   static const configs = [
-    DifficultyConfig(
-      ttsRate: 0.35,
-      label: 'Kolay',
-      categories: ['animals', 'colors', 'shapes'],
-    ),
-    DifficultyConfig(
-      ttsRate: 0.45,
-      label: 'Orta',
-      categories: ['fruits_vegetables', 'body_parts', 'clothes'],
-    ),
-    DifficultyConfig(
-      ttsRate: 0.55,
-      label: 'Zor',
-      categories: ['daily_objects', 'weather', 'actions', 'adjectives'],
-    ),
+    DifficultyConfig(ttsRate: 0.35, label: 'Kolay'),
+    DifficultyConfig(ttsRate: 0.45, label: 'Orta'),
+    DifficultyConfig(ttsRate: 0.55, label: 'Zor'),
   ];
 
   final int _maxDifficulty;
