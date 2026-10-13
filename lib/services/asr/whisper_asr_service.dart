@@ -20,7 +20,8 @@ class WhisperAsrService extends ChangeNotifier {
 
   Future<void> initialize() async {
     if (_status == PlatformAsrStatus.ready ||
-        _status == PlatformAsrStatus.initializing) return;
+        _status == PlatformAsrStatus.initializing)
+      return;
     _status = PlatformAsrStatus.initializing;
     _errorMessage = null;
     notifyListeners();
@@ -42,14 +43,18 @@ class WhisperAsrService extends ChangeNotifier {
 
   void startListening({
     required void Function(String partial) onPartial,
-    required void Function(String text) onFinal,
+    required void Function(List<String> candidates) onFinal,
   }) {
     if (!isReady) return;
 
     _stt.listen(
       onResult: (result) {
         if (result.finalResult) {
-          onFinal(result.recognizedWords);
+          // En iyi tahmin önce; biri tutarsa cevap doğru sayılır.
+          onFinal([
+            for (final alt in result.alternates)
+              if (alt.recognizedWords.trim().isNotEmpty) alt.recognizedWords,
+          ]);
         } else {
           onPartial(result.recognizedWords);
         }

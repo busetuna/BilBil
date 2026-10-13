@@ -31,7 +31,9 @@ class VoskAsrService extends ChangeNotifier {
   bool get isDownloading => _status == AsrModelStatus.downloading;
 
   Future<void> initialize() async {
-    if (_status == AsrModelStatus.ready || _status == AsrModelStatus.downloading) return;
+    if (_status == AsrModelStatus.ready ||
+        _status == AsrModelStatus.downloading)
+      return;
     _status = AsrModelStatus.downloading;
     _downloadProgress = 0;
     _errorMessage = null;
@@ -46,7 +48,12 @@ class VoskAsrService extends ChangeNotifier {
       );
       final vosk = VoskFlutterPlugin.instance();
       _model = await vosk.createModel(modelPath);
-      _recognizer = await vosk.createRecognizer(model: _model!, sampleRate: 16000);
+      _recognizer = await vosk.createRecognizer(
+        model: _model!,
+        sampleRate: 16000,
+      );
+      // Tek tahmin yerine en iyi birkaç tahmin: biri tutarsa cevap doğru sayılır.
+      await _recognizer!.setMaxAlternatives(maxAlternatives);
       _status = AsrModelStatus.ready;
     } catch (e) {
       _status = AsrModelStatus.error;
@@ -56,15 +63,30 @@ class VoskAsrService extends ChangeNotifier {
     notifyListeners();
   }
 
+  static const maxAlternatives = 3;
+
+  // Şu an yüklü kapalı sözlük (JSON); aynıysa yeniden derlenmez.
+  String _grammarKey = '';
+
+  /// [onFinal] en iyiden başlayarak tahminleri alır.
+  /// [grammar]: verilirse Vosk yalnızca bu ifadeleri (ve "[unk]") tanır;
+  /// null ise tam sözlük kullanılır (bkz. QuizGrammar).
   /// [onSpeech]: parçada konuşma enerjisi varsa çağrılır (henüz kelime
   /// çıkmasa bile çocuğun konuştuğunu bildirir).
   void startListening({
     required void Function(String partial) onPartial,
-    required void Function(String text) onFinal,
+    required void Function(List<String> candidates) onFinal,
     void Function()? onSpeech,
+    List<String>? grammar,
   }) async {
     final recognizer = _recognizer;
     if (!isReady || recognizer == null) return;
+    final key = grammar == null ? '' : jsonEncode(grammar);
+    if (key != _grammarKey) {
+      _grammarKey = key;
+      // "[]" tam sözlüğe döner.
+      _enqueue(() => recognizer.setGrammar(grammar ?? const []));
+    }
     _enqueue(recognizer.reset);
     _emit = true;
 
@@ -77,20 +99,18 @@ class VoskAsrService extends ChangeNotifier {
         autoGain: true,
         noiseSuppress: true,
         androidConfig: AndroidRecordConfig(
-            audioSource: AndroidAudioSource.voiceRecognition),
+          audioSource: AndroidAudioSource.voiceRecognition,
+        ),
       ),
     );
 
-    _sub = stream.listen(
-      (chunk) {
-        // Sessiz parçalar da Vosk'a gider: konuşmanın bittiğini sondaki
-        // sessizlikten anlar. Enerji eşiğiyle elemek ayrıca kısık çocuk sesini
-        // ve s/ş/f/z gibi sürtünmeli sesleri kesiyordu.
-        if (onSpeech != null && VadDetector.hasSpeech(chunk)) onSpeech();
-        _enqueue(() => _process(recognizer, chunk, onPartial, onFinal));
-      },
-      onError: (e) => debugPrint('VoskAsrService stream error: $e'),
-    );
+    _sub = stream.listen((chunk) {
+      // Sessiz parçalar da Vosk'a gider: konuşmanın bittiğini sondaki
+      // sessizlikten anlar. Enerji eşiğiyle elemek ayrıca kısık çocuk sesini
+      // ve s/ş/f/z gibi sürtünmeli sesleri kesiyordu.
+      if (onSpeech != null && VadDetector.hasSpeech(chunk)) onSpeech();
+      _enqueue(() => _process(recognizer, chunk, onPartial, onFinal));
+    }, onError: (e) => debugPrint('VoskAsrService stream error: $e'));
   }
 
   /// İşi kuyruğa ekler; biri hata verse de sonrakiler çalışmaya devam eder.
@@ -104,16 +124,17 @@ class VoskAsrService extends ChangeNotifier {
     Recognizer recognizer,
     Uint8List chunk,
     void Function(String) onPartial,
-    void Function(String) onFinal,
+    void Function(List<String>) onFinal,
   ) async {
     final accepted = await recognizer.acceptWaveformBytes(chunk);
     if (accepted) {
-      final text = _parseText(await recognizer.getResult());
-      if (text.isEmpty) return;
+      final candidates = parseFinal(await recognizer.getResult());
+      if (candidates.isEmpty) return;
       if (_emit) {
-        onFinal(text);
+        onFinal(candidates);
       } else {
-        _heardWhileFinishing = text; // finishListening sırasında tamamlanan cümle
+        // finishListening sırasında tamamlanan cümle
+        _heardWhileFinishing = candidates;
       }
     } else if (_emit) {
       final text = _parsePartial(await recognizer.getPartialResult());
@@ -121,7 +142,7 @@ class VoskAsrService extends ChangeNotifier {
     }
   }
 
-  String _heardWhileFinishing = '';
+  List<String> _heardWhileFinishing = const [];
 
   /// Dinlemeyi keser; duyulanı atar.
   void stopListening() {
@@ -133,30 +154,47 @@ class VoskAsrService extends ChangeNotifier {
     if (recognizer != null) _enqueue(recognizer.reset);
   }
 
-  /// Dinlemeyi bitirir ve kalan sesi de işleyip o ana kadar duyulanı döner
-  /// (hiçbir şey duyulmadıysa boş). Callback'ler artık çağrılmaz.
-  Future<String> finishListening() async {
+  /// Dinlemeyi bitirir ve kalan sesi de işleyip o ana kadar duyulan
+  /// tahminleri döner (hiçbir şey duyulmadıysa boş). Callback'ler artık
+  /// çağrılmaz.
+  Future<List<String>> finishListening() async {
     final recognizer = _recognizer;
     _emit = false;
-    _heardWhileFinishing = '';
+    _heardWhileFinishing = const [];
     await _sub?.cancel();
     _sub = null;
     await _recorder.stop();
-    if (recognizer == null) return '';
-    var text = '';
+    if (recognizer == null) return const [];
+    var candidates = const <String>[];
     _enqueue(() async {
-      text = _parseText(await recognizer.getFinalResult());
+      candidates = parseFinal(await recognizer.getFinalResult());
       await recognizer.reset();
     });
     await _pending;
-    return text.isNotEmpty ? text : _heardWhileFinishing;
+    return candidates.isNotEmpty ? candidates : _heardWhileFinishing;
   }
 
-  String _parseText(String json) {
+  /// Vosk sonucundaki tahminler, en iyisi önce. Alternatif açıkken sonuç
+  /// `{"alternatives": [{"text": ..}, ..]}`, değilken `{"text": ..}` olur.
+  /// Kapalı sözlükte tanınamayan sesler "[unk]" diye yazılır; atılır.
+  @visibleForTesting
+  static List<String> parseFinal(String json) {
     try {
-      return (jsonDecode(json) as Map)['text'] as String? ?? '';
+      final map = jsonDecode(json) as Map;
+      final raw = map['alternatives'] is List
+          ? [for (final a in map['alternatives'] as List) (a as Map)['text']]
+          : [map['text']];
+      final out = <String>[];
+      for (final t in raw.whereType<String>()) {
+        final clean = t
+            .split(' ')
+            .where((w) => w.isNotEmpty && w != '[unk]')
+            .join(' ');
+        if (clean.isNotEmpty && !out.contains(clean)) out.add(clean);
+      }
+      return out;
     } catch (_) {
-      return '';
+      return const [];
     }
   }
 

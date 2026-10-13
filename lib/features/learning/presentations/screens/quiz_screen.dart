@@ -13,6 +13,7 @@ import '../../../../services/rl_agent/rl_agent.dart';
 import '../../../../services/stats/stats_service.dart';
 import '../../../../services/lives/lives_service.dart';
 import '../../../../services/ads/ad_service.dart';
+import '../../../../services/asr/quiz_grammar.dart';
 import '../../../../services/asr/vosk_asr_service.dart';
 import '../../../../services/asr/whisper_asr_service.dart';
 import 'rest_screen.dart';
@@ -201,7 +202,7 @@ class _QuizScreenState extends State<QuizScreen> with TickerProviderStateMixin {
 
   void _startAsr({
     required void Function(String) onPartial,
-    required void Function(String) onFinal,
+    required void Function(List<String>) onFinal,
     required void Function() onSpeech,
   }) {
     if (_statsService.asrEngine == 'platform') {
@@ -211,18 +212,20 @@ class _QuizScreenState extends State<QuizScreen> with TickerProviderStateMixin {
         onPartial: onPartial,
         onFinal: onFinal,
         onSpeech: onSpeech,
+        grammar: QuizGrammar.forWord(_currentItem.word),
       );
     }
   }
 
-  /// Dinlemeyi bitirir; o ana kadar duyulan en iyi metni döner.
-  Future<String> _finishAsr() async {
+  /// Dinlemeyi bitirir; o ana kadar duyulan tahminleri döner (en iyisi önce).
+  Future<List<String>> _finishAsr() async {
+    final partial = [if (_recognizedWord.trim().isNotEmpty) _recognizedWord];
     if (_statsService.asrEngine == 'platform') {
       _whisper.stopListening();
-      return _recognizedWord;
+      return partial;
     }
-    final text = await _vosk.finishListening();
-    return text.isNotEmpty ? text : _recognizedWord;
+    final candidates = await _vosk.finishListening();
+    return candidates.isNotEmpty ? candidates : partial;
   }
 
   /// Küçük çocuklar söze daha geç başlar.
@@ -272,16 +275,16 @@ class _QuizScreenState extends State<QuizScreen> with TickerProviderStateMixin {
         setState(() => _recognizedWord = text);
         _resetSilenceTimer();
       },
-      onFinal: (text) {
+      onFinal: (candidates) {
         if (!mounted || _hasSpoken || !_isListening) return;
         _silenceTimer?.cancel();
-        if (text.trim().isEmpty) {
+        if (candidates.every((c) => c.trim().isEmpty)) {
           _stopAsr();
           _micPulseController.stop();
           setState(() => _isListening = false);
           _handleNotHeard();
         } else {
-          _handleFinalResult(text);
+          _handleFinalResult(candidates);
         }
       },
       onSpeech: () {
@@ -304,24 +307,27 @@ class _QuizScreenState extends State<QuizScreen> with TickerProviderStateMixin {
     _micPulseController.stop();
     setState(() => _isListening = false);
     try {
-      final text = await _finishAsr();
+      final candidates = await _finishAsr();
       if (!mounted || _hasSpoken) return;
-      if (text.trim().isEmpty) {
+      if (candidates.every((c) => c.trim().isEmpty)) {
         _handleNotHeard();
       } else {
-        _handleFinalResult(text);
+        _handleFinalResult(candidates);
       }
     } finally {
       _finishing = false;
     }
   }
 
-  void _handleFinalResult(String recognized) {
+  void _handleFinalResult(List<String> candidates) {
     _stopAsr();
     _micPulseController.stop();
 
     final expected = _currentItem.word;
-    final correct = AnswerChecker.check(recognized, expected);
+    // Tahminlerden biri tutarsa doğru; ekranda tutan (yoksa en iyi) tahmin.
+    final match = candidates.where((c) => AnswerChecker.check(c, expected));
+    final correct = match.isNotEmpty;
+    final recognized = correct ? match.first : candidates.first;
     final latencyMs = _questionStartTime != null
         ? DateTime.now().difference(_questionStartTime!).inMilliseconds
         : 5000;

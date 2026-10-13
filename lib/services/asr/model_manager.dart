@@ -35,15 +35,21 @@ class ModelManager {
     return modelPath;
   }
 
-  // am/ veya conf/ alt dizini varsa geçerli model dizinidir
+  // Akustik model dosyası varsa geçerli model dizinidir. Yeni modellerde
+  // am/final.mdl, vosk-model-small-tr-0.3 gibi eskilerde kökte final.mdl
+  // bulunur. Önceden yalnızca am/ ya da conf/ aranıyordu; bu model düz
+  // yapıda olduğu için her açılışta silinip 36 MB yeniden indiriliyordu.
   static bool _isValidModelDir(String path) {
     if (!Directory(path).existsSync()) return false;
-    return Directory('$path/am').existsSync() ||
-        Directory('$path/conf').existsSync();
+    return File('$path/final.mdl').existsSync() ||
+        File('$path/am/final.mdl').existsSync();
   }
 
   // ZIP'i çıkarır, oluşturulan vosk-model* dizinini döner
-  static Future<String> _extractAndLocate(String zipPath, String destDir) async {
+  static Future<String> _extractAndLocate(
+    String zipPath,
+    String destDir,
+  ) async {
     final before = _voskDirs(destDir);
     final input = InputFileStream(zipPath);
     try {
@@ -65,7 +71,12 @@ class ModelManager {
     return Directory(parent)
         .listSync()
         .whereType<Directory>()
-        .where((d) => d.path.split(Platform.pathSeparator).last.startsWith('vosk-model'))
+        .where(
+          (d) => d.path
+              .split(Platform.pathSeparator)
+              .last
+              .startsWith('vosk-model'),
+        )
         .map((d) => d.path)
         .toList();
   }

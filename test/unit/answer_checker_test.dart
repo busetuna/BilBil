@@ -47,12 +47,29 @@ void main() {
       expect(AnswerChecker.check('köbek', 'Köpek'), isTrue);
       expect(AnswerChecker.check('kedu', 'Kedi'), isTrue);
     });
+
+    test('Vosk sözlüğünde olmayan kelime parçalarla yazılmışsa', () {
+      expect(AnswerChecker.check('ke le bek', 'Kelebek'), isTrue);
+      expect(AnswerChecker.check('deniz atı', 'Denizatı'), isTrue);
+      expect(AnswerChecker.check('uğur böceği', 'Uğurböceği'), isTrue);
+    });
+
+    test('Vosk "[unk]" işaretleri cevabı bozmaz', () {
+      expect(AnswerChecker.check('[unk] kedi [unk]', 'Kedi'), isTrue);
+    });
+
+    test('alternatif tahminlerden biri tutuyorsa', () {
+      expect(AnswerChecker.checkAny(['dedi', 'kedi'], 'Kedi'), isTrue);
+      expect(AnswerChecker.checkAny(['elma', 'armut'], 'Kedi'), isFalse);
+      expect(AnswerChecker.checkAny(const [], 'Kedi'), isFalse);
+    });
   });
 
   group('AnswerChecker.check — reddedilmesi gerekenler', () {
     test('boş ya da sadece boşluk', () {
       expect(AnswerChecker.check('', 'Kedi'), isFalse);
       expect(AnswerChecker.check('   ', 'Kedi'), isFalse);
+      expect(AnswerChecker.check('[unk]', 'Kedi'), isFalse);
     });
 
     test('kelimenin küçük bir parçası', () {

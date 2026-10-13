@@ -39,9 +39,14 @@ class AnswerChecker {
     return dp[m][n];
   }
 
+  /// Ses motorunun alternatif tahminlerinden herhangi biri tutuyor mu?
+  static bool checkAny(Iterable<String> candidates, String expected) =>
+      candidates.any((c) => check(c, expected));
+
   /// Çocukların eksik/yanlış telaffuzunu tolere eden cevap kontrolü.
   static bool check(String recognized, String expected) {
-    final r = normalize(recognized);
+    // Vosk kapalı sözlükte tanıyamadığı sesleri "[unk]" diye yazar.
+    final r = normalize(recognized.replaceAll('[unk]', ' '));
     final e = normalize(expected);
 
     // 0. Boş tanıma asla doğru değildir ("x".contains("") her zaman true)
@@ -49,6 +54,10 @@ class AnswerChecker {
 
     // 1. Tam eşleşme veya kısmi içerme
     if (_matches(r, e)) return true;
+
+    // 1b. Boşluksuz aynı mı? Vosk sözlüğünde olmayan kelimeleri parçalarla
+    //     yazar ("kelebek" → "ke le bek", "denizatı" → "deniz atı").
+    if (r.replaceAll(' ', '') == e.replaceAll(' ', '')) return true;
 
     // 2. Çok kelimeli ifade → herhangi bir kelime eşleşiyor mu?
     //    ("muhabbet kuşu" için çocuk "kuşu" diyebilir)

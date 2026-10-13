@@ -29,9 +29,10 @@ import 'package:provider/provider.dart';
 
 class FakeVosk extends VoskAsrService {
   void Function(String)? onPartial;
-  void Function(String)? onFinal;
+  void Function(List<String>)? onFinal;
   int starts = 0;
-  String finishText = '';
+  List<String> finishCandidates = const [];
+  List<String>? lastGrammar;
 
   @override
   bool get isReady => true;
@@ -45,10 +46,12 @@ class FakeVosk extends VoskAsrService {
   @override
   void startListening({
     required void Function(String partial) onPartial,
-    required void Function(String text) onFinal,
+    required void Function(List<String> candidates) onFinal,
     void Function()? onSpeech,
+    List<String>? grammar,
   }) {
     starts++;
+    lastGrammar = grammar;
     this.onPartial = onPartial;
     this.onFinal = onFinal;
   }
@@ -57,7 +60,7 @@ class FakeVosk extends VoskAsrService {
   void stopListening() {}
 
   @override
-  Future<String> finishListening() async => finishText;
+  Future<List<String>> finishListening() async => finishCandidates;
 }
 
 /// Reklam SDK'sı yerine: testin belirlediği sonucu döner.
@@ -178,7 +181,7 @@ void main() {
 
   Future<void> say(WidgetTester t, String text) async {
     await tapMic(t);
-    vosk.onFinal!(text);
+    vosk.onFinal!([text]);
     await t.pump();
   }
 
@@ -230,6 +233,38 @@ void main() {
     expect(reveal(tester).isCorrect, isFalse);
     expect(stats.totalWrong, 1);
     expect(lives.lives, LivesService.maxLives - 1);
+    await finish(tester);
+  });
+
+  testWidgets('alternatif tahminlerden biri tutarsa doğru sayılır', (tester) async {
+    await openQuiz(tester);
+    await tapMic(tester);
+    vosk.onFinal!(['qqqq', reveal(tester).correctWord]);
+    await tester.pump();
+
+    expect(reveal(tester).isCorrect, isTrue);
+    expect(reveal(tester).recognizedWord, reveal(tester).correctWord,
+        reason: 'ekranda tutan tahmin gösterilir');
+    expect(lives.lives, LivesService.maxLives);
+    await finish(tester);
+  });
+
+  testWidgets('Vosk her soruda kapalı sözlükle dinler (kelime sözlükteyse)',
+      (tester) async {
+    await openQuiz(tester);
+    await tapMic(tester);
+    final word = reveal(tester).correctWord;
+    final grammar = vosk.lastGrammar;
+    if (grammar != null) {
+      expect(grammar.last, '[unk]');
+      expect(grammar.length, greaterThan(100), reason: 'tüm quiz kelimeleri');
+    } else {
+      // Vosk'un yazamadığı kelime: açık sözlük.
+      expect(['kaplumbağa', 'zürafa', 'zebra', 'kirpi', 'penguen', 'papağan', 'civciv',
+          'kanepe', 'fincan', 'marul', 'salyangoz', 'abajur', 'bej', 'böğürtlen',
+          'kapüşonlu', 'klozet', 'küvet', 'rakun', 'yusufçuk', 'nar bülbülü'],
+          contains(word.toLowerCase()));
+    }
     await finish(tester);
   });
 
