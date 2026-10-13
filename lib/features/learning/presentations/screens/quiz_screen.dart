@@ -58,6 +58,12 @@ class _QuizScreenState extends State<QuizScreen> with TickerProviderStateMixin {
   bool _isCorrect = false;
   DateTime? _questionStartTime;
   Timer? _silenceTimer;
+  bool _finishing = false;
+
+  // Hiçbir şey duyulmadığında çocuk cezalandırılmaz, tekrar denemesi istenir.
+  static const _maxNotHeard = 2;
+  int _notHeardCount = 0;
+  bool _notHeard = false;
 
   // ── Animasyonlar ────────────────────────────────────────────────────────────
   late AnimationController _micPulseController;
@@ -178,16 +184,32 @@ class _QuizScreenState extends State<QuizScreen> with TickerProviderStateMixin {
   void _startAsr({
     required void Function(String) onPartial,
     required void Function(String) onFinal,
+    required void Function() onSpeech,
   }) {
     if (_statsService.asrEngine == 'platform') {
       _whisper.startListening(onPartial: onPartial, onFinal: onFinal);
     } else {
-      _vosk.startListening(onPartial: onPartial, onFinal: onFinal);
+      _vosk.startListening(
+          onPartial: onPartial, onFinal: onFinal, onSpeech: onSpeech);
     }
   }
 
+  /// Dinlemeyi bitirir; o ana kadar duyulan en iyi metni döner.
+  Future<String> _finishAsr() async {
+    if (_statsService.asrEngine == 'platform') {
+      _whisper.stopListening();
+      return _recognizedWord;
+    }
+    final text = await _vosk.finishListening();
+    return text.isNotEmpty ? text : _recognizedWord;
+  }
+
+  /// Küçük çocuklar söze daha geç başlar.
+  Duration get _silenceTimeout =>
+      Duration(seconds: _statsService.childAge <= 3 ? 8 : 6);
+
   Future<void> _startListening() async {
-    if (_isListening || !_asrIsReady) return;
+    if (_isListening || _finishing || !_asrIsReady) return;
 
     final perm = await Permission.microphone.status;
     if (perm.isPermanentlyDenied) {
@@ -203,33 +225,59 @@ class _QuizScreenState extends State<QuizScreen> with TickerProviderStateMixin {
       _isListening = true;
       _recognizedWord = '';
       _hasSpoken = false;
+      _notHeard = false;
     });
     _micPulseController.repeat(reverse: true);
     _resetSilenceTimer();
 
     _startAsr(
       onPartial: (text) {
-        if (!mounted) return;
+        if (!mounted || !_isListening) return;
         setState(() => _recognizedWord = text);
         _resetSilenceTimer();
       },
       onFinal: (text) {
-        if (!mounted || _hasSpoken) return;
+        if (!mounted || _hasSpoken || !_isListening) return;
         _silenceTimer?.cancel();
-        _handleFinalResult(text);
+        if (text.trim().isEmpty) {
+          _stopAsr();
+          _micPulseController.stop();
+          setState(() => _isListening = false);
+          _handleNotHeard();
+        } else {
+          _handleFinalResult(text);
+        }
+      },
+      onSpeech: () {
+        if (mounted && _isListening) _resetSilenceTimer();
       },
     );
   }
 
   void _resetSilenceTimer() {
     _silenceTimer?.cancel();
-    _silenceTimer = Timer(const Duration(seconds: 5), () {
-      if (!mounted || !_isListening || _hasSpoken) return;
-      _stopAsr();
-      _micPulseController.stop();
-      setState(() => _isListening = false);
-      _handleNoAnswer();
-    });
+    _silenceTimer = Timer(_silenceTimeout, _finishListening);
+  }
+
+  /// Süre dolunca ya da mikrofona tekrar dokununca: duyulanı değerlendir.
+  /// Önceden duyulan kısmi metin atılıyor, cevap "yanlış" sayılıyordu.
+  Future<void> _finishListening() async {
+    if (!mounted || !_isListening || _hasSpoken || _finishing) return;
+    _finishing = true;
+    _silenceTimer?.cancel();
+    _micPulseController.stop();
+    setState(() => _isListening = false);
+    try {
+      final text = await _finishAsr();
+      if (!mounted || _hasSpoken) return;
+      if (text.trim().isEmpty) {
+        _handleNotHeard();
+      } else {
+        _handleFinalResult(text);
+      }
+    } finally {
+      _finishing = false;
+    }
   }
 
   void _handleFinalResult(String recognized) {
@@ -276,10 +324,7 @@ class _QuizScreenState extends State<QuizScreen> with TickerProviderStateMixin {
 
   void _toggleListening() {
     if (_isListening) {
-      _silenceTimer?.cancel();
-      _stopAsr();
-      _micPulseController.stop();
-      setState(() => _isListening = false);
+      _finishListening();
     } else {
       _startListening();
     }
@@ -302,25 +347,31 @@ class _QuizScreenState extends State<QuizScreen> with TickerProviderStateMixin {
     if (!correct) _livesService.loseLife();
   }
 
-  void _handleNoAnswer() {
+  /// Hiçbir şey duyulmadı. Bu çocuğun hatası değil (sessiz kaldı, mikrofon
+  /// alamadı ya da tanıma kaçırdı): can, istatistik ve RL etkilenmez.
+  void _handleNotHeard() {
     if (!mounted || _hasSpoken) return;
-    final expected = _currentItem.word;
-    final responseTimeSec = _questionStartTime != null
-        ? DateTime.now().difference(_questionStartTime!).inMilliseconds / 1000.0
-        : 30.0;
+    _notHeardCount++;
+    if (_notHeardCount < _maxNotHeard) {
+      setState(() {
+        _notHeard = true;
+        _recognizedWord = '';
+      });
+      _speak('Seni duyamadım. Bir daha söyler misin?');
+      return; // aynı soru; çocuk mikrofona tekrar dokunur
+    }
 
-    _statsService.recordCategoryAnswer(category: _currentItem.category, correct: false);
-    _updateRlAgent(false, responseTimeSec);
-
+    // Yine duyulmadı: kelimeyi göster ve cezasız sıradakine geç.
     setState(() {
       _hasSpoken = true;
       _isCorrect = false;
       _recognizedWord = '';
+      _notHeard = false;
     });
     _wordRevealController
       ..reset()
       ..forward();
-    _speak('Bu bir $expected. Tekrar deneyelim!');
+    _speak('Bu bir ${_currentItem.word}. Sıradakine geçelim!');
     _scheduleNextOrRest();
   }
 
@@ -360,6 +411,8 @@ class _QuizScreenState extends State<QuizScreen> with TickerProviderStateMixin {
       _recognizedWord = '';
       _hasSpoken = false;
       _isCorrect = false;
+      _notHeard = false;
+      _notHeardCount = 0;
     });
     _cardController
       ..reset()
@@ -450,7 +503,11 @@ class _QuizScreenState extends State<QuizScreen> with TickerProviderStateMixin {
                         ),
                         const SizedBox(height: 12),
                         Text(
-                          _isListening ? 'Dinliyorum...' : 'Dokun ve Söyle',
+                          _isListening
+                              ? 'Dinliyorum...'
+                              : _notHeard
+                                  ? 'Seni duyamadım, tekrar dokun'
+                                  : 'Dokun ve Söyle',
                           style: GoogleFonts.poppins(
                             fontSize: 13,
                             fontWeight: FontWeight.w500,
