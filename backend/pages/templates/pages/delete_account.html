@@ -1,0 +1,103 @@
+{% extends "pages/base.html" %}
+{% block title %}BilBil Hesap Silme{% endblock %}
+{% block head %}
+<style>
+  label { display: block; margin: 14px 0 6px; font-weight: 600; }
+  input[type=email], input[type=password] { width: 100%; padding: 12px; font-size: 16px;
+      border: 1px solid #ccc; border-radius: 12px; }
+  .check { display: flex; gap: 10px; align-items: flex-start; font-weight: 400; }
+  .check input { margin-top: 5px; }
+  button { margin-top: 18px; width: 100%; padding: 14px; font-size: 16px; font-weight: 700;
+           color: #fff; background: var(--danger); border: 0; border-radius: 12px; cursor: pointer; }
+  button:disabled { opacity: .55; cursor: default; }
+  #msg { min-height: 1.6em; margin-top: 14px; }
+  #msg.error { color: var(--danger); }
+  .done { padding: 16px; border-radius: 12px; background: #E8F5E9; }
+</style>
+{% endblock %}
+{% block content %}
+<div class="card">
+  <h1>Hesabımı ve verilerimi sil</h1>
+  <p>Hesabınızı silerseniz şunlar <strong>kalıcı olarak</strong> silinir ve geri getirilemez:</p>
+  <ul>
+    <li>hesabınız (e-posta ve şifre),</li>
+    <li>sunucudaki tüm veriler: istatistikler, ödüller, canlar, ebeveyn ayarları ve PIN.</li>
+  </ul>
+  <p>Uygulama yüklüyse <strong>Ebeveyn Paneli → Ayarlar → Hesabımı Sil</strong> yolunu da
+     kullanabilirsiniz. Uygulama yüklü değilse aşağıdaki formu kullanın.</p>
+
+  <form id="delete-form" autocomplete="on">
+    <label for="email">E-posta</label>
+    <input id="email" type="email" required autocomplete="email">
+    <label for="password">Şifre</label>
+    <input id="password" type="password" required autocomplete="current-password">
+    <label class="check"><input id="confirm" type="checkbox" required>
+      Hesabımın ve tüm verilerimin kalıcı olarak silineceğini anlıyorum.</label>
+    <button id="submit" type="submit">Hesabımı kalıcı olarak sil</button>
+    <p id="msg" role="status"></p>
+  </form>
+  <p class="muted">Şifreniz bu sunucuya gönderilmez; giriş doğrudan Google Firebase ile yapılır.
+     Şifrenizi hatırlamıyorsanız uygulamadaki "Şifremi unuttum" seçeneğini kullanın ya da
+     <a href="mailto:{{ contact_email }}">{{ contact_email }}</a> adresine yazın.</p>
+</div>
+
+<script>
+(() => {
+  const KEY = "{{ firebase_api_key|escapejs }}";
+  const IDENTITY = "https://identitytoolkit.googleapis.com/v1/accounts:";
+  const MESSAGES = {
+    INVALID_LOGIN_CREDENTIALS: "E-posta veya şifre hatalı.",
+    INVALID_PASSWORD: "E-posta veya şifre hatalı.",
+    EMAIL_NOT_FOUND: "E-posta veya şifre hatalı.",
+    INVALID_EMAIL: "Geçerli bir e-posta adresi girin.",
+    USER_DISABLED: "Bu hesap devre dışı bırakılmış.",
+    TOO_MANY_ATTEMPTS_TRY_LATER: "Çok fazla deneme yapıldı. Biraz sonra tekrar deneyin.",
+    SERVER: "Sunucuya ulaşılamadı, hesap silinmedi. Lütfen tekrar deneyin.",
+  };
+
+  async function identity(action, body) {
+    const res = await fetch(IDENTITY + action + "?key=" + KEY, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(body),
+    });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) throw new Error(((data.error && data.error.message) || "UNKNOWN").split(" ")[0]);
+    return data;
+  }
+
+  const form = document.getElementById("delete-form");
+  const button = document.getElementById("submit");
+  const msg = document.getElementById("msg");
+
+  form.addEventListener("submit", async (event) => {
+    event.preventDefault();
+    button.disabled = true;
+    msg.className = "";
+    msg.textContent = "Siliniyor…";
+    try {
+      const { idToken } = await identity("signInWithPassword", {
+        email: document.getElementById("email").value.trim(),
+        password: document.getElementById("password").value,
+        returnSecureToken: true,
+      });
+      // Uygulamadaki sıra: önce sunucudaki veri. Silinemezse hesap da silinmez,
+      // yoksa hesabı olmayan sahipsiz veri kalırdı.
+      const res = await fetch("/v1/me", {
+        method: "DELETE",
+        headers: { Authorization: "Bearer " + idToken },
+      });
+      if (res.status !== 204 && res.status !== 404) throw new Error("SERVER");
+      await identity("delete", { idToken });
+      form.outerHTML = '<p class="done"><strong>Hesabınız ve tüm verileriniz silindi.</strong> ' +
+                       'BilBil\'i kullandığınız için teşekkürler.</p>';
+    } catch (err) {
+      msg.className = "error";
+      msg.textContent = MESSAGES[err.message] ||
+          "Bir hata oluştu (" + err.message + "). Tekrar deneyin ya da bize yazın.";
+      button.disabled = false;
+    }
+  });
+})();
+</script>
+{% endblock %}

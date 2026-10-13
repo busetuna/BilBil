@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
+import 'package:url_launcher/url_launcher.dart';
+import '../../../core/app_links.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../services/stats/stats_service.dart';
 import '../../learning/presentations/providers/auth_provider.dart';
@@ -94,6 +96,12 @@ class _SettingsTabState extends State<SettingsTab> {
       MaterialPageRoute(builder: (_) => const LoginScreen()),
       (_) => false,
     );
+  }
+
+  Future<void> _openPrivacyPolicy() async {
+    final opened = await launchUrl(Uri.parse(AppLinks.privacy),
+        mode: LaunchMode.externalApplication);
+    if (!opened && mounted) _showSnack('Tarayıcı açılamadı: ${AppLinks.privacy}');
   }
 
   Future<void> _logout() async {
@@ -404,6 +412,17 @@ class _SettingsTabState extends State<SettingsTab> {
                           borderRadius: BorderRadius.circular(12)),
                       padding: const EdgeInsets.symmetric(vertical: 12),
                     ),
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Center(
+                  child: TextButton.icon(
+                    onPressed: _openPrivacyPolicy,
+                    icon: Icon(Icons.privacy_tip_outlined,
+                        size: 18, color: AppColors.textSecondary),
+                    label: Text('Gizlilik Politikası',
+                        style: GoogleFonts.poppins(
+                            fontSize: 13, color: AppColors.textSecondary)),
                   ),
                 ),
               ],

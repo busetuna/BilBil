@@ -23,6 +23,8 @@ dependencies:
 
   # Bilbil API (backend/, Railway)
   http: ^1.2.0
+  # Gizlilik politikası bağlantısı (Google Play uygulama içinde de istiyor)
+  url_launcher: ^6.3.1
 
   # Ebeveyn PIN'inin özeti
   crypto: ^3.0.7

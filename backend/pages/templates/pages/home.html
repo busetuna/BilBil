@@ -1,0 +1,13 @@
+{% extends "pages/base.html" %}
+{% block content %}
+<div class="card">
+  <h1>BilBil</h1>
+  <p>BilBil, 2–5 yaş arası çocukların resimlere bakıp kelimeleri sesli söyleyerek öğrendiği,
+     ebeveyn gözetiminde kullanılan bir mobil uygulamadır.</p>
+  <ul>
+    <li><a href="/gizlilik">Gizlilik Politikası</a></li>
+    <li><a href="/hesap-sil">Hesabımı ve verilerimi sil</a></li>
+  </ul>
+  <p class="muted">İletişim: <a href="mailto:{{ contact_email }}">{{ contact_email }}</a></p>
+</div>
+{% endblock %}

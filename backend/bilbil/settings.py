@@ -42,6 +42,14 @@ CSRF_COOKIE_SECURE = not DEBUG
 # Firebase ID token'ları bu projeye ait olmalı.
 FIREBASE_PROJECT_ID = os.environ.get('FIREBASE_PROJECT_ID', 'bilbil-35e16')
 
+# Herkese açık sayfalar (gizlilik politikası, hesap silme, app-ads.txt).
+CONTACT_EMAIL = os.environ.get('CONTACT_EMAIL', 'btuna194@gmail.com')
+# Firebase web anahtarı gizli değildir (firebase_options.dart'taki web yapılandırması);
+# hesap silme sayfası tarayıcıda Firebase ile giriş yapmak için kullanır.
+FIREBASE_WEB_API_KEY = os.environ.get(
+    'FIREBASE_WEB_API_KEY', 'AIzaSyALLkMiJMGu0fIhKEJbKmiMk45aODBTY7M')
+ADMOB_PUBLISHER_ID = os.environ.get('ADMOB_PUBLISHER_ID', 'pub-9093997172830553')
+
 
 INSTALLED_APPS = [
     'django.contrib.admin',
@@ -52,6 +60,7 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
     'rest_framework',
     'api',
+    'pages',
 ]
 
 MIDDLEWARE = [
