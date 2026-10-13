@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:hive_flutter/hive_flutter.dart';
-import '../firestore/firestore_service.dart';
+import '../api/api_service.dart';
 
 class Reward {
   final String id;
@@ -34,8 +34,7 @@ class RewardService extends ChangeNotifier {
   List<String> _earnedIds = [];
   Map<String, int> _puzzlePieces = {};
 
-  String? _uid;
-  FirestoreService? _firestore;
+  ApiService? _api;
 
   static final List<Reward> allRewards = [
     const Reward(
@@ -111,15 +110,9 @@ class RewardService extends ChangeNotifier {
 
   bool isEarned(String id) => _earnedIds.contains(id);
 
-  void setCloudSync(String uid, FirestoreService svc) {
-    _uid = uid;
-    _firestore = svc;
-  }
+  void setCloudSync(ApiService api) => _api = api;
 
-  void clearCloudSync() {
-    _uid = null;
-    _firestore = null;
-  }
+  void clearCloudSync() => _api = null;
 
   Future<void> loadFromCloud(Map<String, dynamic>? data) async {
     if (data == null) return;
@@ -135,10 +128,7 @@ class RewardService extends ChangeNotifier {
   }
 
   void _syncToCloud() {
-    final uid = _uid;
-    final firestore = _firestore;
-    if (uid == null || firestore == null) return;
-    firestore.saveRewards(uid, {
+    _api?.saveRewards({
       'totalCorrect': _totalCorrect,
       'earnedIds': _earnedIds,
       'puzzlePieces': _puzzlePieces,

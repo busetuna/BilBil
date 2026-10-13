@@ -1,27 +1,20 @@
 import 'package:flutter/material.dart';
 import 'package:hive_flutter/hive_flutter.dart';
-import '../firestore/firestore_service.dart';
+import '../api/api_service.dart';
 
 class StatsService extends ChangeNotifier {
   static const _boxName = 'stats';
   late Box _box;
 
-  String? _uid;
-  FirestoreService? _firestore;
+  ApiService? _api;
 
   Future<void> init() async {
     _box = await Hive.openBox(_boxName);
   }
 
-  void setCloudSync(String uid, FirestoreService svc) {
-    _uid = uid;
-    _firestore = svc;
-  }
+  void setCloudSync(ApiService api) => _api = api;
 
-  void clearCloudSync() {
-    _uid = null;
-    _firestore = null;
-  }
+  void clearCloudSync() => _api = null;
 
   Future<void> loadFromCloud(Map<String, dynamic>? data) async {
     if (data == null) return;
@@ -45,10 +38,7 @@ class StatsService extends ChangeNotifier {
   }
 
   void _syncToCloud() {
-    final uid = _uid;
-    final firestore = _firestore;
-    if (uid == null || firestore == null) return;
-    firestore.saveStats(uid, {
+    _api?.saveStats({
       'totalCorrect': totalCorrect,
       'totalWrong': totalWrong,
       'difficultyHistory': difficultyHistory,

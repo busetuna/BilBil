@@ -1,19 +1,19 @@
 import 'package:firebase_auth/firebase_auth.dart' as fb;
 import '../../domain/entities/user.dart';
 import '../../domain/repositories/auth_repository.dart';
-import '../../services/firestore/firestore_service.dart';
+import '../../services/api/api_service.dart';
 
 class AuthRepositoryImpl implements AuthRepository {
-  final FirestoreService _firestore;
+  final ApiService _api;
   final fb.FirebaseAuth _auth = fb.FirebaseAuth.instance;
 
-  AuthRepositoryImpl(this._firestore);
+  AuthRepositoryImpl(this._api);
 
   @override
   Future<User?> getCurrentUser() async {
     final fbUser = _auth.currentUser;
     if (fbUser == null) return null;
-    final data = await _firestore.loadUserData(fbUser.uid);
+    final data = await _api.loadUserData();
     return _buildUser(fbUser, data);
   }
 
@@ -24,7 +24,7 @@ class AuthRepositoryImpl implements AuthRepository {
         email: email,
         password: password,
       );
-      final data = await _firestore.loadUserData(cred.user!.uid);
+      final data = await _api.loadUserData();
       return _buildUser(cred.user!, data);
     } on fb.FirebaseAuthException catch (e) {
       throw Exception(_authError(e.code));
@@ -47,12 +47,11 @@ class AuthRepositoryImpl implements AuthRepository {
       await fbUser.updateDisplayName(name);
 
       final now = DateTime.now();
-      await _firestore.createUserProfile(
-        fbUser.uid,
+      await _api.createUserProfile(
         name: name,
         email: email,
         userType: userType.toString(),
-        createdAt: now.toIso8601String(),
+        createdAt: now,
       );
 
       return User(

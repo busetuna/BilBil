@@ -5,14 +5,13 @@ import 'package:hive_flutter/hive_flutter.dart';
 import 'package:provider/provider.dart';
 import 'features/learning/presentations/screens/main_navigation.dart';
 import 'firebase_options.dart';
-import 'data/models/user_model.dart';
 import 'data/repositories/auth_repository_impl.dart';
 import 'domain/usecases/login_usecase.dart';
 import 'domain/usecases/register_usecase.dart';
 import 'domain/usecases/logout_usecase.dart';
 import 'features/learning/presentations/providers/auth_provider.dart';
 import 'features/learning/presentations/screens/splash_screen.dart';
-import 'services/firestore/firestore_service.dart';
+import 'services/api/api_service.dart';
 import 'services/rewards/reward_service.dart';
 import 'services/stats/stats_service.dart';
 import 'services/lives/lives_service.dart';
@@ -26,9 +25,11 @@ void main() async {
   await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
 
   await Hive.initFlutter();
-  Hive.registerAdapter(UserModelAdapter());
 
-  final firestoreService = FirestoreService();
+  final apiService = ApiService();
+  if (!apiService.isConfigured) {
+    debugPrint('API_BASE_URL verilmedi: bulut senkronu kapalı');
+  }
 
   final rewardService = RewardService();
   await rewardService.init();
@@ -48,19 +49,19 @@ void main() async {
   // Uygulama açılışında zaten oturum açıksa bulut verisini yükle
   final fbUser = fb.FirebaseAuth.instance.currentUser;
   if (fbUser != null) {
-    final cloudData = await firestoreService.loadUserData(fbUser.uid);
+    final cloudData = await apiService.loadUserData();
     if (cloudData != null) {
       await statsService.loadFromCloud(cloudData['stats'] as Map<String, dynamic>?);
       await rewardService.loadFromCloud(cloudData['rewards'] as Map<String, dynamic>?);
       await livesService.loadFromCloud(cloudData['lives']);
     }
-    statsService.setCloudSync(fbUser.uid, firestoreService);
-    rewardService.setCloudSync(fbUser.uid, firestoreService);
-    livesService.setCloudSync(fbUser.uid, firestoreService);
+    statsService.setCloudSync(apiService);
+    rewardService.setCloudSync(apiService);
+    livesService.setCloudSync(apiService);
   }
 
   runApp(MyApp(
-    firestoreService: firestoreService,
+    apiService: apiService,
     rewardService: rewardService,
     statsService: statsService,
     livesService: livesService,
@@ -71,7 +72,7 @@ void main() async {
 }
 
 class MyApp extends StatelessWidget {
-  final FirestoreService firestoreService;
+  final ApiService apiService;
   final RewardService rewardService;
   final StatsService statsService;
   final LivesService livesService;
@@ -81,7 +82,7 @@ class MyApp extends StatelessWidget {
 
   const MyApp({
     super.key,
-    required this.firestoreService,
+    required this.apiService,
     required this.rewardService,
     required this.statsService,
     required this.livesService,
@@ -91,15 +92,15 @@ class MyApp extends StatelessWidget {
   });
 
   Future<void> _onSignedIn(String uid) async {
-    final cloudData = await firestoreService.loadUserData(uid);
+    final cloudData = await apiService.loadUserData();
     if (cloudData != null) {
       await statsService.loadFromCloud(cloudData['stats'] as Map<String, dynamic>?);
       await rewardService.loadFromCloud(cloudData['rewards'] as Map<String, dynamic>?);
       await livesService.loadFromCloud(cloudData['lives']);
     }
-    statsService.setCloudSync(uid, firestoreService);
-    rewardService.setCloudSync(uid, firestoreService);
-    livesService.setCloudSync(uid, firestoreService);
+    statsService.setCloudSync(apiService);
+    rewardService.setCloudSync(apiService);
+    livesService.setCloudSync(apiService);
   }
 
   Future<void> _onSignedOut() async {
@@ -110,7 +111,7 @@ class MyApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final authRepository = AuthRepositoryImpl(firestoreService);
+    final authRepository = AuthRepositoryImpl(apiService);
 
     return MultiProvider(
       providers: [
