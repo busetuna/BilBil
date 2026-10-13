@@ -120,12 +120,22 @@ USE_I18N = True
 USE_TZ = True
 
 
-# Admin paneli için statik dosyalar (whitenoise ile sunulur).
+# Admin paneli için statik dosyalar. WhiteNoise onları doğrudan uygulama
+# klasörlerinden sunar; deploy'da collectstatic çalıştırmaya gerek kalmaz
+# (Railpack'in varsayılan başlangıç komutu bunu yapmıyor).
 STATIC_URL = 'static/'
-STATIC_ROOT = BASE_DIR / 'staticfiles'
+WHITENOISE_USE_FINDERS = True
 STORAGES = {
     'default': {'BACKEND': 'django.core.files.storage.FileSystemStorage'},
-    'staticfiles': {'BACKEND': 'whitenoise.storage.CompressedManifestStaticFilesStorage'},
+    'staticfiles': {'BACKEND': 'whitenoise.storage.CompressedStaticFilesStorage'},
+}
+
+# Gerçek ortamda 500 hatalarının ayrıntısı Railway loglarına düşsün.
+LOGGING = {
+    'version': 1,
+    'disable_existing_loggers': False,
+    'handlers': {'console': {'class': 'logging.StreamHandler'}},
+    'loggers': {'django.request': {'handlers': ['console'], 'level': 'ERROR'}},
 }
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'

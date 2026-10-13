@@ -8,11 +8,13 @@ import 'package:http/http.dart' as http;
 /// Railway'deki Bilbil API'si (bkz. backend/).
 ///
 /// Kimlik Firebase ID token'ı ile kanıtlanır; sunucu kullanıcıyı token'dan
-/// bulduğu için uid gönderilmez. Adres derlemede verilir:
-///   flutter run --dart-define=API_BASE_URL=https://xxx.up.railway.app
-/// Adres verilmezse bulut senkronu kapalıdır, uygulama yerel veriyle çalışır.
+/// bulduğu için uid gönderilmez. Varsayılan adres Railway'deki servistir;
+/// yerel bir sunucuyla denemek için derlemede değiştirilebilir:
+///   flutter run --dart-define=API_BASE_URL=http://10.0.2.2:8000
+/// Adres boş verilirse bulut senkronu kapanır, uygulama yerel veriyle çalışır.
 class ApiService {
-  static const _defaultBaseUrl = String.fromEnvironment('API_BASE_URL');
+  static const _defaultBaseUrl = String.fromEnvironment('API_BASE_URL',
+      defaultValue: 'https://api-production-9c46.up.railway.app');
   static const _timeout = Duration(seconds: 10);
 
   final http.Client _client;

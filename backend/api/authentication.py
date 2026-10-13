@@ -3,6 +3,8 @@ import functools
 import firebase_admin
 from django.conf import settings
 from firebase_admin import auth as firebase_auth
+from firebase_admin import credentials
+from google.auth.credentials import AnonymousCredentials
 from rest_framework import authentication, exceptions
 
 
@@ -20,12 +22,19 @@ class AuthUnavailable(exceptions.APIException):
     default_detail = 'Token şu an doğrulanamıyor, daha sonra tekrar deneyin'
 
 
+class _NoCredentials(credentials.Base):
+    """Token doğrulama servis hesabı istemez: Google'ın açık sertifikaları ve
+    proje kimliği yeterli. Kimlik verilmezse firebase-admin makinede Google
+    varsayılan kimliği (ADC) arar ve Railway'de bulamayınca patlar."""
+
+    def get_credential(self):
+        return AnonymousCredentials()
+
+
 @functools.cache
 def _firebase_app():
-    # Token doğrulama servis hesabı istemez: Google'ın açık sertifikaları
-    # ve proje kimliği yeterli.
     return firebase_admin.initialize_app(
-        options={'projectId': settings.FIREBASE_PROJECT_ID}, name='bilbil')
+        _NoCredentials(), options={'projectId': settings.FIREBASE_PROJECT_ID}, name='bilbil')
 
 
 def verify_token(token):

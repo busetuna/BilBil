@@ -40,10 +40,13 @@ export DJANGO_DEBUG=1
 2. Servis değişkenleri:
    - `DATABASE_URL` = `${{Postgres.DATABASE_URL}}`
    - `DJANGO_SECRET_KEY` = rastgele uzun bir değer
+   - `WEB_CONCURRENCY` = `2` (gunicorn işçi sayısı)
+   - `GUNICORN_CMD_ARGS` = `--access-logfile -` (istek logları)
 3. *Networking → Generate Domain* ile bir alan adı al.
 
-Başlangıç komutu ve sağlık kontrolü `railway.json` içinde; her deploy'da
-migrate ve collectstatic otomatik çalışır.
+Başlangıç komutunu Railpack kendisi belirler (`migrate && gunicorn`); her
+deploy'da migration'lar otomatik çalışır. Admin'in statik dosyalarını WhiteNoise
+doğrudan sunduğu için `collectstatic` gerekmez.
 
 Admin paneli `/admin/` adresinde. Kullanıcı oluşturmak için:
 

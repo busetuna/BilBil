@@ -1,7 +1,6 @@
 {
   "$schema": "https://railway.com/railway.schema.json",
   "deploy": {
-    "startCommand": "sh -c 'python manage.py migrate --noinput && python manage.py collectstatic --noinput && gunicorn bilbil.wsgi --workers 2 --access-logfile -'",
     "healthcheckPath": "/health",
     "restartPolicyType": "ON_FAILURE"
   }

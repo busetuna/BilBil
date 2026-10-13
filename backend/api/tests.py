@@ -2,6 +2,7 @@ from datetime import UTC, datetime
 from unittest import mock
 
 from django.test import override_settings
+from google.auth.exceptions import DefaultCredentialsError
 from rest_framework.test import APITestCase
 
 from .models import Profile
@@ -124,6 +125,20 @@ class HttpsRedirectTests(APITestCase):
 
 
 class RealVerifierTests(APITestCase):
-    def test_malformed_token_is_401_without_network(self):
+    def setUp(self):
+        # Railway'de Google varsayılan kimliği (ADC) yok; geliştirici
+        # makinesindeki gcloud girişi testi yanıltmasın.
+        patcher = mock.patch('google.auth.default',
+                             side_effect=DefaultCredentialsError('ADC yok'))
+        patcher.start()
+        self.addCleanup(patcher.stop)
+
+    def test_malformed_token_is_401_without_google_credentials(self):
         self.client.credentials(HTTP_AUTHORIZATION='Bearer not-a-jwt')
         self.assertEqual(self.client.get('/v1/me').status_code, 401)
+
+
+class StaticFilesTests(APITestCase):
+    def test_admin_static_is_served_without_collectstatic(self):
+        res = self.client.get('/static/admin/css/base.css')
+        self.assertEqual(res.status_code, 200)
