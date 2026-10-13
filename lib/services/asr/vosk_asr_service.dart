@@ -9,7 +9,8 @@ import 'audio_proprocessing/vad_detector.dart';
 enum AsrModelStatus { idle, downloading, ready, error }
 
 class VoskAsrService extends ChangeNotifier {
-  final _recorder = AudioRecorder();
+  // İlk dinlemede oluşturulur (oluşturmak mikrofon eklentisini başlatır).
+  late final _recorder = AudioRecorder();
   Model? _model;
   Recognizer? _recognizer;
   StreamSubscription<Uint8List>? _sub;

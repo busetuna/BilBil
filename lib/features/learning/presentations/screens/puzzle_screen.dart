@@ -65,8 +65,11 @@ class _PuzzleScreenState extends State<PuzzleScreen> {
         final isActive = svc.activeReward?.id == widget.reward.id;
         final isFuture = !isEarned && !isActive;
 
+        // Kazanılmış rozet her zaman tam görünür (parça sayısı buluttan
+        // eksik gelse bile; ilerleme çubuğu da zaten 9/9 gösteriyor).
+        final shownPieces = isEarned ? PuzzleScreen.total : pieces;
         final filledSlots = <int>{};
-        for (int i = 0; i < pieces; i++) {
+        for (int i = 0; i < shownPieces; i++) {
           filledSlots.add(PuzzleScreen._fillOrder[i]);
         }
 
@@ -102,7 +105,7 @@ class _PuzzleScreenState extends State<PuzzleScreen> {
                 ),
               ),
               const SizedBox(height: 14),
-              _buildInventory(pieces, isFuture),
+              _buildInventory(shownPieces, isFuture),
               const SizedBox(height: 14),
               _buildFooter(isEarned, isActive, isFuture),
               const SizedBox(height: 24),
@@ -135,6 +138,7 @@ class _PuzzleScreenState extends State<PuzzleScreen> {
             Image.asset(
               widget.reward.imagePath,
               fit: BoxFit.cover,
+              cacheWidth: 1080,
               errorBuilder: (_, __, ___) => Container(
                 color: widget.reward.color.withOpacity(0.2),
                 child: Center(
@@ -453,6 +457,7 @@ class _PuzzleTile extends StatelessWidget {
                   width: w,
                   height: h,
                   fit: BoxFit.cover,
+                  cacheWidth: 1080, // önizlemeyle aynı: tek kez çözülür
                   errorBuilder: (_, __, ___) => Container(
                     color: accentColor.withOpacity(0.3),
                     child: const Center(

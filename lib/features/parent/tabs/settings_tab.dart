@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../services/stats/stats_service.dart';
 import '../../learning/presentations/providers/auth_provider.dart';
+import '../../learning/presentations/screens/login_screen.dart';
 import '../widgets/password_confirm_dialog.dart';
 
 class SettingsTab extends StatefulWidget {
@@ -85,10 +86,20 @@ class _SettingsTabState extends State<SettingsTab> {
     );
   }
 
+  /// Giriş ekranına döner ve geri tuşuyla oturumsuz ekranlara dönülmesini
+  /// engeller. (Kök route giriş akışında değiştirildiği için oturum
+  /// değişikliğini dinleyen bir kök widget'a güvenilemez.)
+  static void _goToLogin(NavigatorState navigator) {
+    navigator.pushAndRemoveUntil(
+      MaterialPageRoute(builder: (_) => const LoginScreen()),
+      (_) => false,
+    );
+  }
+
   Future<void> _logout() async {
     final navigator = Navigator.of(context);
     await context.read<AuthProvider>().logout();
-    navigator.popUntil((route) => route.isFirst);
+    _goToLogin(navigator);
   }
 
   Future<void> _deleteAccount() async {
@@ -111,7 +122,7 @@ class _SettingsTabState extends State<SettingsTab> {
       ),
     );
     if (deleted != true) return;
-    navigator.popUntil((route) => route.isFirst);
+    _goToLogin(navigator);
     messenger.showSnackBar(
       SnackBar(
         content: Text('Hesabın silindi', style: GoogleFonts.poppins()),

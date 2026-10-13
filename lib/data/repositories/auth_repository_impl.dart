@@ -9,12 +9,15 @@ class AuthRepositoryImpl implements AuthRepository {
 
   AuthRepositoryImpl(this._api);
 
+  // Giriş ve açılışta API beklenmez: ekranlar yalnızca adı kullanır ve o
+  // Firebase'de de var. Beklemek açılışı internete bağlıyordu; yavaş ağda
+  // açılış ekranının zamanlayıcısıyla yarışıp girişli kullanıcıyı giriş
+  // ekranına atabiliyordu. Bulut verisi AccountSync ile ayrıca yüklenir.
   @override
   Future<User?> getCurrentUser() async {
     final fbUser = _auth.currentUser;
     if (fbUser == null) return null;
-    final data = await _api.loadUserData();
-    return _buildUser(fbUser, data);
+    return _buildUser(fbUser, null);
   }
 
   @override
@@ -24,8 +27,7 @@ class AuthRepositoryImpl implements AuthRepository {
         email: email,
         password: password,
       );
-      final data = await _api.loadUserData();
-      return _buildUser(cred.user!, data);
+      return _buildUser(cred.user!, null);
     } on fb.FirebaseAuthException catch (e) {
       throw Exception(_authError(e.code));
     }

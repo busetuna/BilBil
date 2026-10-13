@@ -11,9 +11,12 @@ void showRewardCelebration(BuildContext context, Reward reward) {
     builder: (dialogContext) => Dialog(
       backgroundColor: Colors.transparent,
       insetPadding: const EdgeInsets.symmetric(horizontal: 28, vertical: 60),
-      child: RewardCelebrationCard(
-        reward: reward,
-        onCollect: () => Navigator.pop(dialogContext),
+      // Kısa ekranlarda (küçük telefon, yatay mod) taşmak yerine kaydırılır.
+      child: SingleChildScrollView(
+        child: RewardCelebrationCard(
+          reward: reward,
+          onCollect: () => Navigator.pop(dialogContext),
+        ),
       ),
     ),
   );
@@ -182,6 +185,7 @@ class _RewardCelebrationCardState extends State<RewardCelebrationCard>
               child: Image.asset(
                 widget.reward.imagePath,
                 fit: BoxFit.contain,
+                cacheWidth: 450,
                 errorBuilder: (_, __, ___) => Text(
                   widget.reward.emoji,
                   style: const TextStyle(fontSize: 60),
@@ -238,7 +242,6 @@ class _RewardCelebrationCardState extends State<RewardCelebrationCard>
                   left: d.left,
                   right: d.right,
                   top: d.top,
-                  bottom: d.bottom,
                   child: Container(
                     width: d.size,
                     height: d.size,
@@ -255,7 +258,7 @@ class _RewardCelebrationCardState extends State<RewardCelebrationCard>
 }
 
 class _ConfettiDot {
-  final double? left, right, top, bottom;
+  final double? left, right, top;
   final Color color;
   final double size;
 
@@ -263,7 +266,6 @@ class _ConfettiDot {
     this.left,
     this.right,
     this.top,
-    this.bottom,
     required this.color,
     required this.size,
   });

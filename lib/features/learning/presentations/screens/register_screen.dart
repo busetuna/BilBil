@@ -316,6 +316,26 @@ class _RegisterScreenState extends State<RegisterScreen> {
   Future<void> _handleRegister() async {
     final authProvider = Provider.of<AuthProvider>(context, listen: false);
 
+    final name = _nameController.text.trim();
+    final email = _emailController.text.trim();
+    final error = name.isEmpty
+        ? 'Adını yaz'
+        : email.isEmpty || !email.contains('@')
+            ? 'Geçerli bir email adresi yaz'
+            : _passwordController.text.length < 6
+                ? 'Şifre en az 6 karakter olmalı'
+                : null;
+    if (error != null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(error, style: GoogleFonts.poppins()),
+          backgroundColor: AppColors.error,
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+      return;
+    }
+
     final success = await authProvider.register(
       email: _emailController.text.trim(),
       password: _passwordController.text,

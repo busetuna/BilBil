@@ -38,8 +38,12 @@ class _QuizScreenState extends State<QuizScreen> with TickerProviderStateMixin {
   int _currentIndex = 0;
   int _stars = 0;
 
-  List<QuizItem> get _items => _pools[_rlAgent.currentDifficulty]!;
-  QuizItem get _currentItem => _items[_currentIndex];
+  // Ekrandaki soru, cevap ve geri bildirim boyunca sabit kalır. RL ajanının
+  // yeni zorluğu ancak sıradaki soruda uygulanır; önceden havuz anında
+  // değişiyor, resim cevap sırasında kayıyor ve eski sıra numarası kısa
+  // "zor" havuzunu aşınca RangeError ile çöküyordu.
+  List<QuizItem> get _items => _pools[_activeDifficulty]!;
+  late QuizItem _currentItem;
 
   // ── Servisler ───────────────────────────────────────────────────────────────
   final FlutterTts _tts = FlutterTts();
@@ -74,29 +78,40 @@ class _QuizScreenState extends State<QuizScreen> with TickerProviderStateMixin {
 
   // ── Yaşam döngüsü ───────────────────────────────────────────────────────────
 
-  List<QuizItem> _buildPool(int diff) => QuizData.byDifficulty(diff)
-    ..shuffle(Random());
+  List<QuizItem> _buildPool(int diff) =>
+      QuizData.byDifficulty(diff)..shuffle(Random());
 
   @override
   void initState() {
     super.initState();
-    _pools = {for (var i = 0; i < RLAgent.configs.length; i++) i: _buildPool(i)};
+    _pools = {
+      for (var i = 0; i < RLAgent.configs.length; i++) i: _buildPool(i),
+    };
 
     _micPulseController = AnimationController(
-        vsync: this, duration: const Duration(milliseconds: 900));
+      vsync: this,
+      duration: const Duration(milliseconds: 900),
+    );
 
     _cardController = AnimationController(
-        vsync: this, duration: const Duration(milliseconds: 500));
-    _cardAnimation =
-        CurvedAnimation(parent: _cardController, curve: Curves.easeOutBack);
+      vsync: this,
+      duration: const Duration(milliseconds: 500),
+    );
+    _cardAnimation = CurvedAnimation(
+      parent: _cardController,
+      curve: Curves.easeOutBack,
+    );
 
     _wordRevealController = AnimationController(
-        vsync: this, duration: const Duration(milliseconds: 600));
-    _wordRevealAnimation =
-        CurvedAnimation(parent: _wordRevealController, curve: Curves.elasticOut);
+      vsync: this,
+      duration: const Duration(milliseconds: 600),
+    );
+    _wordRevealAnimation = CurvedAnimation(
+      parent: _wordRevealController,
+      curve: Curves.elasticOut,
+    );
 
     _cardController.forward();
-    _initTts();
     _startQuestion();
   }
 
@@ -118,6 +133,8 @@ class _QuizScreenState extends State<QuizScreen> with TickerProviderStateMixin {
         maxDifficulty: maxDiff,
       );
       _activeDifficulty = startDiff;
+      _currentItem = _items[0];
+      _initTts(); // _rlAgent'a ihtiyaç duyar
       if (_statsService.asrEngine == 'platform') {
         _whisper.initialize();
       } else {
@@ -168,10 +185,8 @@ class _QuizScreenState extends State<QuizScreen> with TickerProviderStateMixin {
 
   // ── ASR (Vosk on-device) ────────────────────────────────────────────────────
 
-
-  bool get _asrIsReady => _statsService.asrEngine == 'platform'
-      ? _whisper.isReady
-      : _vosk.isReady;
+  bool get _asrIsReady =>
+      _statsService.asrEngine == 'platform' ? _whisper.isReady : _vosk.isReady;
 
   void _stopAsr() {
     if (_statsService.asrEngine == 'platform') {
@@ -190,7 +205,10 @@ class _QuizScreenState extends State<QuizScreen> with TickerProviderStateMixin {
       _whisper.startListening(onPartial: onPartial, onFinal: onFinal);
     } else {
       _vosk.startListening(
-          onPartial: onPartial, onFinal: onFinal, onSpeech: onSpeech);
+        onPartial: onPartial,
+        onFinal: onFinal,
+        onSpeech: onSpeech,
+      );
     }
   }
 
@@ -209,7 +227,9 @@ class _QuizScreenState extends State<QuizScreen> with TickerProviderStateMixin {
       Duration(seconds: _statsService.childAge <= 3 ? 8 : 6);
 
   Future<void> _startListening() async {
-    if (_isListening || _finishing || !_asrIsReady) return;
+    // _hasSpoken: soru cevaplandı, sıradakine geçiliyor. Bu sırada dinlemek
+    // aynı soruyu ikinci kez cevaplatıp yıldız/ödülü iki kez sayıyordu.
+    if (_isListening || _finishing || _hasSpoken || !_asrIsReady) return;
 
     final perm = await Permission.microphone.status;
     if (perm.isPermanentlyDenied) {
@@ -218,8 +238,21 @@ class _QuizScreenState extends State<QuizScreen> with TickerProviderStateMixin {
     }
     if (!perm.isGranted) {
       final result = await Permission.microphone.request();
-      if (!result.isGranted) return;
+      if (!result.isGranted) {
+        if (mounted) {
+          showMicPermissionDialog(
+            context,
+            permanent: result.isPermanentlyDenied,
+          );
+        }
+        return;
+      }
     }
+    if (!mounted || _isListening || _hasSpoken) return;
+
+    // Bilbil konuşurken mikrofon açılırsa kendi sesi cevap sanılmasın.
+    await _tts.stop();
+    if (!mounted) return;
 
     setState(() {
       _isListening = true;
@@ -291,7 +324,10 @@ class _QuizScreenState extends State<QuizScreen> with TickerProviderStateMixin {
         : 5000;
 
     _statsService.recordAsrResult(isMatch: correct, latencyMs: latencyMs);
-    _statsService.recordCategoryAnswer(category: _currentItem.category, correct: correct);
+    _statsService.recordCategoryAnswer(
+      category: _currentItem.category,
+      correct: correct,
+    );
     _updateRlAgent(correct, latencyMs / 1000.0);
 
     setState(() {
@@ -338,12 +374,13 @@ class _QuizScreenState extends State<QuizScreen> with TickerProviderStateMixin {
 
   void _updateRlAgent(bool correct, double responseTimeSec) {
     final diff = _rlAgent.currentDifficulty;
-    _rlAgent.processAnswer(isCorrect: correct, responseTimeSec: responseTimeSec);
+    _rlAgent.processAnswer(
+      isCorrect: correct,
+      responseTimeSec: responseTimeSec,
+    );
     _statsService.recordAnswer(correct: correct, difficulty: diff);
     _tts.setSpeechRate(_rlAgent.config.ttsRate);
-    if (_rlAgent.currentDifficulty != diff) {
-      _activeDifficulty = _rlAgent.currentDifficulty;
-    }
+    // Yeni zorluk _nextItem'da uygulanır; ekrandaki soru burada değişmez.
     if (!correct) _livesService.loseLife();
   }
 
@@ -377,14 +414,19 @@ class _QuizScreenState extends State<QuizScreen> with TickerProviderStateMixin {
 
   void _scheduleNextOrRest() {
     if (_livesService.lives == 0) {
-      Future.delayed(const Duration(seconds: 2), () {
+      Future.delayed(const Duration(seconds: 2), () async {
         if (!mounted) return;
-        Navigator.push(
+        await Navigator.push(
           context,
           MaterialPageRoute(builder: (_) => const RestScreen()),
-        ).then((_) {
-          if (mounted) _nextItem();
-        });
+        );
+        if (!mounted) return;
+        // Mola bitmeden geri dönüldüyse 0 canla oynanmasın.
+        if (_livesService.hasLives) {
+          _nextItem();
+        } else {
+          Navigator.pop(context);
+        }
       });
     } else {
       Future.delayed(const Duration(seconds: 3), _nextItem);
@@ -397,7 +439,7 @@ class _QuizScreenState extends State<QuizScreen> with TickerProviderStateMixin {
     int nextIndex;
 
     if (currentDiff != _activeDifficulty) {
-      _activeDifficulty = currentDiff;
+      _activeDifficulty = currentDiff; // yeni zorluğun havuzu, baştan
       nextIndex = 0;
     } else if (_currentIndex < _items.length - 1) {
       nextIndex = _currentIndex + 1;
@@ -408,6 +450,7 @@ class _QuizScreenState extends State<QuizScreen> with TickerProviderStateMixin {
 
     setState(() {
       _currentIndex = nextIndex;
+      _currentItem = _items[nextIndex];
       _recognizedWord = '';
       _hasSpoken = false;
       _isCorrect = false;
@@ -435,8 +478,8 @@ class _QuizScreenState extends State<QuizScreen> with TickerProviderStateMixin {
         child: Column(
           children: [
             QuizTopBar(
-              difficulty: _rlAgent.currentDifficulty,
-              difficultyLabel: _rlAgent.config.label,
+              difficulty: _activeDifficulty,
+              difficultyLabel: RLAgent.configs[_activeDifficulty].label,
               stars: _stars,
               currentIndex: _currentIndex,
               totalItems: _items.length,
@@ -460,62 +503,75 @@ class _QuizScreenState extends State<QuizScreen> with TickerProviderStateMixin {
                         ),
                       ],
                     ),
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        QuizImageCard(imagePath: _currentItem.imagePath),
-                        const SizedBox(height: 28),
-                        QuizWordReveal(
-                          hasSpoken: _hasSpoken,
-                          recognizedWord: _recognizedWord,
-                          correctWord: _currentItem.word,
-                          isListening: _isListening,
-                          isCorrect: _isCorrect,
-                          revealAnimation: _wordRevealAnimation,
-                        ),
-                        const SizedBox(height: 28),
-                        Consumer2<VoskAsrService, WhisperAsrService>(
-                          builder: (context, vosk, whisper, _) {
-                            final usePlatform =
-                                _statsService.asrEngine == 'platform';
-                            if (usePlatform) {
-                              return QuizMicButton(
-                                isListening: _isListening,
-                                sttAvailable: whisper.isReady,
-                                onTap: _toggleListening,
-                                pulseController: _micPulseController,
-                              );
-                            }
-                            if (vosk.isDownloading) {
-                              return AsrDownloadIndicator(
-                                  progress: vosk.downloadProgress);
-                            }
-                            if (vosk.status == AsrModelStatus.error) {
-                              return AsrErrorWidget(vosk: vosk);
-                            }
-                            return QuizMicButton(
+                    // Kısa ekranlarda (küçük telefon, yatay mod) içerik
+                    // taşmak yerine orantılı küçülür.
+                    child: Center(
+                      child: FittedBox(
+                        fit: BoxFit.scaleDown,
+                        child: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            const SizedBox(height: 24),
+                            QuizImageCard(imagePath: _currentItem.imagePath),
+                            const SizedBox(height: 28),
+                            QuizWordReveal(
+                              hasSpoken: _hasSpoken,
+                              recognizedWord: _recognizedWord,
+                              correctWord: _currentItem.word,
                               isListening: _isListening,
-                              sttAvailable: vosk.isReady,
-                              onTap: _toggleListening,
-                              pulseController: _micPulseController,
-                            );
-                          },
-                        ),
-                        const SizedBox(height: 12),
-                        Text(
-                          _isListening
-                              ? 'Dinliyorum...'
-                              : _notHeard
+                              isCorrect: _isCorrect,
+                              revealAnimation: _wordRevealAnimation,
+                            ),
+                            const SizedBox(height: 28),
+                            Consumer2<VoskAsrService, WhisperAsrService>(
+                              builder: (context, vosk, whisper, _) {
+                                final usePlatform =
+                                    _statsService.asrEngine == 'platform';
+                                if (usePlatform) {
+                                  return QuizMicButton(
+                                    isListening: _isListening,
+                                    sttAvailable: whisper.isReady,
+                                    onTap: _toggleListening,
+                                    pulseController: _micPulseController,
+                                  );
+                                }
+                                if (vosk.isDownloading) {
+                                  // FittedBox içinde genişlik sınırsız; çubuğa ver.
+                                  return SizedBox(
+                                    width: 260,
+                                    child: AsrDownloadIndicator(
+                                      progress: vosk.downloadProgress,
+                                    ),
+                                  );
+                                }
+                                if (vosk.status == AsrModelStatus.error) {
+                                  return AsrErrorWidget(vosk: vosk);
+                                }
+                                return QuizMicButton(
+                                  isListening: _isListening,
+                                  sttAvailable: vosk.isReady,
+                                  onTap: _toggleListening,
+                                  pulseController: _micPulseController,
+                                );
+                              },
+                            ),
+                            const SizedBox(height: 12),
+                            Text(
+                              _isListening
+                                  ? 'Dinliyorum...'
+                                  : _notHeard
                                   ? 'Seni duyamadım, tekrar dokun'
                                   : 'Dokun ve Söyle',
-                          style: GoogleFonts.poppins(
-                            fontSize: 13,
-                            fontWeight: FontWeight.w500,
-                            color: AppColors.textSecondary,
-                          ),
+                              style: GoogleFonts.poppins(
+                                fontSize: 13,
+                                fontWeight: FontWeight.w500,
+                                color: AppColors.textSecondary,
+                              ),
+                            ),
+                            const SizedBox(height: 24),
+                          ],
                         ),
-                        const SizedBox(height: 24),
-                      ],
+                      ),
                     ),
                   ),
                 ),

@@ -111,7 +111,6 @@ class _RewardsScreen extends StatelessWidget {
     return Consumer<RewardService>(
       builder: (context, service, _) {
         final active = service.activeReward;
-        final total = service.totalCorrect;
         final pieces =
             active != null ? service.puzzlePiecesFor(active.id) : 0;
 
@@ -133,6 +132,7 @@ class _RewardsScreen extends StatelessWidget {
                       if (active != null)
                         Image.asset(active.imagePath,
                             fit: BoxFit.cover,
+                            cacheWidth: 1080,
                             errorBuilder: (_, __, ___) => Container(
                                 color: const Color(0xFF9B91FF)))
                       else
@@ -499,6 +499,7 @@ class _RewardCard extends StatelessWidget {
       return Image.asset(
         reward.imagePath,
         fit: BoxFit.cover,
+        cacheWidth: 500,
         errorBuilder: (_, __, ___) => Container(
           color: reward.color.withOpacity(0.15),
           child: Center(
@@ -518,6 +519,7 @@ class _RewardCard extends StatelessWidget {
       child: Image.asset(
         reward.imagePath,
         fit: BoxFit.cover,
+        cacheWidth: 500,
         errorBuilder: (_, __, ___) => Container(
           color: Colors.grey[300],
           child: Center(

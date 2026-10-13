@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'dart:async';
 import 'dart:math' as math;
+import 'package:provider/provider.dart';
 import '../../../../core/theme/app_colors.dart';
+import '../providers/auth_provider.dart';
 import 'login_screen.dart';
 
 class SplashScreen extends StatefulWidget {
@@ -18,6 +20,7 @@ class _SplashScreenState extends State<SplashScreen>
   late AnimationController _bubbleController3;
   late AnimationController _dotController;
   late AnimationController _scaleController;
+  Timer? _navTimer;
 
   @override
   void initState() {
@@ -51,9 +54,10 @@ class _SplashScreenState extends State<SplashScreen>
       duration: const Duration(milliseconds: 500),
     )..forward();
 
-    // 5 saniye sonra login ekranına git
-    Timer(const Duration(seconds: 10), () {
-      if (mounted) {
+    // 5 saniye sonra login ekranına git (oturum zaten açıksa kök widget
+    // ana sayfayı gösterir; giriş ekranına atılmasın).
+    _navTimer = Timer(const Duration(seconds: 5), () {
+      if (mounted && !context.read<AuthProvider>().isLoggedIn) {
         Navigator.pushReplacement(
           context,
           PageRouteBuilder(
@@ -92,6 +96,7 @@ class _SplashScreenState extends State<SplashScreen>
 
   @override
   void dispose() {
+    _navTimer?.cancel();
     _bubbleController1.dispose();
     _bubbleController2.dispose();
     _bubbleController3.dispose();

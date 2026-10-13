@@ -4,8 +4,10 @@ import 'package:provider/provider.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../services/theme/app_theme.dart';
 import '../../../../services/theme/theme_service.dart';
+import '../../../../services/lives/lives_service.dart';
 import '../providers/auth_provider.dart';
 import 'quiz_screen.dart';
+import 'rest_screen.dart';
 import '../../../parent/screens/parent_pin_screen.dart';
 
 class HomeScreen extends StatefulWidget {
@@ -117,29 +119,35 @@ class _HomeScreenState extends State<HomeScreen>
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
-        Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              'MERHABA!',
-              style: GoogleFonts.poppins(
-                fontSize: 11,
-                fontWeight: FontWeight.w600,
-                color: AppColors.textSecondary,
-                letterSpacing: 1.5,
+        // Uzun isimler sağdaki butonları ekran dışına itmesin.
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                'MERHABA!',
+                style: GoogleFonts.poppins(
+                  fontSize: 11,
+                  fontWeight: FontWeight.w600,
+                  color: AppColors.textSecondary,
+                  letterSpacing: 1.5,
+                ),
               ),
-            ),
-            const SizedBox(height: 2),
-            Text(
-              'Hoşgeldin $userName!',
-              style: GoogleFonts.fredoka(
-                fontSize: 24,
-                fontWeight: FontWeight.bold,
-                color: AppColors.textPrimary,
+              const SizedBox(height: 2),
+              Text(
+                'Hoşgeldin $userName!',
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: GoogleFonts.fredoka(
+                  fontSize: 24,
+                  fontWeight: FontWeight.bold,
+                  color: AppColors.textPrimary,
+                ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
+        const SizedBox(width: 8),
         Row(
           children: [
             // Tema seçici butonu
@@ -211,6 +219,8 @@ class _HomeScreenState extends State<HomeScreen>
                 child: Image.asset(
                   'assets/images/bilbil1.png',
                   fit: BoxFit.cover,
+                  cacheWidth: 144, // 1036x2048 görsel 48px'lik avatar için
+
                   errorBuilder: (_, __, ___) => Icon(
                     Icons.flutter_dash,
                     color: AppColors.primary,
@@ -310,10 +320,12 @@ class _HomeScreenState extends State<HomeScreen>
   Widget _buildQuizButton() {
     return GestureDetector(
       onTap: () {
+        // Canlar bitmiş ve mola sürüyorsa önce mola ekranı.
+        final playable = context.read<LivesService>().ensurePlayable();
         Navigator.push(
           context,
           MaterialPageRoute(
-            builder: (_) => const QuizScreen(),
+            builder: (_) => playable ? const QuizScreen() : const RestScreen(),
           ),
         );
       },

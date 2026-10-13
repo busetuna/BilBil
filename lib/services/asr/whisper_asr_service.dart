@@ -57,7 +57,11 @@ class WhisperAsrService extends ChangeNotifier {
       localeId: 'tr_TR',
       listenFor: const Duration(seconds: 10),
       pauseFor: const Duration(seconds: 3),
-      onDevice: true, // cihaz üzeri tanımayı tercih et
+      listenOptions: SpeechListenOptions(
+        onDevice: true, // ses cihazdan çıkmasın
+        partialResults: true,
+        listenMode: ListenMode.confirmation, // tek kelimelik cevaplar için
+      ),
     );
   }
 

@@ -69,7 +69,10 @@ class StatsTab extends StatelessWidget {
           ),
           const SizedBox(height: 24),
 
-          Text('ASR Performansı',
+          // Not: "latency" alanları ses tanıma gecikmesi değil, sorunun
+          // gösterilmesinden cevaba kadar geçen süredir. Doğruluk oranı da
+          // yukarıdaki başarı oranının aynısı olduğu için ayrıca gösterilmez.
+          Text('Sesli Cevaplar',
               style: GoogleFonts.fredoka(
                   fontSize: 20,
                   fontWeight: FontWeight.bold,
@@ -79,8 +82,8 @@ class StatsTab extends StatelessWidget {
             children: [
               Expanded(
                 child: _StatCard(
-                  label: 'Ses Tanıma',
-                  value: '%${(stats.asrAccuracy * 100).toStringAsFixed(1)}',
+                  label: 'Sesli Cevap',
+                  value: '${stats.totalAsrAttempts}',
                   icon: Icons.mic_rounded,
                   color: const Color(0xFF5B9BFF),
                 ),
@@ -88,34 +91,10 @@ class StatsTab extends StatelessWidget {
               const SizedBox(width: 12),
               Expanded(
                 child: _StatCard(
-                  label: 'Ort. Yanıt',
+                  label: 'Ort. Cevap Süresi',
                   value: '${(stats.avgLatencyMs / 1000).toStringAsFixed(1)}s',
                   icon: Icons.timer_rounded,
                   color: const Color(0xFFFF9800),
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 12),
-          Row(
-            children: [
-              Expanded(
-                child: _StatCard(
-                  label: 'ASR Deneme',
-                  value: '${stats.totalAsrAttempts}',
-                  icon: Icons.graphic_eq_rounded,
-                  color: const Color(0xFF9C27B0),
-                ),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: _StatCard(
-                  label: 'Hedef ≤500ms',
-                  value: stats.avgLatencyMs <= 500 ? '✓' : '✗',
-                  icon: Icons.speed_rounded,
-                  color: stats.avgLatencyMs <= 500 || stats.totalAsrAttempts == 0
-                      ? const Color(0xFF4CAF50)
-                      : const Color(0xFFF44336),
                 ),
               ),
             ],

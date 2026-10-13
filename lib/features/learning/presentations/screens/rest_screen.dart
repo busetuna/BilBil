@@ -1,8 +1,11 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../services/lives/lives_service.dart';
+import '../../../parent/screens/parent_pin_screen.dart';
 
 class RestScreen extends StatefulWidget {
   const RestScreen({super.key});
@@ -44,15 +47,41 @@ class _RestScreenState extends State<RestScreen>
     );
     _heartAnim = CurvedAnimation(parent: _heartCtrl, curve: Curves.elasticOut);
     _heartCtrl.forward();
+
+    // Geri sayımı güncelle; mola bitince "Devam Et" açılır.
+    _ticker = Timer.periodic(const Duration(seconds: 1), (_) {
+      if (mounted) setState(() {});
+    });
   }
 
+  Timer? _ticker;
+
+  Duration? get _remaining => context.read<LivesService>().restRemaining;
+
+  /// Ekran `true` ile kapanırsa canlar dolmuştur ve quiz sürebilir.
   void _continuePressed() {
-    context.read<LivesService>().refillLives();
-    Navigator.pop(context);
+    if (context.read<LivesService>().ensurePlayable()) Navigator.pop(context, true);
+  }
+
+  Future<void> _parentSkip() async {
+    final lives = context.read<LivesService>();
+    final ok = await Navigator.push<bool>(
+      context,
+      MaterialPageRoute(builder: (_) => const ParentPinScreen(verifyOnly: true)),
+    );
+    if (ok != true || !mounted) return;
+    lives.refillLives();
+    Navigator.pop(context, true);
+  }
+
+  static String _format(Duration d) {
+    final s = d.inSeconds + 1;
+    return '${s ~/ 60}:${(s % 60).toString().padLeft(2, '0')}';
   }
 
   @override
   void dispose() {
+    _ticker?.cancel();
     _pulseCtrl.dispose();
     _zzzCtrl.dispose();
     _heartCtrl.dispose();
@@ -63,19 +92,30 @@ class _RestScreenState extends State<RestScreen>
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppColors.background,
+      // Kısa ekranlarda taşmak yerine kaydırılır; uzun ekranlarda buton
+      // yine en altta durur.
       body: SafeArea(
-        child: Column(
-          children: [
-            const SizedBox(height: 28),
-            _buildHearts(),
-            const SizedBox(height: 36),
-            _buildSleepAnimation(),
-            const SizedBox(height: 28),
-            _buildTexts(),
-            const Spacer(),
-            _buildContinueButton(),
-            const SizedBox(height: 36),
-          ],
+        child: LayoutBuilder(
+          builder: (context, constraints) => SingleChildScrollView(
+            child: ConstrainedBox(
+              constraints: BoxConstraints(minHeight: constraints.maxHeight),
+              child: IntrinsicHeight(
+                child: Column(
+                  children: [
+                    const SizedBox(height: 28),
+                    _buildHearts(),
+                    const SizedBox(height: 36),
+                    _buildSleepAnimation(),
+                    const SizedBox(height: 28),
+                    _buildTexts(),
+                    const Spacer(),
+                    _buildContinueButton(),
+                    const SizedBox(height: 36),
+                  ],
+                ),
+              ),
+            ),
+          ),
         ),
       ),
     );
@@ -251,7 +291,9 @@ class _RestScreenState extends State<RestScreen>
         ),
         const SizedBox(height: 6),
         Text(
-          'Biraz dinlen ve tekrar dene!',
+          _remaining == null
+              ? 'Bilbil uyandı! Canların doldu 🎉'
+              : 'Bilbil biraz uyuyor. ${_format(_remaining!)} sonra devam!',
           style: GoogleFonts.poppins(
             fontSize: 13,
             color: AppColors.textSecondary,
@@ -262,6 +304,7 @@ class _RestScreenState extends State<RestScreen>
   }
 
   Widget _buildContinueButton() {
+    final resting = _remaining != null;
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 32),
       child: Column(
@@ -269,8 +312,10 @@ class _RestScreenState extends State<RestScreen>
           SizedBox(
             width: double.infinity,
             child: GestureDetector(
-              onTap: _continuePressed,
-              child: Container(
+              onTap: resting ? null : _continuePressed,
+              child: Opacity(
+                opacity: resting ? 0.45 : 1,
+                child: Container(
                 padding: const EdgeInsets.symmetric(vertical: 18),
                 decoration: BoxDecoration(
                   gradient: LinearGradient(
@@ -294,7 +339,7 @@ class _RestScreenState extends State<RestScreen>
                         color: Colors.white, size: 26),
                     const SizedBox(width: 10),
                     Text(
-                      'Devam Et',
+                      resting ? _format(_remaining!) : 'Devam Et',
                       style: GoogleFonts.poppins(
                         fontSize: 15,
                         fontWeight: FontWeight.bold,
@@ -303,6 +348,7 @@ class _RestScreenState extends State<RestScreen>
                     ),
                   ],
                 ),
+              ),
               ),
             ),
           ),
@@ -314,12 +360,23 @@ class _RestScreenState extends State<RestScreen>
                   size: 14, color: AppColors.primary),
               const SizedBox(width: 4),
               Text(
-                '5 can geri gelir',
+                '${LivesService.maxLives} can geri gelir',
                 style: GoogleFonts.poppins(
                     fontSize: 11, color: AppColors.textSecondary),
               ),
             ],
           ),
+          if (resting)
+            TextButton(
+              onPressed: _parentSkip,
+              child: Text(
+                'Ebeveyn: molayı bitir',
+                style: GoogleFonts.poppins(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w600,
+                    color: AppColors.primary),
+              ),
+            ),
         ],
       ),
     );
