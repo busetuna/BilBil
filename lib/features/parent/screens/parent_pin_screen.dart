@@ -14,11 +14,7 @@ import 'parent_panel_screen.dart';
 enum _PinMode { verify, create, confirm }
 
 class ParentPinScreen extends StatefulWidget {
-  /// true: ebeveyn paneli açılmaz, PIN doğrulanınca ekran `true` ile kapanır
-  /// (ör. molayı ebeveynin bitirmesi için).
-  final bool verifyOnly;
-
-  const ParentPinScreen({super.key, this.verifyOnly = false});
+  const ParentPinScreen({super.key});
 
   @override
   State<ParentPinScreen> createState() => _ParentPinScreenState();
@@ -136,10 +132,6 @@ class _ParentPinScreenState extends State<ParentPinScreen>
   }
 
   void _openPanel() {
-    if (widget.verifyOnly) {
-      Navigator.pop(context, true);
-      return;
-    }
     Navigator.pushReplacement(
       context,
       MaterialPageRoute(builder: (_) => const ParentPanelScreen()),

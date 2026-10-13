@@ -45,5 +45,9 @@
 	<true/>
 	<key>UIApplicationSupportsIndirectInputEvents</key>
 	<true/>
+	<!-- AdMob uygulama kimliği (Google test kimliği; yayından önce gerçeğiyle değiştir).
+	     Bu anahtar olmadan reklam SDK'sı iOS'ta açılışta uygulamayı çökertir. -->
+	<key>GADApplicationIdentifier</key>
+	<string>ca-app-pub-3940256099942544~1458002511</string>
 </dict>
 </plist>

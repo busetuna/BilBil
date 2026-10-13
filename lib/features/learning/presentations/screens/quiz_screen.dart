@@ -12,6 +12,7 @@ import '../../../../services/rewards/reward_service.dart';
 import '../../../../services/rl_agent/rl_agent.dart';
 import '../../../../services/stats/stats_service.dart';
 import '../../../../services/lives/lives_service.dart';
+import '../../../../services/ads/ad_service.dart';
 import '../../../../services/asr/vosk_asr_service.dart';
 import '../../../../services/asr/whisper_asr_service.dart';
 import 'rest_screen.dart';
@@ -123,6 +124,8 @@ class _QuizScreenState extends State<QuizScreen> with TickerProviderStateMixin {
     _livesService = Provider.of<LivesService>(context, listen: false);
     _vosk = Provider.of<VoskAsrService>(context, listen: false);
     _whisper = Provider.of<WhisperAsrService>(context, listen: false);
+    // Quiz bitişi reklamı çıkışta hazır olsun.
+    Provider.of<AdService>(context, listen: false).preloadInterstitial();
     if (!_servicesInitialized) {
       _servicesInitialized = true;
       final maxDiff = _statsService.maxDifficultyForAge;
@@ -382,6 +385,22 @@ class _QuizScreenState extends State<QuizScreen> with TickerProviderStateMixin {
     _tts.setSpeechRate(_rlAgent.config.ttsRate);
     // Yeni zorluk _nextItem'da uygulanır; ekrandaki soru burada değişmez.
     if (!correct) _livesService.loseLife();
+    _answeredThisSession++;
+  }
+
+  // Quiz bitişi reklamı yalnızca yeterince oynandıysa (bkz. AdPacing).
+  int _answeredThisSession = 0;
+  bool _leaving = false;
+
+  /// Çocuk quiz'den kendi isteğiyle çıkıyor (geri butonu ya da geri tuşu):
+  /// sıklık kuralları izin verirse ana sayfaya dönerken geçiş reklamı çıkar.
+  /// Canlar bitip moladan çıkılırken reklam gösterilmez.
+  void _leaveQuiz() {
+    if (_leaving) return;
+    _leaving = true;
+    final ads = context.read<AdService>();
+    Navigator.pop(context);
+    ads.showQuizEndAd(answersThisSession: _answeredThisSession);
   }
 
   /// Hiçbir şey duyulmadı. Bu çocuğun hatası değil (sessiz kaldı, mikrofon
@@ -472,113 +491,119 @@ class _QuizScreenState extends State<QuizScreen> with TickerProviderStateMixin {
       return const Scaffold(body: Center(child: CircularProgressIndicator()));
     }
 
-    return Scaffold(
-      backgroundColor: AppColors.background,
-      body: SafeArea(
-        child: Column(
-          children: [
-            QuizTopBar(
-              difficulty: _activeDifficulty,
-              difficultyLabel: RLAgent.configs[_activeDifficulty].label,
-              stars: _stars,
-              currentIndex: _currentIndex,
-              totalItems: _items.length,
-              onBack: () => Navigator.pop(context),
-            ),
-            Expanded(
-              child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 20),
-                child: ScaleTransition(
-                  scale: _cardAnimation,
-                  child: Container(
-                    width: double.infinity,
-                    decoration: BoxDecoration(
-                      color: AppColors.card,
-                      borderRadius: BorderRadius.circular(32),
-                      boxShadow: [
-                        BoxShadow(
-                          color: Colors.black.withValues(alpha: 0.06),
-                          blurRadius: 20,
-                          offset: const Offset(0, 6),
-                        ),
-                      ],
-                    ),
-                    // Kısa ekranlarda (küçük telefon, yatay mod) içerik
-                    // taşmak yerine orantılı küçülür.
-                    child: Center(
-                      child: FittedBox(
-                        fit: BoxFit.scaleDown,
-                        child: Column(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            const SizedBox(height: 24),
-                            QuizImageCard(imagePath: _currentItem.imagePath),
-                            const SizedBox(height: 28),
-                            QuizWordReveal(
-                              hasSpoken: _hasSpoken,
-                              recognizedWord: _recognizedWord,
-                              correctWord: _currentItem.word,
-                              isListening: _isListening,
-                              isCorrect: _isCorrect,
-                              revealAnimation: _wordRevealAnimation,
-                            ),
-                            const SizedBox(height: 28),
-                            Consumer2<VoskAsrService, WhisperAsrService>(
-                              builder: (context, vosk, whisper, _) {
-                                final usePlatform =
-                                    _statsService.asrEngine == 'platform';
-                                if (usePlatform) {
+    return PopScope(
+      canPop: false, // Android geri tuşu da _leaveQuiz'den geçsin
+      onPopInvokedWithResult: (didPop, _) {
+        if (!didPop) _leaveQuiz();
+      },
+      child: Scaffold(
+        backgroundColor: AppColors.background,
+        body: SafeArea(
+          child: Column(
+            children: [
+              QuizTopBar(
+                difficulty: _activeDifficulty,
+                difficultyLabel: RLAgent.configs[_activeDifficulty].label,
+                stars: _stars,
+                currentIndex: _currentIndex,
+                totalItems: _items.length,
+                onBack: _leaveQuiz,
+              ),
+              Expanded(
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 20),
+                  child: ScaleTransition(
+                    scale: _cardAnimation,
+                    child: Container(
+                      width: double.infinity,
+                      decoration: BoxDecoration(
+                        color: AppColors.card,
+                        borderRadius: BorderRadius.circular(32),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withValues(alpha: 0.06),
+                            blurRadius: 20,
+                            offset: const Offset(0, 6),
+                          ),
+                        ],
+                      ),
+                      // Kısa ekranlarda (küçük telefon, yatay mod) içerik
+                      // taşmak yerine orantılı küçülür.
+                      child: Center(
+                        child: FittedBox(
+                          fit: BoxFit.scaleDown,
+                          child: Column(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              const SizedBox(height: 24),
+                              QuizImageCard(imagePath: _currentItem.imagePath),
+                              const SizedBox(height: 28),
+                              QuizWordReveal(
+                                hasSpoken: _hasSpoken,
+                                recognizedWord: _recognizedWord,
+                                correctWord: _currentItem.word,
+                                isListening: _isListening,
+                                isCorrect: _isCorrect,
+                                revealAnimation: _wordRevealAnimation,
+                              ),
+                              const SizedBox(height: 28),
+                              Consumer2<VoskAsrService, WhisperAsrService>(
+                                builder: (context, vosk, whisper, _) {
+                                  final usePlatform =
+                                      _statsService.asrEngine == 'platform';
+                                  if (usePlatform) {
+                                    return QuizMicButton(
+                                      isListening: _isListening,
+                                      sttAvailable: whisper.isReady,
+                                      onTap: _toggleListening,
+                                      pulseController: _micPulseController,
+                                    );
+                                  }
+                                  if (vosk.isDownloading) {
+                                    // FittedBox içinde genişlik sınırsız; çubuğa ver.
+                                    return SizedBox(
+                                      width: 260,
+                                      child: AsrDownloadIndicator(
+                                        progress: vosk.downloadProgress,
+                                      ),
+                                    );
+                                  }
+                                  if (vosk.status == AsrModelStatus.error) {
+                                    return AsrErrorWidget(vosk: vosk);
+                                  }
                                   return QuizMicButton(
                                     isListening: _isListening,
-                                    sttAvailable: whisper.isReady,
+                                    sttAvailable: vosk.isReady,
                                     onTap: _toggleListening,
                                     pulseController: _micPulseController,
                                   );
-                                }
-                                if (vosk.isDownloading) {
-                                  // FittedBox içinde genişlik sınırsız; çubuğa ver.
-                                  return SizedBox(
-                                    width: 260,
-                                    child: AsrDownloadIndicator(
-                                      progress: vosk.downloadProgress,
-                                    ),
-                                  );
-                                }
-                                if (vosk.status == AsrModelStatus.error) {
-                                  return AsrErrorWidget(vosk: vosk);
-                                }
-                                return QuizMicButton(
-                                  isListening: _isListening,
-                                  sttAvailable: vosk.isReady,
-                                  onTap: _toggleListening,
-                                  pulseController: _micPulseController,
-                                );
-                              },
-                            ),
-                            const SizedBox(height: 12),
-                            Text(
-                              _isListening
-                                  ? 'Dinliyorum...'
-                                  : _notHeard
-                                  ? 'Seni duyamadım, tekrar dokun'
-                                  : 'Dokun ve Söyle',
-                              style: GoogleFonts.poppins(
-                                fontSize: 13,
-                                fontWeight: FontWeight.w500,
-                                color: AppColors.textSecondary,
+                                },
                               ),
-                            ),
-                            const SizedBox(height: 24),
-                          ],
+                              const SizedBox(height: 12),
+                              Text(
+                                _isListening
+                                    ? 'Dinliyorum...'
+                                    : _notHeard
+                                    ? 'Seni duyamadım, tekrar dokun'
+                                    : 'Dokun ve Söyle',
+                                style: GoogleFonts.poppins(
+                                  fontSize: 13,
+                                  fontWeight: FontWeight.w500,
+                                  color: AppColors.textSecondary,
+                                ),
+                              ),
+                              const SizedBox(height: 24),
+                            ],
+                          ),
                         ),
                       ),
                     ),
                   ),
                 ),
               ),
-            ),
-            const SizedBox(height: 16),
-          ],
+              const SizedBox(height: 16),
+            ],
+          ),
         ),
       ),
     );

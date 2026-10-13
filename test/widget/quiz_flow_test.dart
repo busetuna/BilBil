@@ -11,6 +11,7 @@ import 'package:app/features/learning/presentations/screens/rest_screen.dart';
 import 'package:app/features/learning/presentations/widgets/quiz_image_card.dart';
 import 'package:app/features/learning/presentations/widgets/quiz_mic_button.dart';
 import 'package:app/features/learning/presentations/widgets/quiz_word_reveal.dart';
+import 'package:app/services/ads/ad_service.dart';
 import 'package:app/services/asr/vosk_asr_service.dart';
 import 'package:app/services/asr/whisper_asr_service.dart';
 import 'package:app/services/lives/lives_service.dart';
@@ -59,6 +60,34 @@ class FakeVosk extends VoskAsrService {
   Future<String> finishListening() async => finishText;
 }
 
+/// Reklam SDK'sı yerine: testin belirlediği sonucu döner.
+class FakeAds extends AdService {
+  RewardedResult next = RewardedResult.earned;
+  int shows = 0;
+
+  @override
+  bool get isSupported => true;
+  @override
+  Future<void> init() async {}
+  @override
+  void preload() {}
+  @override
+  Future<RewardedResult> showRewarded() async {
+    shows++;
+    return next;
+  }
+
+  /// Quiz bitişi reklamı istekleri (o oturumdaki cevap sayısıyla).
+  final quizEndRequests = <int>[];
+  @override
+  void preloadInterstitial() {}
+  @override
+  Future<bool> showQuizEndAd({required int answersThisSession}) async {
+    quizEndRequests.add(answersThisSession);
+    return true;
+  }
+}
+
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
@@ -67,6 +96,7 @@ void main() {
   late RewardService rewards;
   late LivesService lives;
   late FakeVosk vosk;
+  late FakeAds ads;
 
   setUpAll(() {
     // Fontlar internetten istenir; testte istek hiç cevaplanmaz (hata da
@@ -88,6 +118,7 @@ void main() {
     lives = LivesService(clock: () => now);
     await lives.init();
     vosk = FakeVosk();
+    ads = FakeAds();
 
     final messenger =
         TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger;
@@ -107,6 +138,7 @@ void main() {
         ChangeNotifierProvider<RewardService>.value(value: rewards),
         ChangeNotifierProvider<LivesService>.value(value: lives),
         ChangeNotifierProvider<VoskAsrService>.value(value: vosk),
+        ChangeNotifierProvider<AdService>.value(value: ads),
         ChangeNotifierProvider<WhisperAsrService>.value(
             value: WhisperAsrService()),
       ],
@@ -256,13 +288,46 @@ void main() {
     expect(lives.lives, 0);
     expect(find.byType(RestScreen), findsOneWidget);
     expect(find.text('Devam Et'), findsNothing, reason: 'mola sürerken kapalı');
-    expect(find.text('Ebeveyn: molayı bitir'), findsOneWidget);
+    expect(find.text('Reklam izle, canları doldur'), findsOneWidget);
 
     await tester.binding.handlePopRoute(); // Android geri tuşu
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 600));
     expect(find.byType(QuizScreen), findsNothing);
     expect(find.text('Başla'), findsOneWidget);
+    expect(ads.quizEndRequests, isEmpty,
+        reason: 'canlar bitip moladan çıkarken reklam yok');
+    await finish(tester);
+  });
+
+  testWidgets('quiz geri butonuyla bitince bitiş reklamı cevap sayısıyla istenir',
+      (tester) async {
+    await openQuiz(tester);
+    for (var i = 0; i < 5; i++) {
+      await say(tester, reveal(tester).correctWord);
+      await nextQuestion(tester);
+    }
+    await tester.tap(find.byIcon(Icons.arrow_back_ios_new_rounded));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 600));
+
+    expect(find.byType(QuizScreen), findsNothing);
+    expect(ads.quizEndRequests, [5]);
+    await finish(tester);
+  });
+
+  testWidgets('Android geri tuşu da aynı çıkış akışından geçer', (tester) async {
+    await openQuiz(tester);
+    await say(tester, reveal(tester).correctWord);
+    await nextQuestion(tester);
+
+    await tester.binding.handlePopRoute();
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 600));
+
+    expect(find.byType(QuizScreen), findsNothing);
+    expect(ads.quizEndRequests, [1],
+        reason: 'reklamı gösterip göstermemeye AdPacing karar verir');
     await finish(tester);
   });
 
@@ -281,6 +346,49 @@ void main() {
     expect(find.byType(QuizScreen), findsOneWidget);
     expect(lives.lives, LivesService.maxLives);
     expect(reveal(tester).hasSpoken, isFalse, reason: 'yeni soru');
+    await finish(tester);
+  });
+
+  testWidgets('mola ekranında reklam sonuna kadar izlenirse canlar dolar, quiz sürer',
+      (tester) async {
+    await openQuiz(tester);
+    await reachRestScreen(tester);
+
+    ads.next = RewardedResult.earned;
+    await tester.tap(find.text('Reklam izle, canları doldur'));
+    await settle(tester);
+    await tester.pump(const Duration(milliseconds: 600));
+
+    expect(ads.shows, 1);
+    expect(lives.lives, LivesService.maxLives);
+    expect(find.byType(RestScreen), findsNothing);
+    expect(find.byType(QuizScreen), findsOneWidget);
+    await finish(tester);
+  });
+
+  testWidgets('reklam yarıda kapatılırsa ya da hiç yoksa mola sürer',
+      (tester) async {
+    await openQuiz(tester);
+    await reachRestScreen(tester);
+
+    final messages = {
+      RewardedResult.skipped: 'Reklam bitmeden kapandı, mola sürüyor',
+      RewardedResult.unavailable: 'Şu an reklam yok, biraz sonra tekrar dene',
+    };
+    var shows = 0;
+    for (final MapEntry(key: result, value: message) in messages.entries) {
+      ads.next = result;
+      final button = find.text('Reklam izle, canları doldur');
+      await tester.ensureVisible(button);
+      await tester.pump();
+      await tester.tap(button);
+      await settle(tester);
+
+      expect(ads.shows, ++shows, reason: 'reklam gerçekten açıldı ($result)');
+      expect(find.text(message), findsOneWidget, reason: '$result');
+      expect(lives.lives, 0, reason: '$result');
+      expect(find.byType(RestScreen), findsOneWidget, reason: '$result');
+    }
     await finish(tester);
   });
 

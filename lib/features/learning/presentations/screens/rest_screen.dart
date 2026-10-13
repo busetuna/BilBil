@@ -4,8 +4,8 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
 import '../../../../core/theme/app_colors.dart';
+import '../../../../services/ads/ad_service.dart';
 import '../../../../services/lives/lives_service.dart';
-import '../../../parent/screens/parent_pin_screen.dart';
 
 class RestScreen extends StatefulWidget {
   const RestScreen({super.key});
@@ -52,6 +52,8 @@ class _RestScreenState extends State<RestScreen>
     _ticker = Timer.periodic(const Duration(seconds: 1), (_) {
       if (mounted) setState(() {});
     });
+    // "Reklam izle" butonu için reklam hazır olsun.
+    context.read<AdService>().preload();
   }
 
   Timer? _ticker;
@@ -63,15 +65,37 @@ class _RestScreenState extends State<RestScreen>
     if (context.read<LivesService>().ensurePlayable()) Navigator.pop(context, true);
   }
 
-  Future<void> _parentSkip() async {
+  bool _showingAd = false;
+  // Butonun altında gösterilir; snackbar butonun üstünü örtüp tekrar
+  // denemeyi engelliyordu.
+  String? _adMessage;
+
+  /// Ödüllü reklam: sonuna kadar izlenirse canlar dolar. Yarıda kapatılırsa
+  /// ya da reklam yoksa mola sürer (süre dolunca canlar yine kendiliğinden
+  /// dolar).
+  Future<void> _watchAd() async {
+    if (_showingAd) return;
     final lives = context.read<LivesService>();
-    final ok = await Navigator.push<bool>(
-      context,
-      MaterialPageRoute(builder: (_) => const ParentPinScreen(verifyOnly: true)),
-    );
-    if (ok != true || !mounted) return;
-    lives.refillLives();
-    Navigator.pop(context, true);
+    final ads = context.read<AdService>();
+
+    setState(() {
+      _showingAd = true;
+      _adMessage = null;
+    });
+    final result = await ads.showRewarded();
+    if (!mounted) return;
+
+    if (result == RewardedResult.earned) {
+      lives.refillLives();
+      Navigator.pop(context, true);
+      return;
+    }
+    setState(() {
+      _showingAd = false;
+      _adMessage = result == RewardedResult.skipped
+          ? 'Reklam bitmeden kapandı, mola sürüyor'
+          : 'Şu an reklam yok, biraz sonra tekrar dene';
+    });
   }
 
   static String _format(Duration d) {
@@ -366,17 +390,45 @@ class _RestScreenState extends State<RestScreen>
               ),
             ],
           ),
-          if (resting)
-            TextButton(
-              onPressed: _parentSkip,
-              child: Text(
-                'Ebeveyn: molayı bitir',
-                style: GoogleFonts.poppins(
-                    fontSize: 12,
-                    fontWeight: FontWeight.w600,
-                    color: AppColors.primary),
+          if (resting && context.read<AdService>().isSupported) ...[
+            const SizedBox(height: 16),
+            SizedBox(
+              width: double.infinity,
+              child: OutlinedButton.icon(
+                onPressed: _showingAd ? null : _watchAd,
+                icon: _showingAd
+                    ? const SizedBox(
+                        width: 18,
+                        height: 18,
+                        child: CircularProgressIndicator(strokeWidth: 2),
+                      )
+                    : Icon(Icons.ondemand_video_rounded,
+                        color: AppColors.primary),
+                label: Text(
+                  'Reklam izle, canları doldur',
+                  style: GoogleFonts.poppins(
+                      fontSize: 13,
+                      fontWeight: FontWeight.w600,
+                      color: AppColors.primary),
+                ),
+                style: OutlinedButton.styleFrom(
+                  side: BorderSide(color: AppColors.primary),
+                  shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(22)),
+                  padding: const EdgeInsets.symmetric(vertical: 14),
+                ),
               ),
             ),
+            if (_adMessage != null) ...[
+              const SizedBox(height: 8),
+              Text(
+                _adMessage!,
+                textAlign: TextAlign.center,
+                style: GoogleFonts.poppins(
+                    fontSize: 12, color: AppColors.textSecondary),
+              ),
+            ],
+          ],
         ],
       ),
     );

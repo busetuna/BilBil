@@ -11,6 +11,7 @@ import 'domain/usecases/register_usecase.dart';
 import 'domain/usecases/logout_usecase.dart';
 import 'features/learning/presentations/providers/auth_provider.dart';
 import 'features/learning/presentations/screens/splash_screen.dart';
+import 'services/ads/ad_service.dart';
 import 'services/api/api_service.dart';
 import 'services/rewards/reward_service.dart';
 import 'services/stats/stats_service.dart';
@@ -47,6 +48,10 @@ void main() async {
   final voskAsrService = VoskAsrService();
   final whisperAsrService = WhisperAsrService();
 
+  // Reklam SDK'sı arka planda hazırlanır; açılışı bekletmez.
+  final adService = AdService();
+  adService.init();
+
   final accountSync = AccountSync(
     api: apiService,
     stats: statsService,
@@ -62,6 +67,7 @@ void main() async {
   runApp(MyApp(
     apiService: apiService,
     accountSync: accountSync,
+    adService: adService,
     rewardService: rewardService,
     statsService: statsService,
     livesService: livesService,
@@ -74,6 +80,7 @@ void main() async {
 class MyApp extends StatelessWidget {
   final ApiService apiService;
   final AccountSync accountSync;
+  final AdService adService;
   final RewardService rewardService;
   final StatsService statsService;
   final LivesService livesService;
@@ -85,6 +92,7 @@ class MyApp extends StatelessWidget {
     super.key,
     required this.apiService,
     required this.accountSync,
+    required this.adService,
     required this.rewardService,
     required this.statsService,
     required this.livesService,
@@ -116,6 +124,7 @@ class MyApp extends StatelessWidget {
             onAccountDeleted: _onAccountDeleted,
           ),
         ),
+        ChangeNotifierProvider<AdService>.value(value: adService),
         ChangeNotifierProvider<RewardService>.value(value: rewardService),
         ChangeNotifierProvider<StatsService>.value(value: statsService),
         ChangeNotifierProvider<LivesService>.value(value: livesService),
