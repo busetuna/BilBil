@@ -31,7 +31,11 @@ class StatsSerializer(serializers.Serializer):
     difficultyHistory = serializers.ListField(
         child=serializers.IntegerField(min_value=0, max_value=2), max_length=1000)
     startingDifficulty = serializers.IntegerField(min_value=0, max_value=2)
-    pin = serializers.RegexField(r'^\d{4}$')
+    # Ebeveyn PIN'i düz metin gelmez: uygulamada tuzlanıp SHA-256 ile
+    # özetlenir. Eski sürümlerin gönderdiği `pin` alanı tanımsız olduğu için
+    # atılır, yani asla saklanmaz.
+    pinHash = serializers.RegexField(r'^[0-9a-f]{64}$', required=False, allow_null=True)
+    pinSalt = serializers.RegexField(r'^[0-9a-f]{32}$', required=False, allow_null=True)
     totalAsrAttempts = serializers.IntegerField(min_value=0)
     exactAsrMatches = serializers.IntegerField(min_value=0)
     totalLatencyMs = serializers.IntegerField(min_value=0)

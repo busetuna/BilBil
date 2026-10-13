@@ -16,8 +16,13 @@ def health(request):
     return Response({'ok': True})
 
 
-@api_view(['GET'])
+@api_view(['GET', 'DELETE'])
 def me(request):
+    if request.method == 'DELETE':
+        # Hesap silme: kullanıcının sunucudaki tüm verisi kalıcı olarak silinir.
+        Profile.objects.filter(uid=request.user.uid).delete()
+        return Response(status=status.HTTP_204_NO_CONTENT)
+
     profile = Profile.objects.filter(uid=request.user.uid).first()
     if profile is None:
         return Response(status=status.HTTP_404_NOT_FOUND)

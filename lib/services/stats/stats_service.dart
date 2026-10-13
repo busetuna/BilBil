@@ -1,3 +1,7 @@
+import 'dart:convert';
+import 'dart:math';
+
+import 'package:crypto/crypto.dart';
 import 'package:flutter/material.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import '../api/api_service.dart';
@@ -7,9 +11,13 @@ class StatsService extends ChangeNotifier {
   late Box _box;
 
   ApiService? _api;
+  final DateTime Function() _now;
+
+  StatsService({DateTime Function()? clock}) : _now = clock ?? DateTime.now;
 
   Future<void> init() async {
     _box = await Hive.openBox(_boxName);
+    _migrateLegacyPin(_box.get('pin') as String?);
   }
 
   void setCloudSync(ApiService api) => _api = api;
@@ -24,7 +32,15 @@ class StatsService extends ChangeNotifier {
         List<int>.from((data['difficultyHistory'] as List? ?? [])));
     await _box.put('startingDifficulty',
         (data['startingDifficulty'] as num?)?.toInt() ?? 0);
-    await _box.put('pin', data['pin'] as String? ?? '1234');
+    // Bulutta PIN yoksa (hiç senkronlanmamış) yereldeki korunur.
+    final pinHash = data['pinHash'] as String?;
+    final pinSalt = data['pinSalt'] as String?;
+    if (pinHash != null && pinSalt != null) {
+      await _box.put('pinHash', pinHash);
+      await _box.put('pinSalt', pinSalt);
+    } else {
+      _migrateLegacyPin(data['pin'] as String?);
+    }
     await _box.put('totalAsrAttempts', (data['totalAsrAttempts'] as num?)?.toInt() ?? 0);
     await _box.put('exactAsrMatches', (data['exactAsrMatches'] as num?)?.toInt() ?? 0);
     await _box.put('totalLatencyMs', (data['totalLatencyMs'] as num?)?.toInt() ?? 0);
@@ -43,7 +59,8 @@ class StatsService extends ChangeNotifier {
       'totalWrong': totalWrong,
       'difficultyHistory': difficultyHistory,
       'startingDifficulty': startingDifficulty,
-      'pin': pin,
+      'pinHash': _box.get('pinHash'),
+      'pinSalt': _box.get('pinSalt'),
       'totalAsrAttempts': totalAsrAttempts,
       'exactAsrMatches': exactAsrMatches,
       'totalLatencyMs': totalLatencyMs,
@@ -98,7 +115,6 @@ class StatsService extends ChangeNotifier {
     return List<int>.from(raw as List);
   }
 
-  String get pin => _box.get('pin', defaultValue: '1234') as String;
   int get startingDifficulty =>
       (_box.get('startingDifficulty', defaultValue: 0) as num).toInt();
 
@@ -144,10 +160,94 @@ class StatsService extends ChangeNotifier {
     notifyListeners();
   }
 
+  // ── Ebeveyn PIN'i ─────────────────────────────────────────────────────────
+  // PIN düz metin saklanmaz: rastgele tuzla SHA-256 özeti tutulur ve buluta
+  // da özet gider (PIN diğer cihazlarda da geçerli olsun diye). 4 haneli bir
+  // PIN'in özeti kaba kuvvetle çözülebilir; asıl koruma deneme sınırıdır.
+
+  static const maxPinAttempts = 5;
+  static const pinLockDuration = Duration(seconds: 30);
+
+  /// Ebeveyn bir PIN belirlemiş mi? Değilse PIN ekranı önce PIN belirletir.
+  bool get hasPin => _box.get('pinHash') != null && _box.get('pinSalt') != null;
+
+  static String _hashPin(String pin, String salt) =>
+      sha256.convert(utf8.encode('$salt:$pin')).toString();
+
+  static String _newSalt() {
+    final rng = Random.secure();
+    return List.generate(16, (_) => rng.nextInt(256).toRadixString(16).padLeft(2, '0'))
+        .join();
+  }
+
+  void _storePin(String pin) {
+    final salt = _newSalt();
+    _box.put('pinSalt', salt);
+    _box.put('pinHash', _hashPin(pin, salt));
+    _box.delete('pin');
+    _resetPinFailures();
+  }
+
+  /// Eski sürümler PIN'i düz metin saklıyordu: özete çevir. Varsayılan
+  /// '1234' "PIN belirlenmemiş" sayılır, ebeveynden yenisi istenir.
+  void _migrateLegacyPin(String? legacy) {
+    if (legacy == null) return;
+    _box.delete('pin');
+    if (legacy != '1234' && !hasPin) _storePin(legacy);
+  }
+
   void changePin(String newPin) {
-    _box.put('pin', newPin);
+    _storePin(newPin);
     _syncToCloud();
     notifyListeners();
+  }
+
+  /// PIN'ini unutan ebeveyn için; hesap şifresi doğrulandıktan sonra
+  /// çağrılır. Sonraki girişte yeni PIN belirletilir.
+  void clearPin() {
+    _box.delete('pinHash');
+    _box.delete('pinSalt');
+    _box.delete('pin');
+    _resetPinFailures();
+    _syncToCloud();
+    notifyListeners();
+  }
+
+  /// Kilitliyse kalan süre, değilse null.
+  Duration? get pinLockRemaining {
+    final until = _box.get('pinLockedUntil') as int?;
+    if (until == null) return null;
+    final left = DateTime.fromMillisecondsSinceEpoch(until).difference(_now());
+    return left > Duration.zero ? left : null;
+  }
+
+  /// Art arda [maxPinAttempts] yanlıştan sonra PIN [pinLockDuration] boyunca
+  /// kilitlenir; kilit uygulama kapatılsa da sürer.
+  bool verifyPin(String entered) {
+    if (!hasPin || pinLockRemaining != null) return false;
+    final salt = _box.get('pinSalt') as String;
+    if (_hashPin(entered, salt) == _box.get('pinHash')) {
+      _resetPinFailures();
+      return true;
+    }
+    final failures = ((_box.get('pinFailures') as int?) ?? 0) + 1;
+    if (failures >= maxPinAttempts) {
+      _box.delete('pinFailures');
+      _box.put('pinLockedUntil', _now().add(pinLockDuration).millisecondsSinceEpoch);
+    } else {
+      _box.put('pinFailures', failures);
+    }
+    notifyListeners();
+    return false;
+  }
+
+  /// Kilitlenmeden önce kalan deneme hakkı.
+  int get pinAttemptsLeft =>
+      maxPinAttempts - ((_box.get('pinFailures') as int?) ?? 0);
+
+  void _resetPinFailures() {
+    _box.delete('pinFailures');
+    _box.delete('pinLockedUntil');
   }
 
   void setStartingDifficulty(int diff) {
@@ -185,8 +285,6 @@ class StatsService extends ChangeNotifier {
     _syncToCloud();
     notifyListeners();
   }
-
-  bool verifyPin(String entered) => entered == pin;
 
   /// Hesap değişince: önceki hesaba ait her şeyi (PIN, yaş, ayarlar dahil)
   /// siler, cihaz tercihi olan ASR motorunu korur. Buluta yazmaz.

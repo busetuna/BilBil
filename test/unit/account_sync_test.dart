@@ -74,7 +74,7 @@ void main() {
 
     await sync.onSignedIn('b'); // b'nin bulutta verisi yok (404)
     expect(stats.totalCorrect, 0);
-    expect(stats.pin, '1234');
+    expect(stats.hasPin, isFalse);
     expect(rewards.totalCorrect, 0);
     expect(lives.lives, LivesService.maxLives);
 
@@ -122,6 +122,24 @@ void main() {
     await sync.onSignedIn('a');
     stats.recordAnswer(correct: true, difficulty: 0);
     lives.loseLife();
+    await settle();
+    expect(puts, isEmpty);
+  });
+
+  test('hesap silinince cihazdaki verisi de silinir ve senkron kapanır',
+      () async {
+    await sync.onSignedIn('a');
+    await play(3);
+    stats.changePin('9876');
+    await sync.onAccountDeleted();
+
+    expect(stats.totalCorrect, 0);
+    expect(stats.hasPin, isFalse);
+    expect(rewards.totalCorrect, 0);
+    expect(lives.lives, LivesService.maxLives);
+
+    puts.clear();
+    stats.recordAnswer(correct: true, difficulty: 0);
     await settle();
     expect(puts, isEmpty);
   });

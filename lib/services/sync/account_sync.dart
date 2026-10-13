@@ -62,6 +62,15 @@ class AccountSync {
 
   void onSignedOut() => _detach();
 
+  /// Hesap silindi: cihazdaki verisi de silinir.
+  Future<void> onAccountDeleted() async {
+    _detach();
+    await stats.clearAccountData();
+    await rewards.resetRewards();
+    lives.refillLives();
+    await _box.delete(_ownerKey);
+  }
+
   void _attach() {
     stats.setCloudSync(api);
     rewards.setCloudSync(api);

@@ -56,7 +56,7 @@ class ApiService {
   // Aynı kaynağa giden kayıtlar sırayla gönderilir; biri yoldayken gelen
   // yeni kayıt bekleyenin yerini alır, böylece eski veri yeniyi ezemez.
   final Map<String, Object> _pending = {};
-  final Set<String> _sending = {};
+  final Map<String, Future<void>> _sending = {};
 
   /// Kullanıcının bulut verisi; "veri yok" ile "ulaşılamadı" ayrı döner.
   Future<UserDataResult> fetchUserData() async {
@@ -107,9 +107,24 @@ class ApiService {
 
   void saveLives(int lives) => _enqueue('/v1/me/lives', {'lives': lives});
 
+  /// Kullanıcının sunucudaki tüm verisini siler (hesap silme). Başarılıysa
+  /// true. Önce bekleyen kayıtlar atılır ve yoldakiler beklenir; yoksa
+  /// silmeden sonra varan bir kayıt satırı yeniden oluştururdu.
+  Future<bool> deleteUserData() async {
+    _pending.clear();
+    await Future.wait(_sending.values.toList());
+    try {
+      final res = await _request('DELETE', '/v1/me');
+      return res != null && (res.statusCode == 204 || res.statusCode == 404);
+    } catch (e) {
+      debugPrint('ApiService.deleteUserData: $e');
+      return false;
+    }
+  }
+
   void _enqueue(String path, Object body) {
     _pending[path] = body;
-    if (_sending.add(path)) _drain(path);
+    _sending.putIfAbsent(path, () => _drain(path));
   }
 
   Future<void> _drain(String path) async {

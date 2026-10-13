@@ -12,6 +12,7 @@ class AuthProvider extends ChangeNotifier {
   final AuthRepository authRepository;
   final Future<void> Function(String uid) onSignedIn;
   final Future<void> Function() onSignedOut;
+  final Future<void> Function() onAccountDeleted;
 
   User? _currentUser;
   bool _isLoading = false;
@@ -29,6 +30,7 @@ class AuthProvider extends ChangeNotifier {
     required this.authRepository,
     required this.onSignedIn,
     required this.onSignedOut,
+    required this.onAccountDeleted,
   }) {
     _checkCurrentUser();
   }
@@ -83,6 +85,35 @@ class AuthProvider extends ChangeNotifier {
     await onSignedOut();
     _currentUser = null;
     notifyListeners();
+  }
+
+  /// Hesap şifresini doğrular (ör. PIN'i unutan ebeveyn için).
+  /// Yanlışsa false döner, sebebi [errorMessage]'dadır.
+  Future<bool> reauthenticate(String password) async {
+    _clearError();
+    try {
+      await authRepository.reauthenticate(password);
+      return true;
+    } catch (e) {
+      _setError(e.toString().replaceAll('Exception: ', ''));
+      return false;
+    }
+  }
+
+  /// Hesabı, sunucudaki ve cihazdaki tüm verisiyle siler.
+  /// Başarısızsa false döner, sebebi [errorMessage]'dadır.
+  Future<bool> deleteAccount(String password) async {
+    _clearError();
+    try {
+      await authRepository.deleteAccount(password);
+    } catch (e) {
+      _setError(e.toString().replaceAll('Exception: ', ''));
+      return false;
+    }
+    await onAccountDeleted();
+    _currentUser = null;
+    notifyListeners();
+    return true;
   }
 
   void _setLoading(bool value) {

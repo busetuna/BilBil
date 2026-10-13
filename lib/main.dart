@@ -97,6 +97,8 @@ class MyApp extends StatelessWidget {
 
   Future<void> _onSignedOut() async => accountSync.onSignedOut();
 
+  Future<void> _onAccountDeleted() => accountSync.onAccountDeleted();
+
   @override
   Widget build(BuildContext context) {
     final authRepository = AuthRepositoryImpl(apiService);
@@ -111,6 +113,7 @@ class MyApp extends StatelessWidget {
             authRepository: authRepository,
             onSignedIn: _onSignedIn,
             onSignedOut: _onSignedOut,
+            onAccountDeleted: _onAccountDeleted,
           ),
         ),
         ChangeNotifierProvider<RewardService>.value(value: rewardService),

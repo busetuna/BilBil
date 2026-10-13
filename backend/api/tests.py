@@ -1,6 +1,8 @@
+import importlib
 from datetime import UTC, datetime
 from unittest import mock
 
+from django.apps import apps as django_apps
 from django.test import override_settings
 from google.auth.exceptions import DefaultCredentialsError
 from rest_framework.test import APITestCase
@@ -12,7 +14,8 @@ VALID_STATS = {
     'totalWrong': 3,
     'difficultyHistory': [0, 0, 1, 1, 2],
     'startingDifficulty': 0,
-    'pin': '1234',
+    'pinHash': 'a' * 64,
+    'pinSalt': 'b' * 32,
     'totalAsrAttempts': 15,
     'exactAsrMatches': 12,
     'totalLatencyMs': 45000,
@@ -100,7 +103,7 @@ class ApiTests(APITestCase):
     def test_invalid_stats_are_rejected_and_not_saved(self):
         self.login('a')
         for bad in [
-            {**VALID_STATS, 'pin': '12'},
+            {**VALID_STATS, 'pinHash': '1234'},
             {**VALID_STATS, 'totalCorrect': -1},
             {**VALID_STATS, 'difficultyHistory': [5]},
             {**VALID_STATS, 'childAge': 9},
@@ -109,6 +112,39 @@ class ApiTests(APITestCase):
             res = self.client.put('/v1/me/stats', bad, format='json')
             self.assertEqual(res.status_code, 400, bad)
         self.assertFalse(Profile.objects.filter(uid='a').exists())
+
+    def test_plaintext_pin_is_never_stored(self):
+        self.login('a')
+        self.client.put('/v1/me/stats', {**VALID_STATS, 'pin': '1234'}, format='json')
+        self.assertNotIn('pin', self.client.get('/v1/me').json()['stats'])
+
+    def test_pin_is_optional(self):
+        self.login('a')
+        no_pin = {k: v for k, v in VALID_STATS.items() if not k.startswith('pin')}
+        self.assertEqual(self.client.put('/v1/me/stats', no_pin, format='json').status_code, 204)
+        res = self.client.put('/v1/me/stats', {**no_pin, 'pinHash': None, 'pinSalt': None},
+                              format='json')
+        self.assertEqual(res.status_code, 204)
+
+    def test_delete_removes_only_own_data_and_is_idempotent(self):
+        self.login('b')
+        self.client.put('/v1/me/lives', {'lives': 3}, format='json')
+        self.login('a')
+        self.client.put('/v1/me/stats', VALID_STATS, format='json')
+
+        self.assertEqual(self.client.delete('/v1/me').status_code, 204)
+        self.assertEqual(self.client.get('/v1/me').status_code, 404)
+        self.assertEqual(self.client.delete('/v1/me').status_code, 204)
+        self.assertTrue(Profile.objects.filter(uid='b').exists())
+
+    def test_delete_requires_token(self):
+        self.assertEqual(self.client.delete('/v1/me').status_code, 401)
+
+    def test_migration_strips_plaintext_pin(self):
+        Profile.objects.create(uid='old', stats={'pin': '1234', 'totalCorrect': 1})
+        migration = importlib.import_module('api.migrations.0002_remove_plaintext_pin')
+        migration.remove_plaintext_pin(django_apps, None)
+        self.assertEqual(Profile.objects.get(uid='old').stats, {'totalCorrect': 1})
 
     def test_lives_bounds(self):
         self.login('a')

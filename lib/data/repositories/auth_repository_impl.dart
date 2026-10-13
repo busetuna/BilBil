@@ -74,6 +74,35 @@ class AuthRepositoryImpl implements AuthRepository {
   @override
   Future<bool> isLoggedIn() async => _auth.currentUser != null;
 
+  @override
+  Future<void> reauthenticate(String password) async {
+    final user = _auth.currentUser;
+    final email = user?.email;
+    if (user == null || email == null) throw Exception('Oturum bulunamadı');
+    try {
+      await user.reauthenticateWithCredential(
+          fb.EmailAuthProvider.credential(email: email, password: password));
+    } on fb.FirebaseAuthException catch (e) {
+      throw Exception(_authError(e.code));
+    }
+  }
+
+  @override
+  Future<void> deleteAccount(String password) async {
+    await reauthenticate(password);
+    // Önce sunucudaki veri: silinemezse Firebase hesabı da silinmez, yoksa
+    // hesabı olmayan sahipsiz veri kalırdı.
+    if (!await _api.deleteUserData()) {
+      throw Exception(
+          'Sunucuya ulaşılamadı, hesap silinmedi. İnternet bağlantını kontrol et.');
+    }
+    try {
+      await _auth.currentUser!.delete();
+    } on fb.FirebaseAuthException catch (e) {
+      throw Exception(_authError(e.code));
+    }
+  }
+
   User _buildUser(fb.User fbUser, Map<String, dynamic>? data) {
     return User(
       id: fbUser.uid,
@@ -101,6 +130,10 @@ class AuthRepositoryImpl implements AuthRepository {
         return 'Geçersiz email adresi';
       case 'too-many-requests':
         return 'Çok fazla deneme. Lütfen bekleyin.';
+      case 'network-request-failed':
+        return 'İnternet bağlantısı yok';
+      case 'requires-recent-login':
+        return 'Güvenlik için çıkış yapıp tekrar giriş yapman gerekiyor';
       default:
         return 'Bir hata oluştu: $code';
     }

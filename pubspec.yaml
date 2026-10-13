@@ -24,6 +24,9 @@ dependencies:
   # Bilbil API (backend/, Railway)
   http: ^1.2.0
 
+  # Ebeveyn PIN'inin özeti
+  crypto: ^3.0.7
+
 
   # AI Services
   flutter_tts: ^3.8.0

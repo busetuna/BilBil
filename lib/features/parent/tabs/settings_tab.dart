@@ -3,6 +3,8 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../services/stats/stats_service.dart';
+import '../../learning/presentations/providers/auth_provider.dart';
+import '../widgets/password_confirm_dialog.dart';
 
 class SettingsTab extends StatefulWidget {
   const SettingsTab({super.key});
@@ -79,6 +81,41 @@ class _SettingsTabState extends State<SettingsTab> {
                 style: GoogleFonts.poppins(color: Colors.white)),
           ),
         ],
+      ),
+    );
+  }
+
+  Future<void> _logout() async {
+    final navigator = Navigator.of(context);
+    await context.read<AuthProvider>().logout();
+    navigator.popUntil((route) => route.isFirst);
+  }
+
+  Future<void> _deleteAccount() async {
+    final auth = context.read<AuthProvider>();
+    final navigator = Navigator.of(context);
+    final messenger = ScaffoldMessenger.of(context);
+    final deleted = await showDialog<bool>(
+      context: context,
+      barrierDismissible: false,
+      builder: (_) => PasswordConfirmDialog(
+        title: 'Hesabımı Sil',
+        message: 'Hesabın ve tüm verilerin (istatistikler, ödüller, ayarlar) '
+            'kalıcı olarak silinecek. Bu işlem geri alınamaz.\n\n'
+            'Onaylamak için hesap şifreni gir.',
+        confirmLabel: 'Kalıcı Olarak Sil',
+        destructive: true,
+        onConfirm: (password) async => await auth.deleteAccount(password)
+            ? null
+            : auth.errorMessage ?? 'Hesap silinemedi',
+      ),
+    );
+    if (deleted != true) return;
+    navigator.popUntil((route) => route.isFirst);
+    messenger.showSnackBar(
+      SnackBar(
+        content: Text('Hesabın silindi', style: GoogleFonts.poppins()),
+        behavior: SnackBarBehavior.floating,
       ),
     );
   }
@@ -326,7 +363,45 @@ class _SettingsTabState extends State<SettingsTab> {
 
           const SizedBox(height: 24),
 
-          // İstatistikleri sıfırla
+          // Hesap
+          _SectionHeader('Hesap'),
+          const SizedBox(height: 8),
+          Container(
+            padding: const EdgeInsets.all(16),
+            decoration: _cardDeco(),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  context.watch<AuthProvider>().currentUser?.email ?? '',
+                  style: GoogleFonts.poppins(
+                      fontSize: 13, color: AppColors.textSecondary),
+                ),
+                const SizedBox(height: 12),
+                SizedBox(
+                  width: double.infinity,
+                  child: OutlinedButton.icon(
+                    onPressed: _logout,
+                    icon: Icon(Icons.logout_rounded, color: AppColors.primary),
+                    label: Text('Çıkış Yap',
+                        style: GoogleFonts.poppins(
+                            color: AppColors.primary,
+                            fontWeight: FontWeight.w600)),
+                    style: OutlinedButton.styleFrom(
+                      side: BorderSide(color: AppColors.primary),
+                      shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12)),
+                      padding: const EdgeInsets.symmetric(vertical: 12),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+
+          const SizedBox(height: 24),
+
+          // İstatistikleri sıfırla / hesabı sil
           _SectionHeader('Tehlikeli Bölge'),
           const SizedBox(height: 8),
           SizedBox(
@@ -341,6 +416,23 @@ class _SettingsTabState extends State<SettingsTab> {
                       fontWeight: FontWeight.w600)),
               style: OutlinedButton.styleFrom(
                 side: const BorderSide(color: Color(0xFFF44336)),
+                shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12)),
+                padding: const EdgeInsets.symmetric(vertical: 14),
+              ),
+            ),
+          ),
+          const SizedBox(height: 12),
+          SizedBox(
+            width: double.infinity,
+            child: ElevatedButton.icon(
+              onPressed: _deleteAccount,
+              icon: const Icon(Icons.person_remove_rounded, color: Colors.white),
+              label: Text('Hesabımı Sil',
+                  style: GoogleFonts.poppins(
+                      color: Colors.white, fontWeight: FontWeight.w600)),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFFF44336),
                 shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(12)),
                 padding: const EdgeInsets.symmetric(vertical: 14),

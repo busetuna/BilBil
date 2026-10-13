@@ -68,6 +68,43 @@ void main() {
     expect(jsonDecode(req.body)['createdAt'], '2026-10-13T12:00:00.000Z');
   });
 
+  test('deleteUserData: 204 → true, sunucu hatası ya da ağ hatası → false',
+      () async {
+    var status = 204;
+    final svc = api((_) async => http.Response('', status));
+    expect(await svc.deleteUserData(), isTrue);
+    expect(requests.single.method, 'DELETE');
+    expect(requests.single.url.path, '/v1/me');
+    expect(requests.single.headers['Authorization'], 'Bearer tok');
+
+    status = 500;
+    expect(await svc.deleteUserData(), isFalse);
+
+    final offline = api((_) async => throw http.ClientException('offline'));
+    expect(await offline.deleteUserData(), isFalse);
+  });
+
+  test('silmeden önce bekleyen kayıt atılır, yoldaki beklenir', () async {
+    final gate = Completer<void>();
+    final svc = api((req) async {
+      if (req.method == 'PUT' && requests.length == 1) await gate.future;
+      return http.Response('', 204);
+    });
+
+    svc.saveStats({'v': 1}); // yola çıkar, kapıda bekler
+    await Future<void>.delayed(Duration.zero);
+    svc.saveStats({'v': 2}); // kuyrukta bekler
+    final deleting = svc.deleteUserData();
+    await Future<void>.delayed(Duration.zero);
+    expect(requests.map((r) => r.method), ['PUT'],
+        reason: 'yoldaki kayıt bitmeden DELETE gitmemeli');
+
+    gate.complete();
+    expect(await deleting, isTrue);
+    expect(requests.map((r) => r.method), ['PUT', 'DELETE'],
+        reason: 'kuyruktaki {v: 2} silmeden sonra satırı geri yaratmamalı');
+  });
+
   test('art arda kayıtlar sırayla gider, aradakiler atlanır', () async {
     final gate = Completer<void>();
     final svc = api((req) async {
