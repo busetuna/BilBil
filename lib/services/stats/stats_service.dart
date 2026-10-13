@@ -188,6 +188,15 @@ class StatsService extends ChangeNotifier {
 
   bool verifyPin(String entered) => entered == pin;
 
+  /// Hesap değişince: önceki hesaba ait her şeyi (PIN, yaş, ayarlar dahil)
+  /// siler, cihaz tercihi olan ASR motorunu korur. Buluta yazmaz.
+  Future<void> clearAccountData() async {
+    final engine = asrEngine;
+    await _box.clear();
+    await _box.put('asrEngine', engine);
+    notifyListeners();
+  }
+
   Future<void> resetStats() async {
     await _box.put('totalCorrect', 0);
     await _box.put('totalWrong', 0);

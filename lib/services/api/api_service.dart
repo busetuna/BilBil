@@ -5,6 +5,27 @@ import 'package:firebase_auth/firebase_auth.dart' as fb;
 import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 
+/// [ApiService.fetchUserData] sonucu.
+sealed class UserDataResult {
+  const UserDataResult();
+}
+
+/// Sunucuda bu kullanıcının verisi var.
+class UserDataFound extends UserDataResult {
+  final Map<String, dynamic> data;
+  const UserDataFound(this.data);
+}
+
+/// Sunucuya ulaşıldı ama kullanıcının henüz verisi yok (ilk giriş).
+class UserDataMissing extends UserDataResult {
+  const UserDataMissing();
+}
+
+/// Sunucuya ulaşılamadı ya da hata döndü: buluttaki veri bilinmiyor.
+class UserDataUnavailable extends UserDataResult {
+  const UserDataUnavailable();
+}
+
 /// Railway'deki Bilbil API'si (bkz. backend/).
 ///
 /// Kimlik Firebase ID token'ı ile kanıtlanır; sunucu kullanıcıyı token'dan
@@ -37,17 +58,29 @@ class ApiService {
   final Map<String, Object> _pending = {};
   final Set<String> _sending = {};
 
-  /// Kullanıcının bulut verisi; hiç verisi yoksa ya da ulaşılamazsa null.
-  Future<Map<String, dynamic>?> loadUserData() async {
+  /// Kullanıcının bulut verisi; "veri yok" ile "ulaşılamadı" ayrı döner.
+  Future<UserDataResult> fetchUserData() async {
     try {
       final res = await _request('GET', '/v1/me');
-      if (res == null || res.statusCode != 200) return null;
-      return jsonDecode(res.body) as Map<String, dynamic>;
+      if (res == null) return const UserDataUnavailable();
+      if (res.statusCode == 404) return const UserDataMissing();
+      if (res.statusCode != 200) {
+        debugPrint('ApiService.fetchUserData: HTTP ${res.statusCode}');
+        return const UserDataUnavailable();
+      }
+      return UserDataFound(jsonDecode(res.body) as Map<String, dynamic>);
     } catch (e) {
-      debugPrint('ApiService.loadUserData: $e');
-      return null;
+      debugPrint('ApiService.fetchUserData: $e');
+      return const UserDataUnavailable();
     }
   }
+
+  /// Kullanıcının bulut verisi; hiç verisi yoksa ya da ulaşılamazsa null.
+  Future<Map<String, dynamic>?> loadUserData() async =>
+      switch (await fetchUserData()) {
+        UserDataFound(:final data) => data,
+        _ => null,
+      };
 
   Future<void> createUserProfile({
     required String name,

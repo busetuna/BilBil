@@ -15,6 +15,7 @@ import 'services/api/api_service.dart';
 import 'services/rewards/reward_service.dart';
 import 'services/stats/stats_service.dart';
 import 'services/lives/lives_service.dart';
+import 'services/sync/account_sync.dart';
 import 'services/theme/theme_service.dart';
 import 'services/asr/vosk_asr_service.dart';
 import 'services/asr/whisper_asr_service.dart';
@@ -46,22 +47,21 @@ void main() async {
   final voskAsrService = VoskAsrService();
   final whisperAsrService = WhisperAsrService();
 
+  final accountSync = AccountSync(
+    api: apiService,
+    stats: statsService,
+    rewards: rewardService,
+    lives: livesService,
+  );
+  await accountSync.init();
+
   // Uygulama açılışında zaten oturum açıksa bulut verisini yükle
   final fbUser = fb.FirebaseAuth.instance.currentUser;
-  if (fbUser != null) {
-    final cloudData = await apiService.loadUserData();
-    if (cloudData != null) {
-      await statsService.loadFromCloud(cloudData['stats'] as Map<String, dynamic>?);
-      await rewardService.loadFromCloud(cloudData['rewards'] as Map<String, dynamic>?);
-      await livesService.loadFromCloud(cloudData['lives']);
-    }
-    statsService.setCloudSync(apiService);
-    rewardService.setCloudSync(apiService);
-    livesService.setCloudSync(apiService);
-  }
+  if (fbUser != null) await accountSync.onSignedIn(fbUser.uid);
 
   runApp(MyApp(
     apiService: apiService,
+    accountSync: accountSync,
     rewardService: rewardService,
     statsService: statsService,
     livesService: livesService,
@@ -73,6 +73,7 @@ void main() async {
 
 class MyApp extends StatelessWidget {
   final ApiService apiService;
+  final AccountSync accountSync;
   final RewardService rewardService;
   final StatsService statsService;
   final LivesService livesService;
@@ -83,6 +84,7 @@ class MyApp extends StatelessWidget {
   const MyApp({
     super.key,
     required this.apiService,
+    required this.accountSync,
     required this.rewardService,
     required this.statsService,
     required this.livesService,
@@ -91,23 +93,9 @@ class MyApp extends StatelessWidget {
     required this.whisperAsrService,
   });
 
-  Future<void> _onSignedIn(String uid) async {
-    final cloudData = await apiService.loadUserData();
-    if (cloudData != null) {
-      await statsService.loadFromCloud(cloudData['stats'] as Map<String, dynamic>?);
-      await rewardService.loadFromCloud(cloudData['rewards'] as Map<String, dynamic>?);
-      await livesService.loadFromCloud(cloudData['lives']);
-    }
-    statsService.setCloudSync(apiService);
-    rewardService.setCloudSync(apiService);
-    livesService.setCloudSync(apiService);
-  }
+  Future<void> _onSignedIn(String uid) => accountSync.onSignedIn(uid);
 
-  Future<void> _onSignedOut() async {
-    statsService.clearCloudSync();
-    rewardService.clearCloudSync();
-    livesService.clearCloudSync();
-  }
+  Future<void> _onSignedOut() async => accountSync.onSignedOut();
 
   @override
   Widget build(BuildContext context) {
