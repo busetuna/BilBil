@@ -1,7 +1,6 @@
 import 'dart:async';
 import 'dart:math';
 import 'package:flutter/material.dart';
-import 'package:flutter_tts/flutter_tts.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
 import 'package:permission_handler/permission_handler.dart';
@@ -16,6 +15,7 @@ import '../../../../services/ads/ad_service.dart';
 import '../../../../services/asr/quiz_grammar.dart';
 import '../../../../services/learning/learning_scheduler.dart';
 import '../../../../services/learning/word_progress_service.dart';
+import '../../../../services/tts/voice_service.dart';
 import '../../../../services/asr/vosk_asr_service.dart';
 import '../../../../services/asr/whisper_asr_service.dart';
 import 'rest_screen.dart';
@@ -50,7 +50,7 @@ class _QuizScreenState extends State<QuizScreen> with TickerProviderStateMixin {
   late QuizItem _currentItem;
 
   // ── Servisler ───────────────────────────────────────────────────────────────
-  final FlutterTts _tts = FlutterTts();
+  late VoiceService _voice;
   late VoskAsrService _vosk;
   late WhisperAsrService _whisper;
   late RLAgent _rlAgent;
@@ -76,7 +76,6 @@ class _QuizScreenState extends State<QuizScreen> with TickerProviderStateMixin {
   // "Bilbil söylesin" ipucu bu soruda kullanıldı mı? İpucuyla verilen doğru
   // cevap övülür ama kelime "biliniyor" sayılmaz (bkz. _handleFinalResult).
   bool _hintUsed = false;
-  static const _hintRate = 0.3;
 
   // ── Animasyonlar ────────────────────────────────────────────────────────────
   late AnimationController _micPulseController;
@@ -137,6 +136,7 @@ class _QuizScreenState extends State<QuizScreen> with TickerProviderStateMixin {
     _rewardService = Provider.of<RewardService>(context, listen: false);
     _statsService = Provider.of<StatsService>(context, listen: false);
     _livesService = Provider.of<LivesService>(context, listen: false);
+    _voice = Provider.of<VoiceService>(context, listen: false);
     _progress = Provider.of<WordProgressService>(context, listen: false);
     _vosk = Provider.of<VoskAsrService>(context, listen: false);
     _whisper = Provider.of<WhisperAsrService>(context, listen: false);
@@ -167,7 +167,7 @@ class _QuizScreenState extends State<QuizScreen> with TickerProviderStateMixin {
 
   @override
   void dispose() {
-    _tts.stop();
+    _voice.stop();
     _silenceTimer?.cancel();
     if (_isListening) _stopAsr();
     _micPulseController.dispose();
@@ -179,30 +179,18 @@ class _QuizScreenState extends State<QuizScreen> with TickerProviderStateMixin {
   // ── TTS ─────────────────────────────────────────────────────────────────────
 
   Future<void> _initTts() async {
-    _tts.setErrorHandler((msg) => debugPrint('TTS Error: $msg'));
-    const variants = ['tr-TR', 'tr_TR', 'tr'];
-    bool langSet = false;
-    for (final v in variants) {
-      final ok = await _tts.isLanguageAvailable(v);
-      if (ok == true || ok == 1) {
-        await _tts.setLanguage(v);
-        langSet = true;
-        break;
-      }
-    }
-    if (!langSet) {
+    final ok = await _voice.prepare();
+    if (!ok) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (mounted) showTtsSetupDialog(context);
       });
     }
-    await _tts.setSpeechRate(_rlAgent.config.ttsRate);
-    await _tts.setVolume(1.0);
-    await _tts.setPitch(1.0);
   }
 
+  /// Övgü ve geri bildirim: canlı tonda, zorluğa göre biraz hızlanır.
   Future<void> _speak(String text) async {
     await Future.delayed(const Duration(milliseconds: 500));
-    if (mounted) _tts.speak(text);
+    if (mounted) _voice.speak(text, rate: _rlAgent.config.ttsRate);
   }
 
   /// Bilbil kelimeyi yavaşça söyler. [together]: 2–3 yaşta duyulmayınca
@@ -213,12 +201,11 @@ class _QuizScreenState extends State<QuizScreen> with TickerProviderStateMixin {
     if (_isListening || _hasSpoken) return;
     setState(() => _hintUsed = true);
     final word = _currentItem.word;
-    await _tts.stop();
-    await _tts.setSpeechRate(_hintRate);
-    await _tts.speak(
+    await _voice.stop();
+    await _voice.speak(
       together ? 'Hadi birlikte söyleyelim: $word!' : 'Bu bir... $word!',
+      rate: VoiceService.wordRate,
     );
-    await _tts.setSpeechRate(_rlAgent.config.ttsRate);
   }
 
   // ── ASR (Vosk on-device) ────────────────────────────────────────────────────
@@ -291,7 +278,7 @@ class _QuizScreenState extends State<QuizScreen> with TickerProviderStateMixin {
     if (!mounted || _isListening || _hasSpoken) return;
 
     // Bilbil konuşurken mikrofon açılırsa kendi sesi cevap sanılmasın.
-    await _tts.stop();
+    await _voice.stop();
     if (!mounted) return;
 
     setState(() {
@@ -394,7 +381,7 @@ class _QuizScreenState extends State<QuizScreen> with TickerProviderStateMixin {
       ..forward();
 
     if (correct) {
-      _speak('Aferin! Bu bir $expected!');
+      _speak(_voice.praise(expected, hinted: _hintUsed));
       _rewardService.addCorrect().then((newRewards) {
         if (mounted && newRewards.isNotEmpty) {
           Future.delayed(const Duration(milliseconds: 800), () {
@@ -403,7 +390,7 @@ class _QuizScreenState extends State<QuizScreen> with TickerProviderStateMixin {
         }
       });
     } else {
-      _speak('Neredeyse! Bu bir $expected. Tekrar deneyelim!');
+      _speak(_voice.tryAgain(expected));
     }
 
     _scheduleNextOrRest();
@@ -430,7 +417,6 @@ class _QuizScreenState extends State<QuizScreen> with TickerProviderStateMixin {
       responseTimeSec: responseTimeSec,
     );
     _statsService.recordAnswer(correct: correct, difficulty: diff);
-    _tts.setSpeechRate(_rlAgent.config.ttsRate);
     // Yeni zorluk _nextItem'da uygulanır; ekrandaki soru burada değişmez.
     if (!correct) _livesService.loseLife();
     _answeredThisSession++;
@@ -464,7 +450,7 @@ class _QuizScreenState extends State<QuizScreen> with TickerProviderStateMixin {
       if (_statsService.childAge <= 3) {
         _giveHint(together: true); // küçükler için: kelimeyi birlikte söyle
       } else {
-        _speak('Seni duyamadım. Bir daha söyler misin?');
+        _speak('Seni duyamadım! Bir daha söyler misin?');
       }
       return; // aynı soru; çocuk mikrofona tekrar dokunur
     }
@@ -479,7 +465,7 @@ class _QuizScreenState extends State<QuizScreen> with TickerProviderStateMixin {
     _wordRevealController
       ..reset()
       ..forward();
-    _speak('Bu bir ${_currentItem.word}. Sıradakine geçelim!');
+    _speak('Bu bir ${_currentItem.word}! Hadi sıradakine geçelim!');
     _scheduleNextOrRest();
   }
 

@@ -5,6 +5,7 @@ import 'package:url_launcher/url_launcher.dart';
 import '../../../core/app_links.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../services/stats/stats_service.dart';
+import '../../../services/tts/voice_service.dart';
 import '../../learning/presentations/providers/auth_provider.dart';
 import '../../learning/presentations/screens/login_screen.dart';
 import '../widgets/password_confirm_dialog.dart';
@@ -59,9 +60,10 @@ class _SettingsTabState extends State<SettingsTab> {
       context: context,
       builder: (_) => AlertDialog(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        title: Text('İstatistikleri Sıfırla',
-            style: GoogleFonts.fredoka(
-                fontSize: 20, fontWeight: FontWeight.bold)),
+        title: Text(
+          'İstatistikleri Sıfırla',
+          style: GoogleFonts.fredoka(fontSize: 20, fontWeight: FontWeight.bold),
+        ),
         content: Text(
           'Tüm istatistikler ve grafik verileri silinecek. Bu işlem geri alınamaz.',
           style: GoogleFonts.poppins(fontSize: 13),
@@ -69,8 +71,10 @@ class _SettingsTabState extends State<SettingsTab> {
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: Text('İptal',
-                style: GoogleFonts.poppins(color: AppColors.textSecondary)),
+            child: Text(
+              'İptal',
+              style: GoogleFonts.poppins(color: AppColors.textSecondary),
+            ),
           ),
           ElevatedButton(
             onPressed: () {
@@ -79,9 +83,12 @@ class _SettingsTabState extends State<SettingsTab> {
               _showSnack('İstatistikler sıfırlandı');
             },
             style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFFF44336)),
-            child: Text('Sıfırla',
-                style: GoogleFonts.poppins(color: Colors.white)),
+              backgroundColor: const Color(0xFFF44336),
+            ),
+            child: Text(
+              'Sıfırla',
+              style: GoogleFonts.poppins(color: Colors.white),
+            ),
           ),
         ],
       ),
@@ -99,9 +106,12 @@ class _SettingsTabState extends State<SettingsTab> {
   }
 
   Future<void> _openPrivacyPolicy() async {
-    final opened = await launchUrl(Uri.parse(AppLinks.privacy),
-        mode: LaunchMode.externalApplication);
-    if (!opened && mounted) _showSnack('Tarayıcı açılamadı: ${AppLinks.privacy}');
+    final opened = await launchUrl(
+      Uri.parse(AppLinks.privacy),
+      mode: LaunchMode.externalApplication,
+    );
+    if (!opened && mounted)
+      _showSnack('Tarayıcı açılamadı: ${AppLinks.privacy}');
   }
 
   Future<void> _logout() async {
@@ -119,7 +129,8 @@ class _SettingsTabState extends State<SettingsTab> {
       barrierDismissible: false,
       builder: (_) => PasswordConfirmDialog(
         title: 'Hesabımı Sil',
-        message: 'Hesabın ve tüm verilerin (istatistikler, ödüller, ayarlar) '
+        message:
+            'Hesabın ve tüm verilerin (istatistikler, ödüller, ayarlar) '
             'kalıcı olarak silinecek. Bu işlem geri alınamaz.\n\n'
             'Onaylamak için hesap şifreni gir.',
         confirmLabel: 'Kalıcı Olarak Sil',
@@ -140,12 +151,12 @@ class _SettingsTabState extends State<SettingsTab> {
   }
 
   BoxDecoration _cardDeco() => BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        boxShadow: [
-          BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 8)
-        ],
-      );
+    color: Colors.white,
+    borderRadius: BorderRadius.circular(16),
+    boxShadow: [
+      BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 8),
+    ],
+  );
 
   @override
   Widget build(BuildContext context) {
@@ -157,6 +168,17 @@ class _SettingsTabState extends State<SettingsTab> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
+          // Bilbil'in sesi
+          _SectionHeader('Bilbil\'in Sesi'),
+          const SizedBox(height: 8),
+          Container(
+            padding: const EdgeInsets.all(16),
+            decoration: _cardDeco(),
+            child: const _VoiceSettings(),
+          ),
+
+          const SizedBox(height: 24),
+
           // ASR motor seçimi
           _SectionHeader('Ses Tanıma Motoru'),
           const SizedBox(height: 8),
@@ -169,7 +191,9 @@ class _SettingsTabState extends State<SettingsTab> {
                 Text(
                   'Hangi ses tanıma motoru kullanılsın?',
                   style: GoogleFonts.poppins(
-                      fontSize: 13, color: AppColors.textSecondary),
+                    fontSize: 13,
+                    color: AppColors.textSecondary,
+                  ),
                 ),
                 const SizedBox(height: 12),
                 SegmentedButton<String>(
@@ -208,7 +232,9 @@ class _SettingsTabState extends State<SettingsTab> {
                       ? 'Vosk: Tamamen çevrimdışı, Türkçe model indirir (~50 MB).'
                       : 'Platform ASR: Cihazın yerleşik ses tanımasını kullanır.',
                   style: GoogleFonts.poppins(
-                      fontSize: 11, color: AppColors.textSecondary),
+                    fontSize: 11,
+                    color: AppColors.textSecondary,
+                  ),
                 ),
               ],
             ),
@@ -228,7 +254,9 @@ class _SettingsTabState extends State<SettingsTab> {
                 Text(
                   'Yaşa göre içerik kategorileri ve maksimum zorluk seviyesi otomatik ayarlanır.',
                   style: GoogleFonts.poppins(
-                      fontSize: 13, color: AppColors.textSecondary),
+                    fontSize: 13,
+                    color: AppColors.textSecondary,
+                  ),
                 ),
                 const SizedBox(height: 12),
                 SegmentedButton<int>(
@@ -268,7 +296,9 @@ class _SettingsTabState extends State<SettingsTab> {
                     }
                   }(),
                   style: GoogleFonts.poppins(
-                      fontSize: 11, color: AppColors.textSecondary),
+                    fontSize: 11,
+                    color: AppColors.textSecondary,
+                  ),
                 ),
               ],
             ),
@@ -288,7 +318,9 @@ class _SettingsTabState extends State<SettingsTab> {
                 Text(
                   'Quiz başlarken hangi zorluktan başlansın?',
                   style: GoogleFonts.poppins(
-                      fontSize: 13, color: AppColors.textSecondary),
+                    fontSize: 13,
+                    color: AppColors.textSecondary,
+                  ),
                 ),
                 const SizedBox(height: 12),
                 SegmentedButton<int>(
@@ -296,8 +328,10 @@ class _SettingsTabState extends State<SettingsTab> {
                     3,
                     (i) => ButtonSegment(
                       value: i,
-                      label: Text(diffLabels[i],
-                          style: GoogleFonts.poppins(fontSize: 13)),
+                      label: Text(
+                        diffLabels[i],
+                        style: GoogleFonts.poppins(fontSize: 13),
+                      ),
                     ),
                   ),
                   selected: {stats.startingDifficulty},
@@ -341,7 +375,8 @@ class _SettingsTabState extends State<SettingsTab> {
                     labelText: 'Yeni PIN (4 hane)',
                     labelStyle: GoogleFonts.poppins(fontSize: 13),
                     border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(12)),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
                     counterText: '',
                   ),
                 ),
@@ -355,7 +390,8 @@ class _SettingsTabState extends State<SettingsTab> {
                     labelText: 'PIN Tekrar',
                     labelStyle: GoogleFonts.poppins(fontSize: 13),
                     border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(12)),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
                     counterText: '',
                   ),
                 ),
@@ -367,13 +403,17 @@ class _SettingsTabState extends State<SettingsTab> {
                     style: ElevatedButton.styleFrom(
                       backgroundColor: AppColors.primary,
                       shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12)),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
                       padding: const EdgeInsets.symmetric(vertical: 12),
                     ),
-                    child: Text('PIN Güncelle',
-                        style: GoogleFonts.poppins(
-                            color: Colors.white,
-                            fontWeight: FontWeight.w600)),
+                    child: Text(
+                      'PIN Güncelle',
+                      style: GoogleFonts.poppins(
+                        color: Colors.white,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
                   ),
                 ),
               ],
@@ -394,7 +434,9 @@ class _SettingsTabState extends State<SettingsTab> {
                 Text(
                   context.watch<AuthProvider>().currentUser?.email ?? '',
                   style: GoogleFonts.poppins(
-                      fontSize: 13, color: AppColors.textSecondary),
+                    fontSize: 13,
+                    color: AppColors.textSecondary,
+                  ),
                 ),
                 const SizedBox(height: 12),
                 SizedBox(
@@ -402,14 +444,18 @@ class _SettingsTabState extends State<SettingsTab> {
                   child: OutlinedButton.icon(
                     onPressed: _logout,
                     icon: Icon(Icons.logout_rounded, color: AppColors.primary),
-                    label: Text('Çıkış Yap',
-                        style: GoogleFonts.poppins(
-                            color: AppColors.primary,
-                            fontWeight: FontWeight.w600)),
+                    label: Text(
+                      'Çıkış Yap',
+                      style: GoogleFonts.poppins(
+                        color: AppColors.primary,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
                     style: OutlinedButton.styleFrom(
                       side: BorderSide(color: AppColors.primary),
                       shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12)),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
                       padding: const EdgeInsets.symmetric(vertical: 12),
                     ),
                   ),
@@ -418,11 +464,18 @@ class _SettingsTabState extends State<SettingsTab> {
                 Center(
                   child: TextButton.icon(
                     onPressed: _openPrivacyPolicy,
-                    icon: Icon(Icons.privacy_tip_outlined,
-                        size: 18, color: AppColors.textSecondary),
-                    label: Text('Gizlilik Politikası',
-                        style: GoogleFonts.poppins(
-                            fontSize: 13, color: AppColors.textSecondary)),
+                    icon: Icon(
+                      Icons.privacy_tip_outlined,
+                      size: 18,
+                      color: AppColors.textSecondary,
+                    ),
+                    label: Text(
+                      'Gizlilik Politikası',
+                      style: GoogleFonts.poppins(
+                        fontSize: 13,
+                        color: AppColors.textSecondary,
+                      ),
+                    ),
                   ),
                 ),
               ],
@@ -438,16 +491,22 @@ class _SettingsTabState extends State<SettingsTab> {
             width: double.infinity,
             child: OutlinedButton.icon(
               onPressed: () => _confirmReset(stats),
-              icon: const Icon(Icons.delete_outline_rounded,
-                  color: Color(0xFFF44336)),
-              label: Text('İstatistikleri Sıfırla',
-                  style: GoogleFonts.poppins(
-                      color: const Color(0xFFF44336),
-                      fontWeight: FontWeight.w600)),
+              icon: const Icon(
+                Icons.delete_outline_rounded,
+                color: Color(0xFFF44336),
+              ),
+              label: Text(
+                'İstatistikleri Sıfırla',
+                style: GoogleFonts.poppins(
+                  color: const Color(0xFFF44336),
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
               style: OutlinedButton.styleFrom(
                 side: const BorderSide(color: Color(0xFFF44336)),
                 shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12)),
+                  borderRadius: BorderRadius.circular(12),
+                ),
                 padding: const EdgeInsets.symmetric(vertical: 14),
               ),
             ),
@@ -457,14 +516,22 @@ class _SettingsTabState extends State<SettingsTab> {
             width: double.infinity,
             child: ElevatedButton.icon(
               onPressed: _deleteAccount,
-              icon: const Icon(Icons.person_remove_rounded, color: Colors.white),
-              label: Text('Hesabımı Sil',
-                  style: GoogleFonts.poppins(
-                      color: Colors.white, fontWeight: FontWeight.w600)),
+              icon: const Icon(
+                Icons.person_remove_rounded,
+                color: Colors.white,
+              ),
+              label: Text(
+                'Hesabımı Sil',
+                style: GoogleFonts.poppins(
+                  color: Colors.white,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
               style: ElevatedButton.styleFrom(
                 backgroundColor: const Color(0xFFF44336),
                 shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12)),
+                  borderRadius: BorderRadius.circular(12),
+                ),
                 padding: const EdgeInsets.symmetric(vertical: 14),
               ),
             ),
@@ -475,16 +542,148 @@ class _SettingsTabState extends State<SettingsTab> {
   }
 }
 
+/// Ses seçimi, ton ayarı ve "Dinle". Sesler telefonun Türkçe sentetik
+/// sesleridir; isimleri anlamsız olduğu için harfle gösterilir.
+class _VoiceSettings extends StatefulWidget {
+  const _VoiceSettings();
+
+  @override
+  State<_VoiceSettings> createState() => _VoiceSettingsState();
+}
+
+class _VoiceSettingsState extends State<_VoiceSettings> {
+  double? _pitch; // kaydırılırken yerel değer
+
+  @override
+  void initState() {
+    super.initState();
+    context.read<VoiceService>().prepare(); // sesleri yükle
+  }
+
+  static String _label(int i, TtsVoice v) {
+    final letter = String.fromCharCode('A'.codeUnitAt(0) + i % 26);
+    final online = v.name.contains('network') ? ' · internet gerekir' : '';
+    return 'Ses $letter$online';
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final voice = context.watch<VoiceService>();
+    final voices = voice.voices;
+    final selected = voices.any((v) => v.name == voice.voiceName)
+        ? voice.voiceName
+        : null;
+    final textStyle = GoogleFonts.poppins(fontSize: 13);
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          'Bilbil\'in konuşma sesini seç ve dinle.',
+          style: GoogleFonts.poppins(
+            fontSize: 13,
+            color: AppColors.textSecondary,
+          ),
+        ),
+        const SizedBox(height: 12),
+        DropdownButtonFormField<String?>(
+          key: const Key('voice-dropdown'),
+          initialValue: selected,
+          isExpanded: true,
+          decoration: InputDecoration(
+            border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+            contentPadding: const EdgeInsets.symmetric(
+              horizontal: 12,
+              vertical: 8,
+            ),
+          ),
+          items: [
+            DropdownMenuItem(
+              value: null,
+              child: Text('Otomatik (telefonun sesi)', style: textStyle),
+            ),
+            for (final (i, v) in voices.indexed)
+              DropdownMenuItem(
+                value: v.name,
+                child: Text(_label(i, v), style: textStyle),
+              ),
+          ],
+          onChanged: (name) async {
+            await voice.setVoice(name);
+            await voice.preview();
+          },
+        ),
+        const SizedBox(height: 12),
+        Row(
+          children: [
+            Text('Sakin', style: textStyle),
+            Expanded(
+              child: Slider(
+                key: const Key('pitch-slider'),
+                min: VoiceService.minPitch,
+                max: VoiceService.maxPitch,
+                divisions: 8,
+                value: _pitch ?? voice.pitch,
+                activeColor: AppColors.primary,
+                onChanged: (p) => setState(() => _pitch = p),
+                onChangeEnd: (p) async {
+                  await voice.setPitch(p);
+                  setState(() => _pitch = null);
+                  await voice.preview();
+                },
+              ),
+            ),
+            Text('Neşeli', style: textStyle),
+          ],
+        ),
+        SizedBox(
+          width: double.infinity,
+          child: OutlinedButton.icon(
+            key: const Key('voice-preview'),
+            onPressed: voice.preview,
+            icon: Icon(Icons.volume_up_rounded, color: AppColors.primary),
+            label: Text(
+              'Dinle',
+              style: GoogleFonts.poppins(
+                color: AppColors.primary,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+            style: OutlinedButton.styleFrom(
+              side: BorderSide(color: AppColors.primary),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
+              padding: const EdgeInsets.symmetric(vertical: 12),
+            ),
+          ),
+        ),
+        if (voices.isEmpty) ...[
+          const SizedBox(height: 8),
+          Text(
+            'Telefonda Türkçe ses bulunamadı; varsayılan ses kullanılıyor.',
+            style: GoogleFonts.poppins(
+              fontSize: 11,
+              color: AppColors.textSecondary,
+            ),
+          ),
+        ],
+      ],
+    );
+  }
+}
+
 class _SectionHeader extends StatelessWidget {
   final String title;
   const _SectionHeader(this.title);
 
   @override
   Widget build(BuildContext context) => Text(
-        title,
-        style: GoogleFonts.fredoka(
-            fontSize: 18,
-            fontWeight: FontWeight.bold,
-            color: AppColors.textPrimary),
-      );
+    title,
+    style: GoogleFonts.fredoka(
+      fontSize: 18,
+      fontWeight: FontWeight.bold,
+      color: AppColors.textPrimary,
+    ),
+  );
 }

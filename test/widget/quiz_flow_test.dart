@@ -19,6 +19,7 @@ import 'package:app/services/learning/word_progress_service.dart';
 import 'package:app/services/lives/lives_service.dart';
 import 'package:app/services/rewards/reward_service.dart';
 import 'package:app/services/stats/stats_service.dart';
+import 'package:app/services/tts/voice_service.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -101,6 +102,7 @@ void main() {
   late RewardService rewards;
   late LivesService lives;
   late WordProgressService progress;
+  late VoiceService voice;
   late FakeVosk vosk;
   late FakeAds ads;
   // Bilbil'in söyledikleri (sahte TTS kanalına gelen speak çağrıları).
@@ -115,7 +117,13 @@ void main() {
 
   setUp(() async {
     Hive.init(Directory.systemTemp.createTempSync('bilbil_quiz_test').path);
-    for (final box in ['stats', 'rewards_box', 'lives_box', 'word_progress']) {
+    for (final box in [
+      'stats',
+      'rewards_box',
+      'lives_box',
+      'word_progress',
+      'voice_box',
+    ]) {
       await Hive.openBox(box, bytes: Uint8List(0)); // bellekte
     }
     now = DateTime(2026, 10, 13, 12);
@@ -127,6 +135,8 @@ void main() {
     await lives.init();
     progress = WordProgressService();
     await progress.init();
+    voice = VoiceService();
+    await voice.init();
     vosk = FakeVosk();
     ads = FakeAds();
 
@@ -151,6 +161,7 @@ void main() {
         ChangeNotifierProvider<RewardService>.value(value: rewards),
         ChangeNotifierProvider<LivesService>.value(value: lives),
         ChangeNotifierProvider<WordProgressService>.value(value: progress),
+        ChangeNotifierProvider<VoiceService>.value(value: voice),
         ChangeNotifierProvider<VoskAsrService>.value(value: vosk),
         ChangeNotifierProvider<AdService>.value(value: ads),
         ChangeNotifierProvider<WhisperAsrService>.value(

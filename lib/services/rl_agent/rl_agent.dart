@@ -21,9 +21,11 @@ class RLAgent {
   int _lastArm = 1;
 
   static const configs = [
-    DifficultyConfig(ttsRate: 0.35, label: 'Kolay'),
-    DifficultyConfig(ttsRate: 0.45, label: 'Orta'),
-    DifficultyConfig(ttsRate: 0.55, label: 'Zor'),
+    // Konuşma hızı (flutter_tts'te 0.5 normal): kolayda biraz yavaş ama yine
+    // canlı; eski 0.35 çocuklara sıkıcı ve düz geliyordu.
+    DifficultyConfig(ttsRate: 0.46, label: 'Kolay'),
+    DifficultyConfig(ttsRate: 0.50, label: 'Orta'),
+    DifficultyConfig(ttsRate: 0.54, label: 'Zor'),
   ];
 
   final int _maxDifficulty;

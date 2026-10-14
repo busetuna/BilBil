@@ -19,6 +19,7 @@ import 'services/lives/lives_service.dart';
 import 'services/learning/word_progress_service.dart';
 import 'services/sync/account_sync.dart';
 import 'services/theme/theme_service.dart';
+import 'services/tts/voice_service.dart';
 import 'services/asr/vosk_asr_service.dart';
 import 'services/asr/whisper_asr_service.dart';
 
@@ -49,6 +50,9 @@ void main() async {
   final wordProgressService = WordProgressService();
   await wordProgressService.init();
 
+  final voiceService = VoiceService();
+  await voiceService.init();
+
   final voskAsrService = VoskAsrService();
   final whisperAsrService = WhisperAsrService();
 
@@ -77,6 +81,7 @@ void main() async {
     statsService: statsService,
     livesService: livesService,
     wordProgressService: wordProgressService,
+    voiceService: voiceService,
     themeService: themeService,
     voskAsrService: voskAsrService,
     whisperAsrService: whisperAsrService,
@@ -91,6 +96,7 @@ class MyApp extends StatelessWidget {
   final StatsService statsService;
   final LivesService livesService;
   final WordProgressService wordProgressService;
+  final VoiceService voiceService;
   final ThemeService themeService;
   final VoskAsrService voskAsrService;
   final WhisperAsrService whisperAsrService;
@@ -104,6 +110,7 @@ class MyApp extends StatelessWidget {
     required this.statsService,
     required this.livesService,
     required this.wordProgressService,
+    required this.voiceService,
     required this.themeService,
     required this.voskAsrService,
     required this.whisperAsrService,
@@ -138,6 +145,7 @@ class MyApp extends StatelessWidget {
         ChangeNotifierProvider<LivesService>.value(value: livesService),
         ChangeNotifierProvider<WordProgressService>.value(
             value: wordProgressService),
+        ChangeNotifierProvider<VoiceService>.value(value: voiceService),
         ChangeNotifierProvider<ThemeService>.value(value: themeService),
         ChangeNotifierProvider<VoskAsrService>.value(value: voskAsrService),
         ChangeNotifierProvider<WhisperAsrService>.value(value: whisperAsrService),
