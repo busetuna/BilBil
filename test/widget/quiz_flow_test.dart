@@ -103,6 +103,8 @@ void main() {
   late WordProgressService progress;
   late FakeVosk vosk;
   late FakeAds ads;
+  // Bilbil'in söyledikleri (sahte TTS kanalına gelen speak çağrıları).
+  final spoken = <String>[];
 
   setUpAll(() {
     // Fontlar internetten istenir; testte istek hiç cevaplanmaz (hata da
@@ -130,8 +132,11 @@ void main() {
 
     final messenger =
         TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger;
-    messenger.setMockMethodCallHandler(
-        const MethodChannel('flutter_tts'), (_) async => 1);
+    spoken.clear();
+    messenger.setMockMethodCallHandler(const MethodChannel('flutter_tts'), (call) async {
+      if (call.method == 'speak') spoken.add(call.arguments as String);
+      return 1;
+    });
     messenger.setMockMethodCallHandler(
         const MethodChannel('flutter.baseflow.com/permissions/methods'),
         (call) async => call.method == 'checkPermissionStatus' ? 1 : null);
@@ -259,6 +264,68 @@ void main() {
     }
     expect(seen.take(ReviewQueue.delay - 1), isNot(contains(missedImage)));
     expect(seen.last, missedImage, reason: '3. soruda tekrar');
+    await finish(tester);
+  });
+
+  testWidgets('ipucu: Bilbil kelimeyi söyler; ipucuyla doğru cevap kutuyu yükseltmez',
+      (tester) async {
+    await openQuiz(tester);
+    final word = reveal(tester).correctWord;
+    progress
+      ..record(word, correct: true)
+      ..record(word, correct: true);
+    expect(progress.boxOf(word), 1);
+
+    await tester.tap(find.byKey(const Key('hint-button')));
+    await settle(tester);
+    expect(spoken.last, contains(word));
+
+    await say(tester, word);
+    expect(reveal(tester).isCorrect, isTrue, reason: 'övülür, yıldız kazanır');
+    expect(stats.totalCorrect, 1);
+    expect(progress.boxOf(word), 1, reason: 'ipucuyla doğru: kutu yükselmez');
+    await finish(tester);
+  });
+
+  testWidgets('ipucusuz doğru cevap kutuyu yükseltir', (tester) async {
+    await openQuiz(tester);
+    final word = reveal(tester).correctWord;
+    progress
+      ..record(word, correct: true)
+      ..record(word, correct: true);
+    await say(tester, word);
+    expect(progress.boxOf(word), 2);
+    await finish(tester);
+  });
+
+  testWidgets('2–3 yaşta duyulmazsa Bilbil "birlikte söyleyelim" der', (tester) async {
+    await openQuiz(tester); // varsayılan yaş 3
+    await tapMic(tester);
+    await waitSilence(tester);
+    expect(spoken.last, allOf(contains('birlikte'), contains(reveal(tester).correctWord)));
+    expect(lives.lives, LivesService.maxLives);
+    await finish(tester);
+  });
+
+  testWidgets('4–5 yaşta duyulmazsa kelime söylenmez, tekrar denemesi istenir',
+      (tester) async {
+    stats.setChildAge(5);
+    await openQuiz(tester);
+    await tapMic(tester);
+    await waitSilence(tester);
+    await tester.pump(const Duration(seconds: 1)); // konuşma 500 ms gecikmeli
+    expect(spoken.last, contains('duyamadım'));
+    expect(spoken.last, isNot(contains(reveal(tester).correctWord)));
+    await finish(tester);
+  });
+
+  testWidgets('mikrofon dinlerken ipucu kapalı', (tester) async {
+    await openQuiz(tester);
+    await tapMic(tester);
+    final before = spoken.length;
+    await tester.tap(find.byKey(const Key('hint-button')));
+    await settle(tester);
+    expect(spoken.length, before);
     await finish(tester);
   });
 

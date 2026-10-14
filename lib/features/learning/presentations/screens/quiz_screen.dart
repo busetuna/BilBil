@@ -73,6 +73,11 @@ class _QuizScreenState extends State<QuizScreen> with TickerProviderStateMixin {
   int _notHeardCount = 0;
   bool _notHeard = false;
 
+  // "Bilbil söylesin" ipucu bu soruda kullanıldı mı? İpucuyla verilen doğru
+  // cevap övülür ama kelime "biliniyor" sayılmaz (bkz. _handleFinalResult).
+  bool _hintUsed = false;
+  static const _hintRate = 0.3;
+
   // ── Animasyonlar ────────────────────────────────────────────────────────────
   late AnimationController _micPulseController;
   late AnimationController _cardController;
@@ -90,10 +95,10 @@ class _QuizScreenState extends State<QuizScreen> with TickerProviderStateMixin {
   int _questionNumber = 0;
 
   List<QuizItem> _buildPool(int diff) => LearningScheduler.order(
-        QuizData.byDifficulty(diff),
-        (item) => LearningScheduler.weightOf(_progress.boxOf(item.word)),
-        _rng,
-      );
+    QuizData.byDifficulty(diff),
+    (item) => LearningScheduler.weightOf(_progress.boxOf(item.word)),
+    _rng,
+  );
 
   @override
   void initState() {
@@ -198,6 +203,22 @@ class _QuizScreenState extends State<QuizScreen> with TickerProviderStateMixin {
   Future<void> _speak(String text) async {
     await Future.delayed(const Duration(milliseconds: 500));
     if (mounted) _tts.speak(text);
+  }
+
+  /// Bilbil kelimeyi yavaşça söyler. [together]: 2–3 yaşta duyulmayınca
+  /// "Hadi birlikte söyleyelim". Mikrofon açıkken söylemez (kendi sesi
+  /// cevap sanılmasın). "Duyamadım" kararı dinleme bitirilirken verildiği
+  /// için _finishing'e bakılmaz; o anda kayıt zaten durmuştur.
+  Future<void> _giveHint({bool together = false}) async {
+    if (_isListening || _hasSpoken) return;
+    setState(() => _hintUsed = true);
+    final word = _currentItem.word;
+    await _tts.stop();
+    await _tts.setSpeechRate(_hintRate);
+    await _tts.speak(
+      together ? 'Hadi birlikte söyleyelim: $word!' : 'Bu bir... $word!',
+    );
+    await _tts.setSpeechRate(_rlAgent.config.ttsRate);
   }
 
   // ── ASR (Vosk on-device) ────────────────────────────────────────────────────
@@ -350,9 +371,15 @@ class _QuizScreenState extends State<QuizScreen> with TickerProviderStateMixin {
       category: _currentItem.category,
       correct: correct,
     );
-    _progress.record(_currentItem.word, correct: correct);
+    _progress.record(_currentItem.word, correct: correct, hinted: _hintUsed);
     if (!correct) _reviews.scheduleAfterMiss(_currentItem, _questionNumber);
-    _updateRlAgent(correct, latencyMs / 1000.0);
+    // İpucuyla doğru: RL'ye "çok geç ama doğru" (düşük ödül) gider; yoksa
+    // ipucu zorluğu yanlışlıkla artırırdı.
+    final responseSec = latencyMs / 1000.0;
+    _updateRlAgent(
+      correct,
+      _hintUsed && correct ? max(responseSec, 11.0) : responseSec,
+    );
 
     setState(() {
       _isListening = false;
@@ -434,7 +461,11 @@ class _QuizScreenState extends State<QuizScreen> with TickerProviderStateMixin {
         _notHeard = true;
         _recognizedWord = '';
       });
-      _speak('Seni duyamadım. Bir daha söyler misin?');
+      if (_statsService.childAge <= 3) {
+        _giveHint(together: true); // küçükler için: kelimeyi birlikte söyle
+      } else {
+        _speak('Seni duyamadım. Bir daha söyler misin?');
+      }
       return; // aynı soru; çocuk mikrofona tekrar dokunur
     }
 
@@ -501,6 +532,7 @@ class _QuizScreenState extends State<QuizScreen> with TickerProviderStateMixin {
       _isCorrect = false;
       _notHeard = false;
       _notHeardCount = 0;
+      _hintUsed = false;
     });
     _cardController
       ..reset()
@@ -510,6 +542,63 @@ class _QuizScreenState extends State<QuizScreen> with TickerProviderStateMixin {
   }
 
   // ── Build ────────────────────────────────────────────────────────────────────
+
+  /// Mikrofon ortada kalsın diye sağda ipucu butonu kadar boşluk bırakılır.
+  Widget _micWithHint(Widget mic) {
+    final enabled = !_isListening && !_hasSpoken;
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.center,
+      children: [
+        Opacity(
+          opacity: enabled ? 1 : 0.35,
+          child: GestureDetector(
+            key: const Key('hint-button'),
+            onTap: enabled ? _giveHint : null,
+            child: SizedBox(
+              width: 72,
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Container(
+                    width: 52,
+                    height: 52,
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      color: const Color(0xFFFFF3C4),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withValues(alpha: 0.08),
+                          blurRadius: 8,
+                        ),
+                      ],
+                    ),
+                    child: const Icon(
+                      Icons.lightbulb_rounded,
+                      color: Color(0xFFFFA000),
+                      size: 28,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    'Bilbil söylesin',
+                    textAlign: TextAlign.center,
+                    style: GoogleFonts.poppins(
+                      fontSize: 10,
+                      color: AppColors.textSecondary,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+        const SizedBox(width: 16),
+        mic,
+        const SizedBox(width: 16 + 72),
+      ],
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -578,11 +667,13 @@ class _QuizScreenState extends State<QuizScreen> with TickerProviderStateMixin {
                                   final usePlatform =
                                       _statsService.asrEngine == 'platform';
                                   if (usePlatform) {
-                                    return QuizMicButton(
-                                      isListening: _isListening,
-                                      sttAvailable: whisper.isReady,
-                                      onTap: _toggleListening,
-                                      pulseController: _micPulseController,
+                                    return _micWithHint(
+                                      QuizMicButton(
+                                        isListening: _isListening,
+                                        sttAvailable: whisper.isReady,
+                                        onTap: _toggleListening,
+                                        pulseController: _micPulseController,
+                                      ),
                                     );
                                   }
                                   if (vosk.isDownloading) {
@@ -597,11 +688,13 @@ class _QuizScreenState extends State<QuizScreen> with TickerProviderStateMixin {
                                   if (vosk.status == AsrModelStatus.error) {
                                     return AsrErrorWidget(vosk: vosk);
                                   }
-                                  return QuizMicButton(
-                                    isListening: _isListening,
-                                    sttAvailable: vosk.isReady,
-                                    onTap: _toggleListening,
-                                    pulseController: _micPulseController,
+                                  return _micWithHint(
+                                    QuizMicButton(
+                                      isListening: _isListening,
+                                      sttAvailable: vosk.isReady,
+                                      onTap: _toggleListening,
+                                      pulseController: _micPulseController,
+                                    ),
                                   );
                                 },
                               ),

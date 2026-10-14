@@ -76,11 +76,21 @@ class WordProgressService extends ChangeNotifier {
   /// Hiç sorulmamışsa null.
   int? boxOf(String word) => stateOf(word)?.box;
 
-  void record(String word, {required bool correct}) {
+  /// [hinted]: çocuk Bilbil'in ipucundan sonra doğru söyledi. Kelime
+  /// "biliniyor" sayılmaz: kutusu yükselmez (ama düşmez de).
+  void record(String word, {required bool correct, bool hinted = false}) {
     final old = stateOf(word);
+    final int box;
+    if (!correct) {
+      box = 0;
+    } else if (hinted) {
+      box = old?.box ?? 0;
+    } else {
+      box = ((old?.box ?? -1) + 1).clamp(0, maxBox);
+    }
     final state = WordState(
       word: old?.word ?? word,
-      box: correct ? ((old?.box ?? -1) + 1).clamp(0, maxBox) : 0,
+      box: box,
       seen: (old?.seen ?? 0) + 1,
       wrong: (old?.wrong ?? 0) + (correct ? 0 : 1),
       last: _now().millisecondsSinceEpoch,

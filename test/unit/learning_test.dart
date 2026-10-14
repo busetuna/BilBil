@@ -49,6 +49,17 @@ void main() {
       },
     );
 
+    test('ipucuyla doğru: kutu yükselmez ama düşmez de', () {
+      progress
+        ..record('Kedi', correct: true)
+        ..record('Kedi', correct: true)
+        ..record('Kedi', correct: true, hinted: true);
+      expect(progress.boxOf('Kedi'), 1);
+      progress.record('Fil', correct: true, hinted: true);
+      expect(progress.boxOf('Fil'), 0);
+      expect(progress.stateOf('Fil')!.wrong, 0);
+    });
+
     test('zorlandığı kelimeler: yanlış yapılmış ve oturmamış, çoktan aza', () {
       progress
         ..record('Kedi', correct: false)
