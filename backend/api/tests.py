@@ -146,6 +146,27 @@ class ApiTests(APITestCase):
         migration.remove_plaintext_pin(django_apps, None)
         self.assertEqual(Profile.objects.get(uid='old').stats, {'totalCorrect': 1})
 
+    def test_word_progress_roundtrip(self):
+        self.login('a')
+        body = {'words': {
+            'kedi': {'word': 'Kedi', 'box': 2, 'seen': 5, 'wrong': 1, 'last': 1760000000000},
+            'muhabbet kuşu': {'word': 'Muhabbet kuşu', 'box': 0, 'seen': 2, 'wrong': 2, 'last': 1},
+        }}
+        self.assertEqual(self.client.put('/v1/me/progress', body, format='json').status_code, 204)
+        self.assertEqual(self.client.get('/v1/me').json()['wordProgress'], body['words'])
+
+    def test_word_progress_is_validated(self):
+        self.login('a')
+        state = {'word': 'Kedi', 'box': 2, 'seen': 5, 'wrong': 1, 'last': 1}
+        for bad in [
+            {'words': {'kedi': {**state, 'box': 9}}},
+            {'words': {'kedi': {**state, 'seen': -1}}},
+            {'words': {'kedi': {k: v for k, v in state.items() if k != 'box'}}},
+            {'words': {f'w{i}': state for i in range(501)}},
+            {'words': 'kedi'},
+        ]:
+            self.assertEqual(self.client.put('/v1/me/progress', bad, format='json').status_code, 400)
+
     def test_lives_bounds(self):
         self.login('a')
         self.assertEqual(self.client.put('/v1/me/lives', {'lives': 6}, format='json').status_code, 400)

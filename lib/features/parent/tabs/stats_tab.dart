@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
 import '../../../core/theme/app_colors.dart';
+import '../../../services/learning/word_progress_service.dart';
 import '../../../services/stats/stats_service.dart';
 
 class StatsTab extends StatelessWidget {
@@ -18,11 +19,14 @@ class StatsTab extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text('Genel Performans',
-              style: GoogleFonts.fredoka(
-                  fontSize: 20,
-                  fontWeight: FontWeight.bold,
-                  color: AppColors.textPrimary)),
+          Text(
+            'Genel Performans',
+            style: GoogleFonts.fredoka(
+              fontSize: 20,
+              fontWeight: FontWeight.bold,
+              color: AppColors.textPrimary,
+            ),
+          ),
           const SizedBox(height: 16),
           Row(
             children: [
@@ -72,11 +76,14 @@ class StatsTab extends StatelessWidget {
           // Not: "latency" alanları ses tanıma gecikmesi değil, sorunun
           // gösterilmesinden cevaba kadar geçen süredir. Doğruluk oranı da
           // yukarıdaki başarı oranının aynısı olduğu için ayrıca gösterilmez.
-          Text('Sesli Cevaplar',
-              style: GoogleFonts.fredoka(
-                  fontSize: 20,
-                  fontWeight: FontWeight.bold,
-                  color: AppColors.textPrimary)),
+          Text(
+            'Sesli Cevaplar',
+            style: GoogleFonts.fredoka(
+              fontSize: 20,
+              fontWeight: FontWeight.bold,
+              color: AppColors.textPrimary,
+            ),
+          ),
           const SizedBox(height: 16),
           Row(
             children: [
@@ -101,25 +108,54 @@ class StatsTab extends StatelessWidget {
           ),
           const SizedBox(height: 24),
 
-          const SizedBox(height: 24),
-          Text('En Çok Zorlanan Kategoriler',
-              style: GoogleFonts.fredoka(
-                  fontSize: 20,
-                  fontWeight: FontWeight.bold,
-                  color: AppColors.textPrimary)),
+          Text(
+            'Zorlandığı Kelimeler',
+            style: GoogleFonts.fredoka(
+              fontSize: 20,
+              fontWeight: FontWeight.bold,
+              color: AppColors.textPrimary,
+            ),
+          ),
           const SizedBox(height: 6),
-          Text('Yanlış cevap oranına göre sıralı',
-              style: GoogleFonts.poppins(
-                  fontSize: 13, color: AppColors.textSecondary)),
+          Text(
+            'Bu kelimeler quiz\'de daha sık tekrar ediliyor',
+            style: GoogleFonts.poppins(
+              fontSize: 13,
+              color: AppColors.textSecondary,
+            ),
+          ),
+          const SizedBox(height: 16),
+          const _StrugglingWords(),
+
+          const SizedBox(height: 24),
+          Text(
+            'En Çok Zorlanan Kategoriler',
+            style: GoogleFonts.fredoka(
+              fontSize: 20,
+              fontWeight: FontWeight.bold,
+              color: AppColors.textPrimary,
+            ),
+          ),
+          const SizedBox(height: 6),
+          Text(
+            'Yanlış cevap oranına göre sıralı',
+            style: GoogleFonts.poppins(
+              fontSize: 13,
+              color: AppColors.textSecondary,
+            ),
+          ),
           const SizedBox(height: 16),
           _CategoryBreakdown(stats: stats),
           const SizedBox(height: 24),
 
-          Text('Başarı Çubuğu',
-              style: GoogleFonts.fredoka(
-                  fontSize: 18,
-                  fontWeight: FontWeight.bold,
-                  color: AppColors.textPrimary)),
+          Text(
+            'Başarı Çubuğu',
+            style: GoogleFonts.fredoka(
+              fontSize: 18,
+              fontWeight: FontWeight.bold,
+              color: AppColors.textPrimary,
+            ),
+          ),
           const SizedBox(height: 12),
           Container(
             padding: const EdgeInsets.all(16),
@@ -127,8 +163,7 @@ class StatsTab extends StatelessWidget {
               color: Colors.white,
               borderRadius: BorderRadius.circular(16),
               boxShadow: [
-                BoxShadow(
-                    color: Colors.black.withOpacity(0.05), blurRadius: 8)
+                BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 8),
               ],
             ),
             child: Column(
@@ -136,14 +171,21 @@ class StatsTab extends StatelessWidget {
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    Text('Doğru',
-                        style: GoogleFonts.poppins(
-                            fontSize: 13, color: AppColors.textSecondary)),
-                    Text('%$rate',
-                        style: GoogleFonts.poppins(
-                            fontSize: 13,
-                            fontWeight: FontWeight.w600,
-                            color: const Color(0xFF4CAF50))),
+                    Text(
+                      'Doğru',
+                      style: GoogleFonts.poppins(
+                        fontSize: 13,
+                        color: AppColors.textSecondary,
+                      ),
+                    ),
+                    Text(
+                      '%$rate',
+                      style: GoogleFonts.poppins(
+                        fontSize: 13,
+                        fontWeight: FontWeight.w600,
+                        color: const Color(0xFF4CAF50),
+                      ),
+                    ),
                   ],
                 ),
                 const SizedBox(height: 8),
@@ -159,6 +201,65 @@ class StatsTab extends StatelessWidget {
               ],
             ),
           ),
+        ],
+      ),
+    );
+  }
+}
+
+/// Yanlış yapılıp henüz oturmamış kelimeler (aralıklı tekrar kutusu 0–1).
+class _StrugglingWords extends StatelessWidget {
+  const _StrugglingWords();
+
+  @override
+  Widget build(BuildContext context) {
+    final words = context.watch<WordProgressService>().struggling();
+    final deco = BoxDecoration(
+      color: Colors.white,
+      borderRadius: BorderRadius.circular(16),
+      boxShadow: [
+        BoxShadow(color: Colors.black.withValues(alpha: 0.05), blurRadius: 8),
+      ],
+    );
+    if (words.isEmpty) {
+      return Container(
+        width: double.infinity,
+        padding: const EdgeInsets.all(20),
+        decoration: deco,
+        child: Text(
+          'Henüz zorlandığı bir kelime yok 🎉',
+          textAlign: TextAlign.center,
+          style: GoogleFonts.poppins(
+            fontSize: 13,
+            color: AppColors.textSecondary,
+          ),
+        ),
+      );
+    }
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(16),
+      decoration: deco,
+      child: Wrap(
+        spacing: 8,
+        runSpacing: 8,
+        children: [
+          for (final w in words)
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+              decoration: BoxDecoration(
+                color: const Color(0xFFFFF3E0),
+                borderRadius: BorderRadius.circular(20),
+              ),
+              child: Text(
+                '${w.word} · ${w.wrong} yanlış',
+                style: GoogleFonts.poppins(
+                  fontSize: 13,
+                  fontWeight: FontWeight.w600,
+                  color: const Color(0xFFE65100),
+                ),
+              ),
+            ),
         ],
       ),
     );
@@ -194,19 +295,25 @@ class _CategoryBreakdown extends StatelessWidget {
           color: Colors.white,
           borderRadius: BorderRadius.circular(16),
           boxShadow: [
-            BoxShadow(
-                color: Colors.black.withOpacity(0.05), blurRadius: 8)
+            BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 8),
           ],
         ),
         child: Center(
           child: Column(
             children: [
-              const Icon(Icons.category_rounded,
-                  size: 48, color: Color(0xFFD0D0D0)),
+              const Icon(
+                Icons.category_rounded,
+                size: 48,
+                color: Color(0xFFD0D0D0),
+              ),
               const SizedBox(height: 10),
-              Text('Henüz kategori verisi yok',
-                  style: GoogleFonts.poppins(
-                      fontSize: 13, color: AppColors.textSecondary)),
+              Text(
+                'Henüz kategori verisi yok',
+                style: GoogleFonts.poppins(
+                  fontSize: 13,
+                  color: AppColors.textSecondary,
+                ),
+              ),
             ],
           ),
         ),
@@ -231,7 +338,7 @@ class _CategoryBreakdown extends StatelessWidget {
         color: Colors.white,
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
-          BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 8)
+          BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 8),
         ],
       ),
       child: Column(
@@ -251,15 +358,20 @@ class _CategoryBreakdown extends StatelessWidget {
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    Text(name,
-                        style: GoogleFonts.poppins(
-                            fontSize: 13,
-                            fontWeight: FontWeight.w600,
-                            color: AppColors.textPrimary)),
+                    Text(
+                      name,
+                      style: GoogleFonts.poppins(
+                        fontSize: 13,
+                        fontWeight: FontWeight.w600,
+                        color: AppColors.textPrimary,
+                      ),
+                    ),
                     Text(
                       '$correct✓  $wrong✗  (%${(wrongRate * 100).toStringAsFixed(0)} hata)',
                       style: GoogleFonts.poppins(
-                          fontSize: 11, color: AppColors.textSecondary),
+                        fontSize: 11,
+                        color: AppColors.textSecondary,
+                      ),
                     ),
                   ],
                 ),
@@ -274,8 +386,8 @@ class _CategoryBreakdown extends StatelessWidget {
                       wrongRate > 0.6
                           ? const Color(0xFFF44336)
                           : wrongRate > 0.3
-                              ? const Color(0xFFFFC107)
-                              : const Color(0xFF4CAF50),
+                          ? const Color(0xFFFFC107)
+                          : const Color(0xFF4CAF50),
                     ),
                   ),
                 ),
@@ -309,7 +421,7 @@ class _StatCard extends StatelessWidget {
         color: Colors.white,
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
-          BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 8)
+          BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 8),
         ],
       ),
       child: Column(
@@ -317,14 +429,21 @@ class _StatCard extends StatelessWidget {
         children: [
           Icon(icon, color: color, size: 28),
           const SizedBox(height: 8),
-          Text(value,
-              style: GoogleFonts.fredoka(
-                  fontSize: 28,
-                  fontWeight: FontWeight.bold,
-                  color: AppColors.textPrimary)),
-          Text(label,
-              style: GoogleFonts.poppins(
-                  fontSize: 12, color: AppColors.textSecondary)),
+          Text(
+            value,
+            style: GoogleFonts.fredoka(
+              fontSize: 28,
+              fontWeight: FontWeight.bold,
+              color: AppColors.textPrimary,
+            ),
+          ),
+          Text(
+            label,
+            style: GoogleFonts.poppins(
+              fontSize: 12,
+              color: AppColors.textSecondary,
+            ),
+          ),
         ],
       ),
     );

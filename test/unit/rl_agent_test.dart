@@ -1,3 +1,5 @@
+import 'dart:math';
+
 import 'package:app/services/rl_agent/reward_calculator.dart';
 import 'package:app/services/rl_agent/rl_agent.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -12,20 +14,30 @@ void main() {
     expect(r(false, 2), -1.0);
   });
 
-  test('sürekli hızlı doğru cevap en yüksek izinli zorluğa çıkarır', () {
-    final agent = RLAgent(initialDifficulty: 0, maxDifficulty: 2);
-    for (var i = 0; i < 10; i++) {
-      agent.processAnswer(isCorrect: true, responseTimeSec: 2);
+  test('sürekli yanlış cevap en kolaya indirir ve orada tutar (her tohumda)', () {
+    for (var seed = 0; seed < 200; seed++) {
+      final agent =
+          RLAgent(initialDifficulty: 2, maxDifficulty: 2, rng: Random(seed));
+      for (var i = 0; i < 30; i++) {
+        agent.processAnswer(isCorrect: false, responseTimeSec: 9);
+        if (i >= 4) {
+          expect(agent.currentDifficulty, 0, reason: 'tohum $seed, cevap $i');
+        }
+      }
     }
-    expect(agent.currentDifficulty, 2);
   });
 
-  test('sürekli yanlış cevap en kolaya indirir', () {
-    final agent = RLAgent(initialDifficulty: 2, maxDifficulty: 2);
-    for (var i = 0; i < 10; i++) {
-      agent.processAnswer(isCorrect: false, responseTimeSec: 9);
+  test('sürekli doğru cevap en zora çıkarır ve orada tutar (her tohumda)', () {
+    for (var seed = 0; seed < 200; seed++) {
+      final agent =
+          RLAgent(initialDifficulty: 0, maxDifficulty: 2, rng: Random(seed));
+      for (var i = 0; i < 30; i++) {
+        agent.processAnswer(isCorrect: true, responseTimeSec: 2);
+        if (i >= 4) {
+          expect(agent.currentDifficulty, 2, reason: 'tohum $seed, cevap $i');
+        }
+      }
     }
-    expect(agent.currentDifficulty, 0);
   });
 
   test('yaş sınırı aşılmaz (2 yaş → yalnızca kolay)', () {

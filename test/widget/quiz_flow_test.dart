@@ -14,6 +14,8 @@ import 'package:app/features/learning/presentations/widgets/quiz_word_reveal.dar
 import 'package:app/services/ads/ad_service.dart';
 import 'package:app/services/asr/vosk_asr_service.dart';
 import 'package:app/services/asr/whisper_asr_service.dart';
+import 'package:app/services/learning/learning_scheduler.dart';
+import 'package:app/services/learning/word_progress_service.dart';
 import 'package:app/services/lives/lives_service.dart';
 import 'package:app/services/rewards/reward_service.dart';
 import 'package:app/services/stats/stats_service.dart';
@@ -98,6 +100,7 @@ void main() {
   late StatsService stats;
   late RewardService rewards;
   late LivesService lives;
+  late WordProgressService progress;
   late FakeVosk vosk;
   late FakeAds ads;
 
@@ -110,7 +113,7 @@ void main() {
 
   setUp(() async {
     Hive.init(Directory.systemTemp.createTempSync('bilbil_quiz_test').path);
-    for (final box in ['stats', 'rewards_box', 'lives_box']) {
+    for (final box in ['stats', 'rewards_box', 'lives_box', 'word_progress']) {
       await Hive.openBox(box, bytes: Uint8List(0)); // bellekte
     }
     now = DateTime(2026, 10, 13, 12);
@@ -120,6 +123,8 @@ void main() {
     await rewards.init();
     lives = LivesService(clock: () => now);
     await lives.init();
+    progress = WordProgressService();
+    await progress.init();
     vosk = FakeVosk();
     ads = FakeAds();
 
@@ -140,6 +145,7 @@ void main() {
         ChangeNotifierProvider<StatsService>.value(value: stats),
         ChangeNotifierProvider<RewardService>.value(value: rewards),
         ChangeNotifierProvider<LivesService>.value(value: lives),
+        ChangeNotifierProvider<WordProgressService>.value(value: progress),
         ChangeNotifierProvider<VoskAsrService>.value(value: vosk),
         ChangeNotifierProvider<AdService>.value(value: ads),
         ChangeNotifierProvider<WhisperAsrService>.value(
@@ -233,6 +239,26 @@ void main() {
     expect(reveal(tester).isCorrect, isFalse);
     expect(stats.totalWrong, 1);
     expect(lives.lives, LivesService.maxLives - 1);
+    await finish(tester);
+  });
+
+  testWidgets('bilinemeyen soru 3 soru sonra tekrar gelir ve zorlandığı kelimelere girer',
+      (tester) async {
+    await openQuiz(tester);
+    final missedImage = imageOf(tester);
+    final missedWord = reveal(tester).correctWord;
+    await say(tester, 'qqqq');
+    expect(progress.boxOf(missedWord), 0);
+    expect(progress.struggling().map((s) => s.word), contains(missedWord));
+
+    final seen = <String>[];
+    for (var i = 0; i < ReviewQueue.delay; i++) {
+      await nextQuestion(tester);
+      seen.add(imageOf(tester));
+      await say(tester, reveal(tester).correctWord);
+    }
+    expect(seen.take(ReviewQueue.delay - 1), isNot(contains(missedImage)));
+    expect(seen.last, missedImage, reason: '3. soruda tekrar');
     await finish(tester);
   });
 

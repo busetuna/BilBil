@@ -107,6 +107,9 @@ class ApiService {
 
   void saveLives(int lives) => _enqueue('/v1/me/lives', {'lives': lives});
 
+  void saveWordProgress(Map<String, Map<String, Object>> words) =>
+      _enqueue('/v1/me/progress', {'words': words});
+
   /// Kullanıcının sunucudaki tüm verisini siler (hesap silme). Başarılıysa
   /// true. Önce bekleyen kayıtlar atılır ve yoldakiler beklenir; yoksa
   /// silmeden sonra varan bir kayıt satırı yeniden oluştururdu.

@@ -16,6 +16,7 @@ import 'services/api/api_service.dart';
 import 'services/rewards/reward_service.dart';
 import 'services/stats/stats_service.dart';
 import 'services/lives/lives_service.dart';
+import 'services/learning/word_progress_service.dart';
 import 'services/sync/account_sync.dart';
 import 'services/theme/theme_service.dart';
 import 'services/asr/vosk_asr_service.dart';
@@ -45,6 +46,9 @@ void main() async {
   final themeService = ThemeService();
   await themeService.init();
 
+  final wordProgressService = WordProgressService();
+  await wordProgressService.init();
+
   final voskAsrService = VoskAsrService();
   final whisperAsrService = WhisperAsrService();
 
@@ -57,6 +61,7 @@ void main() async {
     stats: statsService,
     rewards: rewardService,
     lives: livesService,
+    progress: wordProgressService,
   );
   await accountSync.init();
 
@@ -71,6 +76,7 @@ void main() async {
     rewardService: rewardService,
     statsService: statsService,
     livesService: livesService,
+    wordProgressService: wordProgressService,
     themeService: themeService,
     voskAsrService: voskAsrService,
     whisperAsrService: whisperAsrService,
@@ -84,6 +90,7 @@ class MyApp extends StatelessWidget {
   final RewardService rewardService;
   final StatsService statsService;
   final LivesService livesService;
+  final WordProgressService wordProgressService;
   final ThemeService themeService;
   final VoskAsrService voskAsrService;
   final WhisperAsrService whisperAsrService;
@@ -96,6 +103,7 @@ class MyApp extends StatelessWidget {
     required this.rewardService,
     required this.statsService,
     required this.livesService,
+    required this.wordProgressService,
     required this.themeService,
     required this.voskAsrService,
     required this.whisperAsrService,
@@ -128,6 +136,8 @@ class MyApp extends StatelessWidget {
         ChangeNotifierProvider<RewardService>.value(value: rewardService),
         ChangeNotifierProvider<StatsService>.value(value: statsService),
         ChangeNotifierProvider<LivesService>.value(value: livesService),
+        ChangeNotifierProvider<WordProgressService>.value(
+            value: wordProgressService),
         ChangeNotifierProvider<ThemeService>.value(value: themeService),
         ChangeNotifierProvider<VoskAsrService>.value(value: voskAsrService),
         ChangeNotifierProvider<WhisperAsrService>.value(value: whisperAsrService),

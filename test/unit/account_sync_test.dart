@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:app/services/api/api_service.dart';
+import 'package:app/services/learning/word_progress_service.dart';
 import 'package:app/services/lives/lives_service.dart';
 import 'package:app/services/rewards/reward_service.dart';
 import 'package:app/services/stats/stats_service.dart';
@@ -16,6 +17,7 @@ void main() {
   late StatsService stats;
   late RewardService rewards;
   late LivesService lives;
+  late WordProgressService progress;
   late AccountSync sync;
   // Sunucunun GET /v1/me cevabı; testler hesaba göre değiştirir.
   late http.Response Function() me;
@@ -41,7 +43,10 @@ void main() {
     await rewards.init();
     lives = LivesService();
     await lives.init();
-    sync = AccountSync(api: api, stats: stats, rewards: rewards, lives: lives);
+    progress = WordProgressService();
+    await progress.init();
+    sync = AccountSync(
+        api: api, stats: stats, rewards: rewards, lives: lives, progress: progress);
     await sync.init();
   });
 
@@ -70,9 +75,11 @@ void main() {
     await sync.onSignedIn('a');
     await play(3);
     stats.changePin('9876');
+    progress.record('Kedi', correct: false);
     sync.onSignedOut();
 
     await sync.onSignedIn('b'); // b'nin bulutta verisi yok (404)
+    expect(progress.boxOf('Kedi'), isNull, reason: 'kelime geçmişi de taşınmaz');
     expect(stats.totalCorrect, 0);
     expect(stats.hasPin, isFalse);
     expect(rewards.totalCorrect, 0);
@@ -107,6 +114,9 @@ void main() {
           'stats': {'totalCorrect': 7, 'totalWrong': 1, 'childAge': 4},
           'rewards': {'totalCorrect': 7, 'earnedIds': [], 'puzzlePieces': {}},
           'lives': 2,
+          'wordProgress': {
+            'kedi': {'word': 'Kedi', 'box': 3, 'seen': 4, 'wrong': 1, 'last': 1},
+          },
         }),
         200);
     await sync.onSignedIn('a');
@@ -114,6 +124,7 @@ void main() {
     expect(stats.childAge, 4);
     expect(rewards.totalCorrect, 7);
     expect(lives.lives, 2);
+    expect(progress.boxOf('Kedi'), 3);
   });
 
   test('sunucuya ulaşılamazsa senkron açılmaz, buluttaki veri ezilmez',

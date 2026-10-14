@@ -5,11 +5,12 @@ class EpsilonGreedyBandit {
   final double epsilon;
   final List<double> _qValues;
   final List<int> _counts;
-  final Random _rng = Random();
+  final Random _rng;
 
-  EpsilonGreedyBandit({this.epsilon = 0.2})
+  EpsilonGreedyBandit({this.epsilon = 0.2, Random? rng})
       : _qValues = [0.0, 0.0, 0.0],
-        _counts = [0, 0, 0];
+        _counts = [0, 0, 0],
+        _rng = rng ?? Random();
 
   int selectArm() {
     if (_rng.nextDouble() < epsilon) {

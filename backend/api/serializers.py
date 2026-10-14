@@ -55,3 +55,22 @@ class RewardsSerializer(serializers.Serializer):
 
 class LivesSerializer(serializers.Serializer):
     lives = serializers.IntegerField(min_value=0, max_value=5)
+
+
+class WordStateSerializer(serializers.Serializer):
+    """Bir kelimenin öğrenme durumu (Leitner kutusu)."""
+
+    word = serializers.CharField(max_length=50)  # ekranda gösterilen biçim
+    box = serializers.IntegerField(min_value=0, max_value=4)
+    seen = serializers.IntegerField(min_value=0)
+    wrong = serializers.IntegerField(min_value=0)
+    last = serializers.IntegerField(min_value=0)  # son görülme, epoch ms
+
+
+class WordProgressSerializer(serializers.Serializer):
+    words = serializers.DictField(child=WordStateSerializer())
+
+    def validate_words(self, value):
+        if len(value) > 500 or any(len(k) > 50 for k in value):
+            raise serializers.ValidationError('Çok fazla ya da çok uzun kelime')
+        return value

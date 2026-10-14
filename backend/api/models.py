@@ -16,6 +16,8 @@ class Profile(models.Model):
     stats = models.JSONField('istatistikler', null=True, blank=True)
     rewards = models.JSONField('ödüller', null=True, blank=True)
     lives = models.PositiveSmallIntegerField('can', null=True, blank=True)
+    # Kelime başına öğrenme durumu (aralıklı tekrar): {"kedi": {"box": 2, ...}}
+    word_progress = models.JSONField('kelime ilerlemesi', null=True, blank=True)
     updated_at = models.DateTimeField('son güncelleme', auto_now=True)
 
     class Meta:
@@ -35,4 +37,5 @@ class Profile(models.Model):
             'stats': self.stats,
             'rewards': self.rewards,
             'lives': self.lives,
+            'wordProgress': self.word_progress,
         }

@@ -1,3 +1,5 @@
+import 'dart:math';
+
 import 'epsilon_greedy_bandit.dart';
 import 'state_manager.dart';
 import 'reward_calculator.dart';
@@ -26,9 +28,13 @@ class RLAgent {
 
   final int _maxDifficulty;
 
-  RLAgent({double epsilon = 0.2, int initialDifficulty = 0, int maxDifficulty = 2})
-      : _maxDifficulty = maxDifficulty.clamp(0, 2),
-        _bandit = EpsilonGreedyBandit(epsilon: epsilon),
+  RLAgent({
+    double epsilon = 0.2,
+    int initialDifficulty = 0,
+    int maxDifficulty = 2,
+    Random? rng,
+  })  : _maxDifficulty = maxDifficulty.clamp(0, 2),
+        _bandit = EpsilonGreedyBandit(epsilon: epsilon, rng: rng),
         _state = PerformanceState(
             initialDifficulty: initialDifficulty.clamp(0, maxDifficulty.clamp(0, 2)));
 
@@ -56,10 +62,13 @@ class RLAgent {
     // 3. Kol seç: yeterli veri varsa performans eşiği öncelikli
     if (_state.totalAnswers >= 3) {
       final rate = _state.correctRate;
-      if (rate >= 0.8 && _state.currentDifficulty < _maxDifficulty) {
-        _lastArm = 2; // son 3+ cevabın 80%'i doğru → zorlaştır
-      } else if (rate <= 0.3 && _state.currentDifficulty > 0) {
-        _lastArm = 0; // 30% veya altında → kolaylaştır
+      if (rate >= 0.8) {
+        // Çok iyi gidiyor: zorlaştır; zaten en zordaysa kal (asla kolaylaştırma).
+        _lastArm = _state.currentDifficulty < _maxDifficulty ? 2 : 1;
+      } else if (rate <= 0.3) {
+        // Zorlanıyor: kolaylaştır; zaten en kolaydaysa kal. Önceden en
+        // kolayda karar bandit'e kalıyor, bazen zorluğu artırıyordu.
+        _lastArm = _state.currentDifficulty > 0 ? 0 : 1;
       } else {
         _lastArm = _bandit.selectArm(); // orta bölge → bandit karar verir
       }

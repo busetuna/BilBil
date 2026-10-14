@@ -1,6 +1,7 @@
 import 'package:hive_flutter/hive_flutter.dart';
 
 import '../api/api_service.dart';
+import '../learning/word_progress_service.dart';
 import '../lives/lives_service.dart';
 import '../rewards/reward_service.dart';
 import '../stats/stats_service.dart';
@@ -18,6 +19,7 @@ class AccountSync {
   final StatsService stats;
   final RewardService rewards;
   final LivesService lives;
+  final WordProgressService progress;
   late Box _box;
 
   AccountSync({
@@ -25,6 +27,7 @@ class AccountSync {
     required this.stats,
     required this.rewards,
     required this.lives,
+    required this.progress,
   });
 
   Future<void> init() async {
@@ -41,6 +44,7 @@ class AccountSync {
       await stats.clearAccountData();
       await rewards.resetRewards();
       lives.refillLives();
+      await progress.clearAccountData();
     }
     await _box.put(_ownerKey, uid);
 
@@ -49,6 +53,7 @@ class AccountSync {
         await stats.loadFromCloud(data['stats'] as Map<String, dynamic>?);
         await rewards.loadFromCloud(data['rewards'] as Map<String, dynamic>?);
         await lives.loadFromCloud(data['lives']);
+        await progress.loadFromCloud(data['wordProgress'] as Map<String, dynamic>?);
         _attach();
       case UserDataMissing():
         _attach();
@@ -68,6 +73,7 @@ class AccountSync {
     await stats.clearAccountData();
     await rewards.resetRewards();
     lives.refillLives();
+    await progress.clearAccountData();
     await _box.delete(_ownerKey);
   }
 
@@ -75,11 +81,13 @@ class AccountSync {
     stats.setCloudSync(api);
     rewards.setCloudSync(api);
     lives.setCloudSync(api);
+    progress.setCloudSync(api);
   }
 
   void _detach() {
     stats.clearCloudSync();
     rewards.clearCloudSync();
     lives.clearCloudSync();
+    progress.clearCloudSync();
   }
 }

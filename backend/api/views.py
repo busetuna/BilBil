@@ -4,7 +4,13 @@ from rest_framework.decorators import api_view, authentication_classes, permissi
 from rest_framework.response import Response
 
 from .models import Profile
-from .serializers import LivesSerializer, ProfileSerializer, RewardsSerializer, StatsSerializer
+from .serializers import (
+    LivesSerializer,
+    ProfileSerializer,
+    RewardsSerializer,
+    StatsSerializer,
+    WordProgressSerializer,
+)
 
 
 @api_view(['GET'])
@@ -61,3 +67,8 @@ def save_rewards(request):
 @api_view(['PUT'])
 def save_lives(request):
     return _save(request, LivesSerializer, lambda d: {'lives': d['lives']})
+
+
+@api_view(['PUT'])
+def save_word_progress(request):
+    return _save(request, WordProgressSerializer, lambda d: {'word_progress': d['words']})

@@ -14,6 +14,8 @@ import '../../../../services/stats/stats_service.dart';
 import '../../../../services/lives/lives_service.dart';
 import '../../../../services/ads/ad_service.dart';
 import '../../../../services/asr/quiz_grammar.dart';
+import '../../../../services/learning/learning_scheduler.dart';
+import '../../../../services/learning/word_progress_service.dart';
 import '../../../../services/asr/vosk_asr_service.dart';
 import '../../../../services/asr/whisper_asr_service.dart';
 import 'rest_screen.dart';
@@ -80,15 +82,22 @@ class _QuizScreenState extends State<QuizScreen> with TickerProviderStateMixin {
 
   // ── Yaşam döngüsü ───────────────────────────────────────────────────────────
 
-  List<QuizItem> _buildPool(int diff) =>
-      QuizData.byDifficulty(diff)..shuffle(Random());
+  // Aralıklı tekrar: zorlanılan kelimeler havuzda öne çıkar (bkz.
+  // LearningScheduler), bilinemeyen soru birkaç soru sonra yeniden gelir.
+  late WordProgressService _progress;
+  final _reviews = ReviewQueue<QuizItem>();
+  final _rng = Random();
+  int _questionNumber = 0;
+
+  List<QuizItem> _buildPool(int diff) => LearningScheduler.order(
+        QuizData.byDifficulty(diff),
+        (item) => LearningScheduler.weightOf(_progress.boxOf(item.word)),
+        _rng,
+      );
 
   @override
   void initState() {
     super.initState();
-    _pools = {
-      for (var i = 0; i < RLAgent.configs.length; i++) i: _buildPool(i),
-    };
 
     _micPulseController = AnimationController(
       vsync: this,
@@ -123,6 +132,7 @@ class _QuizScreenState extends State<QuizScreen> with TickerProviderStateMixin {
     _rewardService = Provider.of<RewardService>(context, listen: false);
     _statsService = Provider.of<StatsService>(context, listen: false);
     _livesService = Provider.of<LivesService>(context, listen: false);
+    _progress = Provider.of<WordProgressService>(context, listen: false);
     _vosk = Provider.of<VoskAsrService>(context, listen: false);
     _whisper = Provider.of<WhisperAsrService>(context, listen: false);
     // Quiz bitişi reklamı çıkışta hazır olsun.
@@ -136,6 +146,9 @@ class _QuizScreenState extends State<QuizScreen> with TickerProviderStateMixin {
         initialDifficulty: startDiff,
         maxDifficulty: maxDiff,
       );
+      _pools = {
+        for (var i = 0; i < RLAgent.configs.length; i++) i: _buildPool(i),
+      };
       _activeDifficulty = startDiff;
       _currentItem = _items[0];
       _initTts(); // _rlAgent'a ihtiyaç duyar
@@ -337,6 +350,8 @@ class _QuizScreenState extends State<QuizScreen> with TickerProviderStateMixin {
       category: _currentItem.category,
       correct: correct,
     );
+    _progress.record(_currentItem.word, correct: correct);
+    if (!correct) _reviews.scheduleAfterMiss(_currentItem, _questionNumber);
     _updateRlAgent(correct, latencyMs / 1000.0);
 
     setState(() {
@@ -460,22 +475,27 @@ class _QuizScreenState extends State<QuizScreen> with TickerProviderStateMixin {
 
   void _nextItem() {
     if (!mounted) return;
+    _questionNumber++;
     final currentDiff = _rlAgent.currentDifficulty;
-    int nextIndex;
-
     if (currentDiff != _activeDifficulty) {
       _activeDifficulty = currentDiff; // yeni zorluğun havuzu, baştan
-      nextIndex = 0;
-    } else if (_currentIndex < _items.length - 1) {
-      nextIndex = _currentIndex + 1;
-    } else {
-      _pools[currentDiff]!.shuffle(Random());
-      nextIndex = 0;
+      _currentIndex = -1;
+    }
+
+    // Vakti gelen tekrar sorusu varsa önce o; havuzdaki sıra beklemede kalır.
+    var next = _reviews.takeDue(_questionNumber, exclude: _currentItem);
+    if (next == null) {
+      if (_currentIndex >= _items.length - 1) {
+        // Havuz bitti: güncel ilerlemeyle yeniden ağırlıklı sırala.
+        _pools[_activeDifficulty] = _buildPool(_activeDifficulty);
+        _currentIndex = -1;
+      }
+      _currentIndex++;
+      next = _items[_currentIndex];
     }
 
     setState(() {
-      _currentIndex = nextIndex;
-      _currentItem = _items[nextIndex];
+      _currentItem = next!;
       _recognizedWord = '';
       _hasSpoken = false;
       _isCorrect = false;
@@ -511,7 +531,7 @@ class _QuizScreenState extends State<QuizScreen> with TickerProviderStateMixin {
                 difficulty: _activeDifficulty,
                 difficultyLabel: RLAgent.configs[_activeDifficulty].label,
                 stars: _stars,
-                currentIndex: _currentIndex,
+                currentIndex: max(_currentIndex, 0),
                 totalItems: _items.length,
                 onBack: _leaveQuiz,
               ),

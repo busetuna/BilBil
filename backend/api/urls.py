@@ -8,4 +8,5 @@ urlpatterns = [
     path('me/stats', views.save_stats),
     path('me/rewards', views.save_rewards),
     path('me/lives', views.save_lives),
+    path('me/progress', views.save_word_progress),
 ]
