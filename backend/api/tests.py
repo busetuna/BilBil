@@ -113,6 +113,27 @@ class ApiTests(APITestCase):
             self.assertEqual(res.status_code, 400, bad)
         self.assertFalse(Profile.objects.filter(uid='a').exists())
 
+    def test_rl_agent_state_round_trips_and_is_validated(self):
+        self.login('a')
+        rl = {'q': [[0.0, 1.25, 0.5], [-1.0, 1.5, 0.0], [0.0, 0.0, 0.0]],
+              'n': [[0, 4, 1], [1, 6, 0], [0, 0, 0]], 'level': 1}
+        res = self.client.put('/v1/me/stats', {**VALID_STATS, 'rlAgent': rl}, format='json')
+        self.assertEqual(res.status_code, 204)
+        self.assertEqual(self.client.get('/v1/me').json()['stats']['rlAgent'], rl)
+
+        no_level = {k: v for k, v in rl.items() if k != 'level'}
+        for ok in [None, no_level]:
+            res = self.client.put('/v1/me/stats', {**VALID_STATS, 'rlAgent': ok}, format='json')
+            self.assertEqual(res.status_code, 204, ok)
+        for bad in [
+            {**rl, 'q': [[0.0, 0.0], [0.0, 0.0, 0.0], [0.0, 0.0, 0.0]]},
+            {**rl, 'n': [[-1, 0, 0], [0, 0, 0], [0, 0, 0]]},
+            {**rl, 'q': rl['q'] + [[0.0, 0.0, 0.0]]},
+            {**rl, 'level': 3},
+        ]:
+            res = self.client.put('/v1/me/stats', {**VALID_STATS, 'rlAgent': bad}, format='json')
+            self.assertEqual(res.status_code, 400, bad)
+
     def test_plaintext_pin_is_never_stored(self):
         self.login('a')
         self.client.put('/v1/me/stats', {**VALID_STATS, 'pin': '1234'}, format='json')

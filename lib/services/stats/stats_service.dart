@@ -26,12 +26,19 @@ class StatsService extends ChangeNotifier {
 
   Future<void> loadFromCloud(Map<String, dynamic>? data) async {
     if (data == null) return;
-    await _box.put('totalCorrect', (data['totalCorrect'] as num?)?.toInt() ?? 0);
+    await _box.put(
+      'totalCorrect',
+      (data['totalCorrect'] as num?)?.toInt() ?? 0,
+    );
     await _box.put('totalWrong', (data['totalWrong'] as num?)?.toInt() ?? 0);
-    await _box.put('difficultyHistory',
-        List<int>.from((data['difficultyHistory'] as List? ?? [])));
-    await _box.put('startingDifficulty',
-        (data['startingDifficulty'] as num?)?.toInt() ?? 0);
+    await _box.put(
+      'difficultyHistory',
+      List<int>.from((data['difficultyHistory'] as List? ?? [])),
+    );
+    await _box.put(
+      'startingDifficulty',
+      (data['startingDifficulty'] as num?)?.toInt() ?? 0,
+    );
     // Bulutta PIN yoksa (hiç senkronlanmamış) yereldeki korunur.
     final pinHash = data['pinHash'] as String?;
     final pinSalt = data['pinSalt'] as String?;
@@ -41,15 +48,45 @@ class StatsService extends ChangeNotifier {
     } else {
       _migrateLegacyPin(data['pin'] as String?);
     }
-    await _box.put('totalAsrAttempts', (data['totalAsrAttempts'] as num?)?.toInt() ?? 0);
-    await _box.put('exactAsrMatches', (data['exactAsrMatches'] as num?)?.toInt() ?? 0);
-    await _box.put('totalLatencyMs', (data['totalLatencyMs'] as num?)?.toInt() ?? 0);
-    await _box.put('latencyHistory', List<int>.from((data['latencyHistory'] as List? ?? [])));
-    await _box.put('categoryWrong', Map<String, int>.from(
-        (data['categoryWrong'] as Map? ?? {}).map((k, v) => MapEntry(k.toString(), (v as num).toInt()))));
-    await _box.put('categoryTotal', Map<String, int>.from(
-        (data['categoryTotal'] as Map? ?? {}).map((k, v) => MapEntry(k.toString(), (v as num).toInt()))));
+    await _box.put(
+      'totalAsrAttempts',
+      (data['totalAsrAttempts'] as num?)?.toInt() ?? 0,
+    );
+    await _box.put(
+      'exactAsrMatches',
+      (data['exactAsrMatches'] as num?)?.toInt() ?? 0,
+    );
+    await _box.put(
+      'totalLatencyMs',
+      (data['totalLatencyMs'] as num?)?.toInt() ?? 0,
+    );
+    await _box.put(
+      'latencyHistory',
+      List<int>.from((data['latencyHistory'] as List? ?? [])),
+    );
+    await _box.put(
+      'categoryWrong',
+      Map<String, int>.from(
+        (data['categoryWrong'] as Map? ?? {}).map(
+          (k, v) => MapEntry(k.toString(), (v as num).toInt()),
+        ),
+      ),
+    );
+    await _box.put(
+      'categoryTotal',
+      Map<String, int>.from(
+        (data['categoryTotal'] as Map? ?? {}).map(
+          (k, v) => MapEntry(k.toString(), (v as num).toInt()),
+        ),
+      ),
+    );
     await _box.put('childAge', (data['childAge'] as num?)?.toInt() ?? 3);
+    final rl = data['rlAgent'];
+    if (rl is Map) {
+      await _box.put('rlAgent', Map<String, dynamic>.from(rl));
+    } else {
+      await _box.delete('rlAgent');
+    }
     notifyListeners();
   }
 
@@ -68,13 +105,16 @@ class StatsService extends ChangeNotifier {
       'categoryWrong': categoryWrongCounts,
       'categoryTotal': categoryTotalCounts,
       'childAge': childAge,
+      'rlAgent': rlAgentState,
     });
   }
 
   // ── Okuma ──────────────────────────────────────────────────────────────────
 
-  int get totalCorrect => (_box.get('totalCorrect', defaultValue: 0) as num).toInt();
-  int get totalWrong => (_box.get('totalWrong', defaultValue: 0) as num).toInt();
+  int get totalCorrect =>
+      (_box.get('totalCorrect', defaultValue: 0) as num).toInt();
+  int get totalWrong =>
+      (_box.get('totalWrong', defaultValue: 0) as num).toInt();
   int get totalAnswers => totalCorrect + totalWrong;
   double get successRate =>
       totalAnswers == 0 ? 0.0 : totalCorrect / totalAnswers;
@@ -118,10 +158,21 @@ class StatsService extends ChangeNotifier {
   int get startingDifficulty =>
       (_box.get('startingDifficulty', defaultValue: 0) as num).toInt();
 
+  /// Zorluk ajanının öğrendikleri ve son seviyesi (bkz. RLAgent.toJson).
+  Map<String, dynamic>? get rlAgentState {
+    final raw = _box.get('rlAgent');
+    return raw is Map ? Map<String, dynamic>.from(raw) : null;
+  }
+
   // ── Yazma ──────────────────────────────────────────────────────────────────
 
-  void recordAnswer({required bool correct, required int difficulty}) {
+  void recordAnswer({
+    required bool correct,
+    required int difficulty,
+    Map<String, dynamic>? rlState,
+  }) {
     _box.put('totalCorrect', totalCorrect + (correct ? 1 : 0));
+    if (rlState != null) _box.put('rlAgent', rlState);
     _box.put('totalWrong', totalWrong + (correct ? 0 : 1));
 
     final history = difficultyHistory;
@@ -176,8 +227,10 @@ class StatsService extends ChangeNotifier {
 
   static String _newSalt() {
     final rng = Random.secure();
-    return List.generate(16, (_) => rng.nextInt(256).toRadixString(16).padLeft(2, '0'))
-        .join();
+    return List.generate(
+      16,
+      (_) => rng.nextInt(256).toRadixString(16).padLeft(2, '0'),
+    ).join();
   }
 
   void _storePin(String pin) {
@@ -233,7 +286,10 @@ class StatsService extends ChangeNotifier {
     final failures = ((_box.get('pinFailures') as int?) ?? 0) + 1;
     if (failures >= maxPinAttempts) {
       _box.delete('pinFailures');
-      _box.put('pinLockedUntil', _now().add(pinLockDuration).millisecondsSinceEpoch);
+      _box.put(
+        'pinLockedUntil',
+        _now().add(pinLockDuration).millisecondsSinceEpoch,
+      );
     } else {
       _box.put('pinFailures', failures);
     }
@@ -250,8 +306,12 @@ class StatsService extends ChangeNotifier {
     _box.delete('pinLockedUntil');
   }
 
+  /// Ebeveynin seçimi: bir sonraki quiz bu seviyeden başlar (ajanın
+  /// kaldığı seviye unutulur, öğrendikleri kalır).
   void setStartingDifficulty(int diff) {
     _box.put('startingDifficulty', diff.clamp(0, 2));
+    final rl = rlAgentState;
+    if (rl != null) _box.put('rlAgent', rl..remove('level'));
     _syncToCloud();
     notifyListeners();
   }
@@ -276,8 +336,7 @@ class StatsService extends ChangeNotifier {
 
   // ── ASR motor seçimi ───────────────────────────────────────────────────────
   /// 'vosk' veya 'platform'
-  String get asrEngine =>
-      _box.get('asrEngine', defaultValue: 'vosk') as String;
+  String get asrEngine => _box.get('asrEngine', defaultValue: 'vosk') as String;
 
   void setAsrEngine(String engine) {
     assert(engine == 'vosk' || engine == 'platform');

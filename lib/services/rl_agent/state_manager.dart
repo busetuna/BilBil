@@ -1,18 +1,30 @@
-/// Son N cevabın performans geçmişini tutar
+/// Son N cevabın performans geçmişini tutar (yalnızca şu anki seviyede).
 class PerformanceState {
   static const int _windowSize = 5;
 
   final List<bool> _recentAnswers = [];
   final List<double> _responseTimes = [];
+  int _wrongStreak = 0;
   int currentDifficulty;
 
-  PerformanceState({int initialDifficulty = 0}) : currentDifficulty = initialDifficulty;
+  PerformanceState({int initialDifficulty = 0})
+    : currentDifficulty = initialDifficulty;
 
-  void addAnswer(bool correct, double responseTimeSec) {
-    _recentAnswers.add(correct);
+  /// [known]: ipucusuz doğru. İpucuyla doğru cevap oranı yükseltmez ama
+  /// can kaybettirmediği için yanlış serisini de uzatmaz.
+  void addAnswer(bool known, double responseTimeSec, {bool wrong = false}) {
+    _recentAnswers.add(known);
     _responseTimes.add(responseTimeSec);
     if (_recentAnswers.length > _windowSize) _recentAnswers.removeAt(0);
     if (_responseTimes.length > _windowSize) _responseTimes.removeAt(0);
+    _wrongStreak = wrong ? _wrongStreak + 1 : 0;
+  }
+
+  /// Seviye değişince: yeni seviye kendi cevaplarıyla değerlendirilir.
+  void resetWindow() {
+    _recentAnswers.clear();
+    _responseTimes.clear();
+    _wrongStreak = 0;
   }
 
   /// Son penceredeki doğru cevap oranı
@@ -28,4 +40,7 @@ class PerformanceState {
   }
 
   int get totalAnswers => _recentAnswers.length;
+
+  /// Üst üste kaç yanlış (can kaybı) yapıldı.
+  int get lastWrongStreak => _wrongStreak;
 }

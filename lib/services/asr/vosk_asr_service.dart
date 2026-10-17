@@ -137,7 +137,7 @@ class VoskAsrService extends ChangeNotifier {
         _heardWhileFinishing = candidates;
       }
     } else if (_emit) {
-      final text = _parsePartial(await recognizer.getPartialResult());
+      final text = parsePartial(await recognizer.getPartialResult());
       if (text.isNotEmpty && _emit) onPartial(text);
     }
   }
@@ -198,9 +198,15 @@ class VoskAsrService extends ChangeNotifier {
     }
   }
 
-  String _parsePartial(String json) {
+  @visibleForTesting
+  static String parsePartial(String json) {
     try {
-      return (jsonDecode(json) as Map)['partial'] as String? ?? '';
+      // Kapalı gramerde tanınmayan ses "[unk]" gelir; ekranda görünmesin.
+      final text = (jsonDecode(json) as Map)['partial'] as String? ?? '';
+      return text
+          .replaceAll('[unk]', ' ')
+          .replaceAll(RegExp(r'\s+'), ' ')
+          .trim();
     } catch (_) {
       return '';
     }

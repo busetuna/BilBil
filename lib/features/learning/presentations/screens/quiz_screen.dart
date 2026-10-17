@@ -65,6 +65,9 @@ class _QuizScreenState extends State<QuizScreen> with TickerProviderStateMixin {
   bool _hasSpoken = false;
   bool _isCorrect = false;
   DateTime? _questionStartTime;
+  // RL için tereddüt süresi: mikrofon açılışından ilk duyulan söze kadar.
+  DateTime? _listenStartedAt;
+  DateTime? _speechStartedAt;
   Timer? _silenceTimer;
   bool _finishing = false;
 
@@ -146,15 +149,17 @@ class _QuizScreenState extends State<QuizScreen> with TickerProviderStateMixin {
       _servicesInitialized = true;
       final maxDiff = _statsService.maxDifficultyForAge;
       final startDiff = _statsService.startingDifficulty.clamp(0, maxDiff);
+      // Önceki quiz'lerde öğrenilenler ve kalınan seviyeyle başlar.
       _rlAgent = RLAgent(
         epsilon: 0.2,
         initialDifficulty: startDiff,
         maxDifficulty: maxDiff,
+        saved: _statsService.rlAgentState,
       );
       _pools = {
         for (var i = 0; i < RLAgent.configs.length; i++) i: _buildPool(i),
       };
-      _activeDifficulty = startDiff;
+      _activeDifficulty = _rlAgent.currentDifficulty;
       _currentItem = _items[0];
       _initTts(); // _rlAgent'a ihtiyaç duyar
       if (_statsService.asrEngine == 'platform') {
@@ -289,10 +294,13 @@ class _QuizScreenState extends State<QuizScreen> with TickerProviderStateMixin {
     });
     _micPulseController.repeat(reverse: true);
     _resetSilenceTimer();
+    _listenStartedAt = DateTime.now();
+    _speechStartedAt = null;
 
     _startAsr(
       onPartial: (text) {
         if (!mounted || !_isListening) return;
+        _speechStartedAt ??= DateTime.now();
         setState(() => _recognizedWord = text);
         _resetSilenceTimer();
       },
@@ -360,13 +368,7 @@ class _QuizScreenState extends State<QuizScreen> with TickerProviderStateMixin {
     );
     _progress.record(_currentItem.word, correct: correct, hinted: _hintUsed);
     if (!correct) _reviews.scheduleAfterMiss(_currentItem, _questionNumber);
-    // İpucuyla doğru: RL'ye "çok geç ama doğru" (düşük ödül) gider; yoksa
-    // ipucu zorluğu yanlışlıkla artırırdı.
-    final responseSec = latencyMs / 1000.0;
-    _updateRlAgent(
-      correct,
-      _hintUsed && correct ? max(responseSec, 11.0) : responseSec,
-    );
+    _updateRlAgent(correct, _hesitationSec());
 
     setState(() {
       _isListening = false;
@@ -410,13 +412,28 @@ class _QuizScreenState extends State<QuizScreen> with TickerProviderStateMixin {
     _questionStartTime = DateTime.now();
   }
 
+  /// Mikrofon açıldıktan çocuk konuşmaya başlayana kadar geçen süre. Söz
+  /// hiç ara sonuç vermeden geldiyse (kısa kelime) cevabın geldiği an.
+  double _hesitationSec() {
+    final start = _listenStartedAt;
+    if (start == null) return 5.0;
+    final end = _speechStartedAt ?? DateTime.now();
+    return end.difference(start).inMilliseconds / 1000.0;
+  }
+
   void _updateRlAgent(bool correct, double responseTimeSec) {
     final diff = _rlAgent.currentDifficulty;
     _rlAgent.processAnswer(
       isCorrect: correct,
       responseTimeSec: responseTimeSec,
+      hintUsed: _hintUsed,
+      itemDifficulty: _currentItem.difficulty,
     );
-    _statsService.recordAnswer(correct: correct, difficulty: diff);
+    _statsService.recordAnswer(
+      correct: correct,
+      difficulty: diff,
+      rlState: _rlAgent.toJson(),
+    );
     // Yeni zorluk _nextItem'da uygulanır; ekrandaki soru burada değişmez.
     if (!correct) _livesService.loseLife();
     _answeredThisSession++;

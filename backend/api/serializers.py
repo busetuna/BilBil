@@ -25,6 +25,22 @@ class ProfileSerializer(serializers.Serializer):
     createdAt = serializers.DateTimeField()
 
 
+def _matrix(child):
+    """3 seviye x 3 kol tablo (zorluk ajanı)."""
+    return serializers.ListField(
+        child=serializers.ListField(child=child, min_length=3, max_length=3),
+        min_length=3, max_length=3)
+
+
+class RLAgentSerializer(serializers.Serializer):
+    """Zorluk ajanının öğrendikleri: seviye başına kol değerleri ve sayıları."""
+
+    q = _matrix(serializers.FloatField(min_value=-10, max_value=10))
+    n = _matrix(serializers.IntegerField(min_value=0))
+    # Kalınan seviye; ebeveyn başlangıç seviyesini değiştirince silinir.
+    level = serializers.IntegerField(min_value=0, max_value=2, required=False)
+
+
 class StatsSerializer(serializers.Serializer):
     totalCorrect = serializers.IntegerField(min_value=0)
     totalWrong = serializers.IntegerField(min_value=0)
@@ -44,6 +60,7 @@ class StatsSerializer(serializers.Serializer):
     categoryWrong = CountsField()
     categoryTotal = CountsField()
     childAge = serializers.IntegerField(min_value=2, max_value=5)
+    rlAgent = RLAgentSerializer(required=False, allow_null=True)
 
 
 class RewardsSerializer(serializers.Serializer):
