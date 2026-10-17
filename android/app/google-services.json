@@ -7,6 +7,25 @@
   "client": [
     {
       "client_info": {
+        "mobilesdk_app_id": "1:792338779472:android:f1111e3b4ae30e61c0b055",
+        "android_client_info": {
+          "package_name": "com.busetuna.bilbil"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDseLKa7ICjsDswAPvvjvYEcpmJosVANW0"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    },
+    {
+      "client_info": {
         "mobilesdk_app_id": "1:792338779472:android:eb16aa9767880093c0b055",
         "android_client_info": {
           "package_name": "com.example.app"

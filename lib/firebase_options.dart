@@ -52,7 +52,7 @@ class DefaultFirebaseOptions {
 
   static const FirebaseOptions android = FirebaseOptions(
     apiKey: 'AIzaSyDseLKa7ICjsDswAPvvjvYEcpmJosVANW0',
-    appId: '1:792338779472:android:eb16aa9767880093c0b055',
+    appId: '1:792338779472:android:f1111e3b4ae30e61c0b055',
     messagingSenderId: '792338779472',
     projectId: 'bilbil-35e16',
     storageBucket: 'bilbil-35e16.firebasestorage.app',
@@ -60,20 +60,20 @@ class DefaultFirebaseOptions {
 
   static const FirebaseOptions ios = FirebaseOptions(
     apiKey: 'AIzaSyAOIjPmrXnV4uB-2XVQWmt8aKdHzidhB1I',
-    appId: '1:792338779472:ios:cca7defdd3a368e6c0b055',
+    appId: '1:792338779472:ios:7ff5ffb3dbf81085c0b055',
     messagingSenderId: '792338779472',
     projectId: 'bilbil-35e16',
     storageBucket: 'bilbil-35e16.firebasestorage.app',
-    iosBundleId: 'com.example.app',
+    iosBundleId: 'com.busetuna.bilbil',
   );
 
   static const FirebaseOptions macos = FirebaseOptions(
     apiKey: 'AIzaSyAOIjPmrXnV4uB-2XVQWmt8aKdHzidhB1I',
-    appId: '1:792338779472:ios:cca7defdd3a368e6c0b055',
+    appId: '1:792338779472:ios:7ff5ffb3dbf81085c0b055',
     messagingSenderId: '792338779472',
     projectId: 'bilbil-35e16',
     storageBucket: 'bilbil-35e16.firebasestorage.app',
-    iosBundleId: 'com.example.app',
+    iosBundleId: 'com.busetuna.bilbil',
   );
 
   static const FirebaseOptions windows = FirebaseOptions(

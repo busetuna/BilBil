@@ -1,4 +1,4 @@
-package com.example.app
+package com.busetuna.bilbil
 
 import io.flutter.embedding.android.FlutterActivity
 
