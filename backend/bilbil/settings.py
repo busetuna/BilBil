@@ -37,6 +37,11 @@ SECURE_SSL_REDIRECT = not DEBUG
 SECURE_REDIRECT_EXEMPT = [r'^health$']
 SECURE_HSTS_SECONDS = 0 if DEBUG else 60 * 60 * 24 * 30
 SESSION_COOKIE_SECURE = not DEBUG
+# Hesap silme sayfası Google'a (identitytoolkit) istek atar. Django'nun
+# varsayılanı 'same-origin' başka siteye Referer göndermez; o zaman web API
+# anahtarı bu alan adıyla kısıtlanamaz. Bu ayar yalnızca kökü gönderir, yolu
+# göndermez.
+SECURE_REFERRER_POLICY = 'strict-origin-when-cross-origin'
 CSRF_COOKIE_SECURE = not DEBUG
 
 # Firebase ID token'ları bu projeye ait olmalı.
@@ -52,7 +57,6 @@ ADMOB_PUBLISHER_ID = os.environ.get('ADMOB_PUBLISHER_ID', 'pub-9093997172830553'
 
 
 INSTALLED_APPS = [
-    'django.contrib.admin',
     'django.contrib.auth',
     'django.contrib.contenttypes',
     'django.contrib.sessions',
@@ -117,6 +121,12 @@ REST_FRAMEWORK = {
     'DEFAULT_PERMISSION_CLASSES': ['rest_framework.permissions.IsAuthenticated'],
     'DEFAULT_RENDERER_CLASSES': ['rest_framework.renderers.JSONRenderer'],
     'DEFAULT_PARSER_CLASSES': ['rest_framework.parsers.JSONParser'],
+    # Kullanıcı başına istek sınırı. Uygulama her cevapta birkaç kayıt
+    # gönderir ve bekleyenleri birleştirir; normal oyun dakikada birkaç düzine
+    # istek eder. Sayaç her gunicorn işçisinin belleğinde tutulur, yani
+    # gerçek sınır işçi sayısı kadar katlanır; kötüye kullanımı durdurmak için yeterli.
+    'DEFAULT_THROTTLE_CLASSES': ['api.throttling.FirebaseUserRateThrottle'],
+    'DEFAULT_THROTTLE_RATES': {'user': '120/min'},
 }
 
 # İstatistik gövdesi birkaç KB; büyük gövdeleri reddet.
@@ -129,9 +139,9 @@ USE_I18N = True
 USE_TZ = True
 
 
-# Admin paneli için statik dosyalar. WhiteNoise onları doğrudan uygulama
-# klasörlerinden sunar; deploy'da collectstatic çalıştırmaya gerek kalmaz
-# (Railpack'in varsayılan başlangıç komutu bunu yapmıyor).
+# Statik dosyalar (admin kaldırıldığından şu an yok). WhiteNoise onları
+# doğrudan uygulama klasörlerinden sunar; deploy'da collectstatic çalıştırmaya
+# gerek kalmaz (Railpack'in varsayılan başlangıç komutu bunu yapmıyor).
 STATIC_URL = 'static/'
 WHITENOISE_USE_FINDERS = True
 STORAGES = {

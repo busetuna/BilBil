@@ -3,11 +3,13 @@ from datetime import UTC, datetime
 from unittest import mock
 
 from django.apps import apps as django_apps
+from django.core.cache import cache
 from django.test import override_settings
 from google.auth.exceptions import DefaultCredentialsError
 from rest_framework.test import APITestCase
 
 from .models import Profile
+from .throttling import FirebaseUserRateThrottle
 
 VALID_STATS = {
     'totalCorrect': 12,
@@ -48,6 +50,8 @@ class ApiTests(APITestCase):
         patcher = mock.patch('api.authentication.verify_token', side_effect=fake_verify)
         patcher.start()
         self.addCleanup(patcher.stop)
+        # İstek sınırı sayacı önbellekte; testler birbirinin sayacını taşımasın.
+        cache.clear()
 
     def login(self, uid):
         self.client.credentials(HTTP_AUTHORIZATION=f'Bearer token-{uid}')
@@ -188,6 +192,22 @@ class ApiTests(APITestCase):
         ]:
             self.assertEqual(self.client.put('/v1/me/progress', bad, format='json').status_code, 400)
 
+    def test_rate_limit_is_per_user(self):
+        with mock.patch.object(FirebaseUserRateThrottle, 'rate', '3/min', create=True):
+            self.login('a')
+            for _ in range(3):
+                self.assertEqual(self.client.put('/v1/me/lives', {'lives': 1},
+                                                 format='json').status_code, 204)
+            res = self.client.get('/v1/me')
+            self.assertEqual(res.status_code, 429)
+            self.assertIn('Retry-After', res)
+            # Başka kullanıcı etkilenmez; sağlık kontrolü hiç sayılmaz.
+            self.login('b')
+            self.assertEqual(self.client.get('/v1/me').status_code, 404)
+            self.client.credentials()
+            for _ in range(5):
+                self.assertEqual(self.client.get('/health').status_code, 200)
+
     def test_lives_bounds(self):
         self.login('a')
         self.assertEqual(self.client.put('/v1/me/lives', {'lives': 6}, format='json').status_code, 400)
@@ -216,7 +236,7 @@ class RealVerifierTests(APITestCase):
         self.assertEqual(self.client.get('/v1/me').status_code, 401)
 
 
-class StaticFilesTests(APITestCase):
-    def test_admin_static_is_served_without_collectstatic(self):
-        res = self.client.get('/static/admin/css/base.css')
-        self.assertEqual(res.status_code, 200)
+class AdminRemovedTests(APITestCase):
+    def test_admin_panel_does_not_exist(self):
+        for path in ['/admin/', '/admin/login/', '/static/admin/css/base.css']:
+            self.assertEqual(self.client.get(path).status_code, 404, path)

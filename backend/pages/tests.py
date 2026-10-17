@@ -34,6 +34,12 @@ class PublicPagesTests(TestCase):
         # Tıklama tuzağına (clickjacking) karşı başka sitede iframe'e gömülemez.
         self.assertEqual(self.client.get('/hesap-sil')['X-Frame-Options'], 'DENY')
 
+    def test_delete_page_sends_only_origin_as_referrer(self):
+        # Web API anahtarı alan adıyla kısıtlanabilsin diye Google'a kök adres
+        # gider; yol ve sorgu gitmez.
+        self.assertEqual(self.client.get('/hesap-sil')['Referrer-Policy'],
+                         'strict-origin-when-cross-origin')
+
     def test_app_ads_txt(self):
         res = self.client.get('/app-ads.txt')
         self.assertEqual(res.status_code, 200)
