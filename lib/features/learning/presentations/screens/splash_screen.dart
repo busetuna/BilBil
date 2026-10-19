@@ -374,7 +374,7 @@ class _SplashScreenState extends State<SplashScreen>
                 height: 200, // Boyutu artır
                 color: Colors.white,
                 child: Image.asset(
-                  'assets/images/giris_bilbil.png',
+                  'assets/images/giris_bilbil.webp',
                   fit: BoxFit.cover,  // contain yerine cover kullan
                   errorBuilder: (context, error, stackTrace) {
                     return Icon(

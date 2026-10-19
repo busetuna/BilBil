@@ -40,7 +40,7 @@ class RewardService extends ChangeNotifier {
     const Reward(
       id: 'first_correct',
       emoji: '🐣',
-      imagePath: 'bilbil-puzzle/Gemini_Generated_Image_mw6k4bmw6k4bmw6k.png',
+      imagePath: 'bilbil-puzzle/bilbil.webp',
       badgeLabel: 'İlk Adım ✨',
       title: 'Bilbil',
       description: 'Bilbil rozetini kazandın!',
@@ -49,7 +49,7 @@ class RewardService extends ChangeNotifier {
     const Reward(
       id: 'five_correct',
       emoji: '👑',
-      imagePath: 'bilbil-puzzle/kral.png',
+      imagePath: 'bilbil-puzzle/kral.webp',
       badgeLabel: 'Kral Bilbil 👑',
       title: 'Kral Bilbil',
       description: 'Kral Bilbil rozetini kazandın!',
@@ -58,7 +58,7 @@ class RewardService extends ChangeNotifier {
     const Reward(
       id: 'ten_correct',
       emoji: '🧙',
-      imagePath: 'bilbil-puzzle/büyücü.png',
+      imagePath: 'bilbil-puzzle/buyucu.webp',
       badgeLabel: 'Büyücü Bilbil 🧙',
       title: 'Büyücü Bilbil',
       description: 'Büyücü Bilbil rozetini kazandın!',
@@ -67,7 +67,7 @@ class RewardService extends ChangeNotifier {
     const Reward(
       id: 'twentyfive_correct',
       emoji: '🎨',
-      imagePath: 'bilbil-puzzle/ressam.png',
+      imagePath: 'bilbil-puzzle/ressam.webp',
       badgeLabel: 'Ressam Bilbil 🎨',
       title: 'Ressam Bilbil',
       description: 'Ressam Bilbil rozetini kazandın!',
@@ -76,7 +76,7 @@ class RewardService extends ChangeNotifier {
     const Reward(
       id: 'fifty_correct',
       emoji: '🦸',
-      imagePath: 'bilbil-puzzle/süperman.png',
+      imagePath: 'bilbil-puzzle/superman.webp',
       badgeLabel: 'Süper Bilbil 🦸',
       title: 'Süper Bilbil',
       description: 'Süper Bilbil rozetini kazandın!',
@@ -85,7 +85,7 @@ class RewardService extends ChangeNotifier {
     const Reward(
       id: 'hundred_correct',
       emoji: '🎤',
-      imagePath: 'bilbil-puzzle/şarkıcı.png',
+      imagePath: 'bilbil-puzzle/sarkici.webp',
       badgeLabel: 'Şarkıcı Bilbil 🎤',
       title: 'Şarkıcı Bilbil',
       description: 'Şarkıcı Bilbil rozetini kazandın!',

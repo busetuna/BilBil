@@ -292,7 +292,7 @@ class _LoginScreenState extends State<LoginScreen>
             ),
             child: ClipOval(
               child: Image.asset(
-                'assets/images/bilbil1.png',
+                'assets/images/bilbil1.webp',
                 fit: BoxFit.cover,
                 errorBuilder: (context, error, stackTrace) {
                   return Icon(

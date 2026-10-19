@@ -237,9 +237,9 @@ class _HomeScreenState extends State<HomeScreen>
               ),
               child: ClipOval(
                 child: Image.asset(
-                  'assets/images/bilbil1.png',
+                  'assets/images/bilbil1.webp',
                   fit: BoxFit.cover,
-                  cacheWidth: 144, // 1036x2048 görsel 48px'lik avatar için
+                  cacheWidth: 144, // 48 px'lik avatar; görsel 640 px (tool/optimize_images.py)
 
                   errorBuilder: (_, __, ___) => Icon(
                     Icons.flutter_dash,
