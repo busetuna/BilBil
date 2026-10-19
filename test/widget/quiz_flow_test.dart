@@ -6,7 +6,16 @@ import 'dart:async';
 import 'dart:io';
 import 'dart:typed_data';
 
+import 'package:app/data/models/quiz_category.dart';
+import 'package:app/domain/entities/user.dart';
+import 'package:app/domain/repositories/auth_repository.dart';
+import 'package:app/domain/usecases/login_usecase.dart';
+import 'package:app/domain/usecases/logout_usecase.dart';
+import 'package:app/domain/usecases/register_usecase.dart';
+import 'package:app/features/learning/presentations/providers/auth_provider.dart';
+import 'package:app/features/learning/presentations/screens/home_screen.dart';
 import 'package:app/features/learning/presentations/screens/quiz_screen.dart';
+import 'package:app/features/parent/tabs/settings_tab.dart';
 import 'package:app/features/learning/presentations/screens/rest_screen.dart';
 import 'package:app/features/learning/presentations/widgets/quiz_image_card.dart';
 import 'package:app/features/learning/presentations/widgets/quiz_mic_button.dart';
@@ -19,6 +28,7 @@ import 'package:app/services/learning/word_progress_service.dart';
 import 'package:app/services/lives/lives_service.dart';
 import 'package:app/services/rewards/reward_service.dart';
 import 'package:app/services/stats/stats_service.dart';
+import 'package:app/services/theme/theme_service.dart';
 import 'package:app/services/tts/voice_service.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -29,6 +39,15 @@ import 'package:hive/hive.dart';
 import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
 import 'package:provider/provider.dart';
+
+/// Ana ekran için: oturum açmış kullanıcı yok, hiçbir çağrı yapılmaz.
+class FakeAuthRepository implements AuthRepository {
+  @override
+  Future<User?> getCurrentUser() async => null;
+
+  @override
+  dynamic noSuchMethod(Invocation invocation) => super.noSuchMethod(invocation);
+}
 
 class FakeVosk extends VoskAsrService {
   void Function(String)? onPartial;
@@ -123,6 +142,7 @@ void main() {
       'lives_box',
       'word_progress',
       'voice_box',
+      'theme_box',
     ]) {
       await Hive.openBox(box, bytes: Uint8List(0)); // bellekte
     }
@@ -154,9 +174,24 @@ void main() {
 
   tearDown(() => Hive.close());
 
-  Future<void> openQuiz(WidgetTester tester) async {
+  Future<void> pumpApp(WidgetTester tester, Widget home) async {
+    final auth = FakeAuthRepository();
+    final theme = ThemeService();
+    await theme.init();
     await tester.pumpWidget(MultiProvider(
       providers: [
+        ChangeNotifierProvider<AuthProvider>(
+          create: (_) => AuthProvider(
+            loginUseCase: LoginUseCase(auth),
+            registerUseCase: RegisterUseCase(auth),
+            logoutUseCase: LogoutUseCase(auth),
+            authRepository: auth,
+            onSignedIn: (_) async {},
+            onSignedOut: () async {},
+            onAccountDeleted: () async {},
+          ),
+        ),
+        ChangeNotifierProvider<ThemeService>.value(value: theme),
         ChangeNotifierProvider<StatsService>.value(value: stats),
         ChangeNotifierProvider<RewardService>.value(value: rewards),
         ChangeNotifierProvider<LivesService>.value(value: lives),
@@ -167,20 +202,27 @@ void main() {
         ChangeNotifierProvider<WhisperAsrService>.value(
             value: WhisperAsrService()),
       ],
-      child: MaterialApp(
-        home: Builder(
-          builder: (context) => Scaffold(
-            body: Center(
-              child: ElevatedButton(
-                onPressed: () => Navigator.push(context,
-                    MaterialPageRoute(builder: (_) => const QuizScreen())),
-                child: const Text('Başla'),
-              ),
+      child: MaterialApp(home: home),
+    ));
+  }
+
+  Future<void> openQuiz(WidgetTester tester, {QuizCategory? category}) async {
+    await pumpApp(
+      tester,
+      Builder(
+        builder: (context) => Scaffold(
+          body: Center(
+            child: ElevatedButton(
+              onPressed: () => Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                      builder: (_) => QuizScreen(category: category))),
+              child: const Text('Başla'),
             ),
           ),
         ),
       ),
-    ));
+    );
     await tester.tap(find.text('Başla'));
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 600));
@@ -555,6 +597,106 @@ void main() {
     }
     expect(stats.totalCorrect, 45);
     expect(lives.lives, LivesService.maxLives);
+    await finish(tester);
+  });
+
+  QuizCategory category(String id) =>
+      QuizCategory.all.firstWhere((c) => c.id == id);
+
+  testWidgets(
+      "kategori quiz'i yalnızca o kategoriden sorar, kelimesi olmayan "
+      "seviyeye çıkmaz", (tester) async {
+    stats.setChildAge(5); // yaş Zor'a izin verir; Şekiller'de yalnızca Kolay
+    final shapes = category('shapes');
+    final images = {for (final i in shapes.items) i.imagePath};
+    await openQuiz(tester, category: shapes);
+    expect(find.text('Şekiller · Kolay'), findsOneWidget);
+
+    for (var i = 0; i < 12; i++) {
+      final collect = find.text('KOLEKSİYONA EKLE'); // ödül kutlaması
+      if (collect.evaluate().isNotEmpty) {
+        await tester.tap(collect);
+        await tester.pump(const Duration(milliseconds: 600));
+      }
+      expect(images, contains(imageOf(tester)), reason: 'soru $i');
+      await say(tester, reveal(tester).correctWord);
+      await nextQuestion(tester);
+    }
+    expect(find.text('Şekiller · Kolay'), findsOneWidget);
+    expect(stats.totalCorrect, 12);
+    await finish(tester);
+  });
+
+  testWidgets(
+      "kategori quiz'i çocuğun kaldığı seviyeyi değiştirmez, öğrendiklerini "
+      "yine saklar", (tester) async {
+    stats.setChildAge(5);
+    stats.recordAnswer(correct: true, difficulty: 2, rlState: {
+      'q': List.filled(3, [0.0, 0.0, 0.0]),
+      'n': List.filled(3, [0, 0, 0]),
+      'level': 2,
+    });
+    await openQuiz(tester, category: category('shapes'));
+    for (var i = 0; i < 4; i++) {
+      await say(tester, reveal(tester).correctWord);
+      await nextQuestion(tester);
+    }
+    final rl = stats.rlAgentState!;
+    expect(rl['level'], 2);
+    expect((rl['n'] as List).expand((r) => r as List).any((n) => n > 0),
+        isTrue);
+    await finish(tester);
+  });
+
+  for (final size in [const Size(360, 640), const Size(800, 600)]) {
+    testWidgets(
+        'ana ekran ${size.width.toInt()}x${size.height.toInt()}: taşma yok; '
+        'kategori kartı o kategoride quiz açar', (tester) async {
+      await tester.binding.setSurfaceSize(size);
+      addTearDown(() => tester.binding.setSurfaceSize(null));
+      await pumpApp(tester, const HomeScreen());
+      await tester.pump();
+      expect(find.text('Ya da bir konu seç'), findsOneWidget);
+
+      await tester.tap(find.byKey(const Key('category-animals')));
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 600));
+      final quiz = tester.widget<QuizScreen>(find.byType(QuizScreen));
+      expect(quiz.category?.id, 'animals');
+      expect(find.text('Hayvanlar · Kolay'), findsOneWidget);
+      await finish(tester);
+    });
+  }
+
+  testWidgets('büyük buton karışık quiz açar', (tester) async {
+    await pumpApp(tester, const HomeScreen());
+    await tester.pump();
+    await tester.tap(find.byKey(const Key('quiz-start')));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 600));
+    expect(tester.widget<QuizScreen>(find.byType(QuizScreen)).category, isNull);
+    expect(find.text('Seviye: Kolay'), findsOneWidget);
+    await finish(tester);
+  });
+
+  testWidgets('ayarlar: yaş yazısı doğru, yaş sınırının üstündeki seviye seçilemez',
+      (tester) async {
+    await tester.binding.setSurfaceSize(const Size(400, 3000));
+    addTearDown(() => tester.binding.setSurfaceSize(null));
+    stats.setChildAge(2);
+    await pumpApp(tester, const Scaffold(body: SettingsTab()));
+    await tester.pump();
+    expect(find.text('2 yaş: Kolay kelimeler (123 kelime).'), findsOneWidget);
+    final segments = tester
+        .widget<SegmentedButton<int>>(find.byWidgetPredicate((w) =>
+            w is SegmentedButton<int> && w.segments.length == 3))
+        .segments;
+    expect(segments.map((s) => s.enabled), [true, false, false]);
+
+    stats.setChildAge(5);
+    await tester.pump();
+    expect(find.text('5 yaş: Kolay, Orta ve Zor kelimeler (243 kelime).'),
+        findsOneWidget);
     await finish(tester);
   });
 }

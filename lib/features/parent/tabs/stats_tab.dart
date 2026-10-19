@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
 import '../../../core/theme/app_colors.dart';
+import '../../../data/models/quiz_category.dart';
 import '../../../services/learning/word_progress_service.dart';
 import '../../../services/stats/stats_service.dart';
 
@@ -270,19 +271,6 @@ class _CategoryBreakdown extends StatelessWidget {
   final StatsService stats;
   const _CategoryBreakdown({required this.stats});
 
-  static const _catNames = {
-    'animals': 'Hayvanlar',
-    'fruits_vegetables': 'Meyve-Sebze',
-    'colors': 'Renkler',
-    'shapes': 'Şekiller',
-    'body_parts': 'Vücut Bölümleri',
-    'clothes': 'Kıyafetler',
-    'daily_objects': 'Günlük Eşyalar',
-    'weather': 'Hava Durumu',
-    'actions': 'Eylemler',
-    'adjectives': 'Basit Sıfatlar',
-  };
-
   @override
   Widget build(BuildContext context) {
     final totals = stats.categoryTotalCounts;
@@ -343,7 +331,7 @@ class _CategoryBreakdown extends StatelessWidget {
       ),
       child: Column(
         children: entries.map((entry) {
-          final name = _catNames[entry.key] ?? entry.key;
+          final name = QuizCategory.nameOf(entry.key);
           final total = entry.value;
           final wrong = wrongs[entry.key] ?? 0;
           final correct = total - wrong;

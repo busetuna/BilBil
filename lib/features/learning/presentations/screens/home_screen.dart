@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
 import '../../../../core/theme/app_colors.dart';
+import '../../../../data/models/quiz_category.dart';
 import '../../../../services/theme/app_theme.dart';
 import '../../../../services/theme/theme_service.dart';
 import '../../../../services/lives/lives_service.dart';
@@ -61,53 +62,66 @@ class _HomeScreenState extends State<HomeScreen>
               // Tema seçici paneli
               _buildThemePickerPanel(),
 
+              // Kısa ekranlarda kategori şeridine yer kalsın diye orta kısım
+              // gerekirse küçülür.
               Expanded(
-                child: Center(
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      // Decorative star (top left)
-                      Align(
-                        alignment: Alignment.centerLeft,
-                        child: Padding(
-                          padding: const EdgeInsets.only(left: 16, bottom: 20),
-                          child: Icon(
-                            Icons.star,
-                            size: 40,
-                            color: AppColors.primary.withOpacity(0.15),
+                child: LayoutBuilder(
+                  builder: (context, box) => FittedBox(
+                    fit: BoxFit.scaleDown,
+                    child: SizedBox(
+                      width: box.maxWidth,
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          // Decorative star (top left)
+                          Align(
+                            alignment: Alignment.centerLeft,
+                            child: Padding(
+                              padding: const EdgeInsets.only(
+                                left: 16,
+                                bottom: 20,
+                              ),
+                              child: Icon(
+                                Icons.star,
+                                size: 40,
+                                color: AppColors.primary.withOpacity(0.15),
+                              ),
+                            ),
                           ),
-                        ),
+
+                          // Big green quiz button
+                          _buildQuizButton(),
+
+                          const SizedBox(height: 32),
+
+                          // Subtext
+                          Text(
+                            'Haydi oynamaya başla!',
+                            style: GoogleFonts.poppins(
+                              fontSize: 14,
+                              color: AppColors.textSecondary,
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+
+                          const SizedBox(height: 20),
+
+                          // Decorative shape (bottom right)
+                          Align(
+                            alignment: Alignment.centerRight,
+                            child: Padding(
+                              padding: const EdgeInsets.only(right: 16),
+                              child: _buildFlowerShape(),
+                            ),
+                          ),
+                        ],
                       ),
-
-                      // Big green quiz button
-                      _buildQuizButton(),
-
-                      const SizedBox(height: 32),
-
-                      // Subtext
-                      Text(
-                        'Haydi oynamaya başla!',
-                        style: GoogleFonts.poppins(
-                          fontSize: 14,
-                          color: AppColors.textSecondary,
-                          fontWeight: FontWeight.w500,
-                        ),
-                      ),
-
-                      const SizedBox(height: 20),
-
-                      // Decorative shape (bottom right)
-                      Align(
-                        alignment: Alignment.centerRight,
-                        child: Padding(
-                          padding: const EdgeInsets.only(right: 16),
-                          child: _buildFlowerShape(),
-                        ),
-                      ),
-                    ],
+                    ),
                   ),
                 ),
               ),
+
+              _buildCategoryStrip(),
             ],
           ),
         ),
@@ -169,8 +183,11 @@ class _HomeScreenState extends State<HomeScreen>
                     ),
                   ],
                 ),
-                child: Icon(Icons.palette_rounded,
-                    size: 20, color: AppColors.primary),
+                child: Icon(
+                  Icons.palette_rounded,
+                  size: 20,
+                  color: AppColors.primary,
+                ),
               ),
             ),
             const SizedBox(width: 8),
@@ -192,8 +209,11 @@ class _HomeScreenState extends State<HomeScreen>
                     ),
                   ],
                 ),
-                child: Icon(Icons.lock_outline_rounded,
-                    size: 20, color: AppColors.primary),
+                child: Icon(
+                  Icons.lock_outline_rounded,
+                  size: 20,
+                  color: AppColors.primary,
+                ),
               ),
             ),
             const SizedBox(width: 10),
@@ -295,7 +315,9 @@ class _HomeScreenState extends State<HomeScreen>
                         : null,
                     boxShadow: [
                       BoxShadow(
-                        color: theme.primary.withOpacity(isSelected ? 0.5 : 0.2),
+                        color: theme.primary.withOpacity(
+                          isSelected ? 0.5 : 0.2,
+                        ),
                         blurRadius: isSelected ? 14 : 6,
                         spreadRadius: isSelected ? 2 : 0,
                       ),
@@ -303,10 +325,15 @@ class _HomeScreenState extends State<HomeScreen>
                   ),
                   child: Center(
                     child: isSelected
-                        ? const Icon(Icons.check_rounded,
-                            color: Colors.white, size: 18)
-                        : Text(theme.emoji,
-                            style: const TextStyle(fontSize: 16)),
+                        ? const Icon(
+                            Icons.check_rounded,
+                            color: Colors.white,
+                            size: 18,
+                          )
+                        : Text(
+                            theme.emoji,
+                            style: const TextStyle(fontSize: 16),
+                          ),
                   ),
                 ),
               );
@@ -317,25 +344,60 @@ class _HomeScreenState extends State<HomeScreen>
     );
   }
 
+  /// [category] null: karışık quiz (tüm kategoriler).
+  void _startQuiz({QuizCategory? category}) {
+    // Canlar bitmiş ve mola sürüyorsa önce mola ekranı.
+    final playable = context.read<LivesService>().ensurePlayable();
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) =>
+            playable ? QuizScreen(category: category) : const RestScreen(),
+      ),
+    );
+  }
+
+  /// Büyük buton karışık oynatır; çocuk isterse buradan bir konu seçer.
+  Widget _buildCategoryStrip() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          'Ya da bir konu seç',
+          style: GoogleFonts.poppins(
+            fontSize: 14,
+            fontWeight: FontWeight.w600,
+            color: AppColors.textSecondary,
+          ),
+        ),
+        const SizedBox(height: 8),
+        SizedBox(
+          height: 112,
+          child: ListView.separated(
+            scrollDirection: Axis.horizontal,
+            itemCount: QuizCategory.all.length,
+            separatorBuilder: (_, __) => const SizedBox(width: 10),
+            itemBuilder: (_, i) {
+              final category = QuizCategory.all[i];
+              return _CategoryTile(
+                category: category,
+                onTap: () => _startQuiz(category: category),
+              );
+            },
+          ),
+        ),
+      ],
+    );
+  }
+
   Widget _buildQuizButton() {
     return GestureDetector(
-      onTap: () {
-        // Canlar bitmiş ve mola sürüyorsa önce mola ekranı.
-        final playable = context.read<LivesService>().ensurePlayable();
-        Navigator.push(
-          context,
-          MaterialPageRoute(
-            builder: (_) => playable ? const QuizScreen() : const RestScreen(),
-          ),
-        );
-      },
+      key: const Key('quiz-start'),
+      onTap: _startQuiz,
       child: AnimatedBuilder(
         animation: _pulseAnimation,
         builder: (context, child) {
-          return Transform.scale(
-            scale: _pulseAnimation.value,
-            child: child,
-          );
+          return Transform.scale(scale: _pulseAnimation.value, child: child);
         },
         child: Container(
           width: 240,
@@ -345,10 +407,7 @@ class _HomeScreenState extends State<HomeScreen>
             gradient: LinearGradient(
               begin: Alignment.topLeft,
               end: Alignment.bottomRight,
-              colors: [
-                AppColors.primaryLight,
-                AppColors.primary,
-              ],
+              colors: [AppColors.primaryLight, AppColors.primary],
             ),
             boxShadow: [
               BoxShadow(
@@ -401,8 +460,69 @@ class _HomeScreenState extends State<HomeScreen>
   Widget _buildFlowerShape() {
     return CustomPaint(
       size: const Size(50, 50),
-      painter: _FlowerPainter(
-        color: AppColors.secondary.withOpacity(0.15),
+      painter: _FlowerPainter(color: AppColors.secondary.withOpacity(0.15)),
+    );
+  }
+}
+
+class _CategoryTile extends StatelessWidget {
+  final QuizCategory category;
+  final VoidCallback onTap;
+
+  const _CategoryTile({required this.category, required this.onTap});
+
+  @override
+  Widget build(BuildContext context) {
+    final color =
+        AppColors.categoryColors[category.id] ?? AppColors.primaryLight;
+    return GestureDetector(
+      key: Key('category-${category.id}'),
+      onTap: onTap,
+      child: Container(
+        width: 88,
+        padding: const EdgeInsets.fromLTRB(6, 8, 6, 6),
+        decoration: BoxDecoration(
+          color: color.withValues(alpha: 0.35),
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(color: color, width: 2),
+        ),
+        child: Column(
+          children: [
+            Container(
+              width: 60,
+              height: 60,
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(14),
+              ),
+              clipBehavior: Clip.antiAlias,
+              child: Image.asset(
+                category.cover.imagePath,
+                fit: BoxFit.cover,
+                cacheWidth: 180,
+                errorBuilder: (_, __, ___) =>
+                    Icon(Icons.image_rounded, color: color),
+              ),
+            ),
+            const SizedBox(height: 4),
+            Expanded(
+              child: Center(
+                child: Text(
+                  category.name,
+                  textAlign: TextAlign.center,
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                  style: GoogleFonts.fredoka(
+                    fontSize: 12,
+                    height: 1.1,
+                    fontWeight: FontWeight.w600,
+                    color: AppColors.textPrimary,
+                  ),
+                ),
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }

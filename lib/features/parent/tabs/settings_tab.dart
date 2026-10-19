@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../../../core/app_links.dart';
 import '../../../core/theme/app_colors.dart';
+import '../../../data/models/quiz_item.dart';
 import '../../../services/stats/stats_service.dart';
 import '../../../services/tts/voice_service.dart';
 import '../../learning/presentations/providers/auth_provider.dart';
@@ -252,7 +253,7 @@ class _SettingsTabState extends State<SettingsTab> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  'Yaşa göre içerik kategorileri ve maksimum zorluk seviyesi otomatik ayarlanır.',
+                  'Yaş, en yüksek zorluk seviyesini belirler. Tüm konular her yaşta açık; zorluk çocuğun cevaplarına göre kendiliğinden ayarlanır.',
                   style: GoogleFonts.poppins(
                     fontSize: 13,
                     color: AppColors.textSecondary,
@@ -285,16 +286,7 @@ class _SettingsTabState extends State<SettingsTab> {
                 ),
                 const SizedBox(height: 10),
                 Text(
-                  () {
-                    switch (stats.childAge) {
-                      case 2:
-                        return '2 yaş: Yalnızca Kolay kategoriler (hayvanlar, renkler, şekiller).';
-                      case 3:
-                        return '3 yaş: Kolay + Orta kategoriler (+ meyve-sebze, vücut bölümleri, kıyafetler).';
-                      default:
-                        return '${stats.childAge} yaş: Tüm kategoriler ve zorluk seviyeleri açık.';
-                    }
-                  }(),
+                  _ageSummary(stats.childAge, stats.maxDifficultyForAge),
                   style: GoogleFonts.poppins(
                     fontSize: 11,
                     color: AppColors.textSecondary,
@@ -316,7 +308,9 @@ class _SettingsTabState extends State<SettingsTab> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  'Quiz başlarken hangi zorluktan başlansın?',
+                  'İlk quiz bu seviyeden başlar. Sonra Bilbil seviyeyi çocuğun '
+                  'cevaplarına göre ayarlar ve kaldığı yeri hatırlar. Burayı '
+                  'değiştirirsen bir sonraki quiz yine buradan başlar.',
                   style: GoogleFonts.poppins(
                     fontSize: 13,
                     color: AppColors.textSecondary,
@@ -328,13 +322,20 @@ class _SettingsTabState extends State<SettingsTab> {
                     3,
                     (i) => ButtonSegment(
                       value: i,
+                      // Yaş sınırının üstü seçilemez (quiz zaten kırpıyordu).
+                      enabled: i <= stats.maxDifficultyForAge,
                       label: Text(
                         diffLabels[i],
                         style: GoogleFonts.poppins(fontSize: 13),
                       ),
                     ),
                   ),
-                  selected: {stats.startingDifficulty},
+                  selected: {
+                    stats.startingDifficulty.clamp(
+                      0,
+                      stats.maxDifficultyForAge,
+                    ),
+                  },
                   onSelectionChanged: (s) =>
                       stats.setStartingDifficulty(s.first),
                   style: ButtonStyle(
@@ -342,11 +343,17 @@ class _SettingsTabState extends State<SettingsTab> {
                       if (states.contains(WidgetState.selected)) {
                         return AppColors.primary;
                       }
+                      if (states.contains(WidgetState.disabled)) {
+                        return const Color(0xFFF2F2F2);
+                      }
                       return Colors.white;
                     }),
                     foregroundColor: WidgetStateProperty.resolveWith((states) {
                       if (states.contains(WidgetState.selected)) {
                         return Colors.white;
+                      }
+                      if (states.contains(WidgetState.disabled)) {
+                        return AppColors.textSecondary.withValues(alpha: 0.5);
                       }
                       return AppColors.textPrimary;
                     }),
@@ -686,4 +693,11 @@ class _SectionHeader extends StatelessWidget {
       color: AppColors.textPrimary,
     ),
   );
+}
+
+/// Ayarlardaki yaş açıklaması: hangi seviyeler açık, kaç kelime.
+String _ageSummary(int age, int maxDifficulty) {
+  const levels = ['Kolay', 'Kolay ve Orta', 'Kolay, Orta ve Zor'];
+  final words = QuizData.all.where((i) => i.difficulty <= maxDifficulty).length;
+  return '$age yaş: ${levels[maxDifficulty]} kelimeler ($words kelime).';
 }

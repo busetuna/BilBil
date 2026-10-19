@@ -7,6 +7,9 @@ import '../../../../services/lives/lives_service.dart';
 class QuizTopBar extends StatelessWidget {
   final int difficulty;
   final String difficultyLabel;
+
+  /// Kategori quiz'inde kategorinin adı; karışık quiz'de null.
+  final String? categoryName;
   final int stars;
   final int currentIndex;
   final int totalItems;
@@ -16,6 +19,7 @@ class QuizTopBar extends StatelessWidget {
     super.key,
     required this.difficulty,
     required this.difficultyLabel,
+    this.categoryName,
     required this.stars,
     required this.currentIndex,
     required this.totalItems,
@@ -48,11 +52,16 @@ class QuizTopBar extends StatelessWidget {
                     borderRadius: BorderRadius.circular(12),
                     boxShadow: [
                       BoxShadow(
-                          color: Colors.black.withOpacity(0.08), blurRadius: 8)
+                        color: Colors.black.withOpacity(0.08),
+                        blurRadius: 8,
+                      ),
                     ],
                   ),
-                  child: Icon(Icons.arrow_back_ios_new_rounded,
-                      size: 18, color: AppColors.textPrimary),
+                  child: Icon(
+                    Icons.arrow_back_ios_new_rounded,
+                    size: 18,
+                    color: AppColors.textPrimary,
+                  ),
                 ),
               ),
               const Spacer(),
@@ -75,22 +84,27 @@ class QuizTopBar extends StatelessWidget {
               ),
               const Spacer(),
               Container(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 12,
+                  vertical: 6,
+                ),
                 decoration: BoxDecoration(
                   color: Colors.white,
                   borderRadius: BorderRadius.circular(12),
                   boxShadow: [
                     BoxShadow(
-                        color: Colors.black.withOpacity(0.08), blurRadius: 8)
+                      color: Colors.black.withOpacity(0.08),
+                      blurRadius: 8,
+                    ),
                   ],
                 ),
                 child: Text(
                   '${currentIndex + 1}/$totalItems',
                   style: GoogleFonts.poppins(
-                      fontSize: 13,
-                      fontWeight: FontWeight.w600,
-                      color: AppColors.textSecondary),
+                    fontSize: 13,
+                    fontWeight: FontWeight.w600,
+                    color: AppColors.textSecondary,
+                  ),
                 ),
               ),
             ],
@@ -99,27 +113,41 @@ class QuizTopBar extends StatelessWidget {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Container(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 10, vertical: 3),
-                decoration: BoxDecoration(
-                  color: diffColor.withOpacity(0.15),
-                  borderRadius: BorderRadius.circular(10),
-                  border: Border.all(color: diffColor.withOpacity(0.4)),
-                ),
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Icon(Icons.auto_graph_rounded, size: 13, color: diffColor),
-                    const SizedBox(width: 4),
-                    Text(
-                      'Seviye: $difficultyLabel',
-                      style: GoogleFonts.poppins(
-                          fontSize: 11,
-                          fontWeight: FontWeight.w600,
-                          color: diffColor),
-                    ),
-                  ],
+              Flexible(
+                child: Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 10,
+                    vertical: 3,
+                  ),
+                  decoration: BoxDecoration(
+                    color: diffColor.withOpacity(0.15),
+                    borderRadius: BorderRadius.circular(10),
+                    border: Border.all(color: diffColor.withOpacity(0.4)),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(
+                        Icons.auto_graph_rounded,
+                        size: 13,
+                        color: diffColor,
+                      ),
+                      const SizedBox(width: 4),
+                      Flexible(
+                        child: Text(
+                          categoryName == null
+                              ? 'Seviye: $difficultyLabel'
+                              : '$categoryName · $difficultyLabel',
+                          overflow: TextOverflow.ellipsis,
+                          style: GoogleFonts.poppins(
+                            fontSize: 11,
+                            fontWeight: FontWeight.w600,
+                            color: diffColor,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
               ),
               Consumer<LivesService>(

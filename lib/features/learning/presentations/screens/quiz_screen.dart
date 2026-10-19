@@ -6,6 +6,7 @@ import 'package:provider/provider.dart';
 import 'package:permission_handler/permission_handler.dart';
 
 import '../../../../core/theme/app_colors.dart';
+import '../../../../data/models/quiz_category.dart';
 import '../../../../data/models/quiz_item.dart';
 import '../../../../services/rewards/reward_service.dart';
 import '../../../../services/rl_agent/rl_agent.dart';
@@ -29,7 +30,10 @@ import '../widgets/quiz_mic_button.dart';
 import '../widgets/asr_status_widget.dart';
 
 class QuizScreen extends StatefulWidget {
-  const QuizScreen({super.key});
+  /// Ana ekranda seçilen kategori; null = karışık (tüm kategoriler).
+  final QuizCategory? category;
+
+  const QuizScreen({super.key, this.category});
 
   @override
   State<QuizScreen> createState() => _QuizScreenState();
@@ -97,7 +101,7 @@ class _QuizScreenState extends State<QuizScreen> with TickerProviderStateMixin {
   int _questionNumber = 0;
 
   List<QuizItem> _buildPool(int diff) => LearningScheduler.order(
-    QuizData.byDifficulty(diff),
+    widget.category?.itemsAt(diff) ?? QuizData.byDifficulty(diff),
     (item) => LearningScheduler.weightOf(_progress.boxOf(item.word)),
     _rng,
   );
@@ -147,7 +151,11 @@ class _QuizScreenState extends State<QuizScreen> with TickerProviderStateMixin {
     Provider.of<AdService>(context, listen: false).preloadInterstitial();
     if (!_servicesInitialized) {
       _servicesInitialized = true;
-      final maxDiff = _statsService.maxDifficultyForAge;
+      // Kategoride kelimesi olmayan seviyeye çıkılmaz (bkz. maxDifficulty).
+      final maxDiff = min(
+        _statsService.maxDifficultyForAge,
+        widget.category?.maxDifficulty ?? 2,
+      );
       final startDiff = _statsService.startingDifficulty.clamp(0, maxDiff);
       // Önceki quiz'lerde öğrenilenler ve kalınan seviyeyle başlar.
       _rlAgent = RLAgent(
@@ -156,9 +164,7 @@ class _QuizScreenState extends State<QuizScreen> with TickerProviderStateMixin {
         maxDifficulty: maxDiff,
         saved: _statsService.rlAgentState,
       );
-      _pools = {
-        for (var i = 0; i < RLAgent.configs.length; i++) i: _buildPool(i),
-      };
+      _pools = {for (var i = 0; i <= maxDiff; i++) i: _buildPool(i)};
       _activeDifficulty = _rlAgent.currentDifficulty;
       _currentItem = _items[0];
       _initTts(); // _rlAgent'a ihtiyaç duyar
@@ -421,6 +427,19 @@ class _QuizScreenState extends State<QuizScreen> with TickerProviderStateMixin {
     return end.difference(start).inMilliseconds / 1000.0;
   }
 
+  /// Ajanın öğrendikleri her quiz'de saklanır. Kategori quiz'i ise
+  /// çocuğun kaldığı seviyeyi değiştirmez: seviyesi kategoriye göre
+  /// kısıtlı olabilir (ör. Şekiller'de yalnızca Kolay), Zor'daki çocuk
+  /// sonraki karışık quiz'e Kolay'dan başlamasın.
+  Map<String, dynamic> _rlStateToSave() {
+    final state = _rlAgent.toJson();
+    if (widget.category == null) return state;
+    final level = _statsService.rlAgentState?['level'];
+    return level == null
+        ? (state..remove('level'))
+        : {...state, 'level': level};
+  }
+
   void _updateRlAgent(bool correct, double responseTimeSec) {
     final diff = _rlAgent.currentDifficulty;
     _rlAgent.processAnswer(
@@ -432,7 +451,7 @@ class _QuizScreenState extends State<QuizScreen> with TickerProviderStateMixin {
     _statsService.recordAnswer(
       correct: correct,
       difficulty: diff,
-      rlState: _rlAgent.toJson(),
+      rlState: _rlStateToSave(),
     );
     // Yeni zorluk _nextItem'da uygulanır; ekrandaki soru burada değişmez.
     if (!correct) _livesService.loseLife();
@@ -622,6 +641,7 @@ class _QuizScreenState extends State<QuizScreen> with TickerProviderStateMixin {
               QuizTopBar(
                 difficulty: _activeDifficulty,
                 difficultyLabel: RLAgent.configs[_activeDifficulty].label,
+                categoryName: widget.category?.name,
                 stars: _stars,
                 currentIndex: max(_currentIndex, 0),
                 totalItems: _items.length,
