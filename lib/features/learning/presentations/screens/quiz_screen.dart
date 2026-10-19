@@ -222,7 +222,9 @@ class _QuizScreenState extends State<QuizScreen> with TickerProviderStateMixin {
     final word = _currentItem.word;
     await _voice.stop();
     await _voice.speak(
-      together ? 'Hadi birlikte söyleyelim: $word!' : '$_lead... $word!',
+      together
+          ? VoiceService.together(word, lead: _lead)
+          : VoiceService.hint(word, lead: _lead),
       rate: VoiceService.wordRate,
     );
   }
@@ -511,7 +513,7 @@ class _QuizScreenState extends State<QuizScreen> with TickerProviderStateMixin {
       if (_statsService.childAge <= 3) {
         _giveHint(together: true); // küçükler için: kelimeyi birlikte söyle
       } else {
-        _speak('Seni duyamadım! Bir daha söyler misin?');
+        _speak(VoiceService.notHeard);
       }
       return; // aynı soru; çocuk mikrofona tekrar dokunur
     }
@@ -526,7 +528,7 @@ class _QuizScreenState extends State<QuizScreen> with TickerProviderStateMixin {
     _wordRevealController
       ..reset()
       ..forward();
-    _speak('$_lead ${_currentItem.word}! Hadi sıradakine geçelim!');
+    _speak(VoiceService.skip(_currentItem.word, lead: _lead));
     _scheduleNextOrRest();
   }
 

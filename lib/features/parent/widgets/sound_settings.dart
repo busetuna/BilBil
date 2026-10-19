@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 
 import '../../../core/theme/app_colors.dart';
 import '../../../services/sound/sound_service.dart';
+import '../../../services/tts/voice_clips.dart';
 import '../../../services/tts/voice_service.dart';
 
 // Ebeveyn ayarları ve geliştirici ses laboratuvarı aynı bileşenleri kullanır.
@@ -50,8 +51,9 @@ class SoundSettings extends StatelessWidget {
   }
 }
 
-/// Ses seçimi, ton ayarı ve "Dinle". Sesler telefonun Türkçe sentetik
-/// sesleridir; isimleri anlamsız olduğu için harfle gösterilir.
+/// Ses seçimi, ton ayarı ve "Dinle". Varsayılan Bilbil'in kayıtlı sesidir;
+/// diğerleri telefonun Türkçe sentetik sesleridir (isimleri anlamsız olduğu
+/// için harfle gösterilir) ve ton ayarı yalnızca onlar içindir.
 class VoiceSettings extends StatefulWidget {
   const VoiceSettings({super.key});
 
@@ -60,6 +62,7 @@ class VoiceSettings extends StatefulWidget {
 }
 
 class _VoiceSettingsState extends State<VoiceSettings> {
+  static const _bilbil = '__bilbil__'; // kayıtlı ses
   double? _pitch; // kaydırılırken yerel değer
 
   @override
@@ -78,7 +81,9 @@ class _VoiceSettingsState extends State<VoiceSettings> {
   Widget build(BuildContext context) {
     final voice = context.watch<VoiceService>();
     final voices = voice.voices;
-    final selected = voices.any((v) => v.name == voice.voiceName)
+    final selected = voice.useRecorded
+        ? _bilbil
+        : voices.any((v) => v.name == voice.voiceName)
         ? voice.voiceName
         : null;
     final textStyle = GoogleFonts.poppins(fontSize: 13);
@@ -106,9 +111,14 @@ class _VoiceSettingsState extends State<VoiceSettings> {
             ),
           ),
           items: [
+            if (voice.hasRecordedVoice)
+              DropdownMenuItem(
+                value: _bilbil,
+                child: Text('Bilbil (önerilen)', style: textStyle),
+              ),
             DropdownMenuItem(
               value: null,
-              child: Text('Otomatik (telefonun sesi)', style: textStyle),
+              child: Text('Telefonun sesi (otomatik)', style: textStyle),
             ),
             for (final (i, v) in voices.indexed)
               DropdownMenuItem(
@@ -117,33 +127,38 @@ class _VoiceSettingsState extends State<VoiceSettings> {
               ),
           ],
           onChanged: (name) async {
-            await voice.setVoice(name);
+            if (name == _bilbil) {
+              await voice.setUseRecorded(true);
+            } else {
+              await voice.setVoice(name);
+            }
             await voice.preview();
           },
         ),
         const SizedBox(height: 12),
-        Row(
-          children: [
-            Text('Sakin', style: textStyle),
-            Expanded(
-              child: Slider(
-                key: const Key('pitch-slider'),
-                min: VoiceService.minPitch,
-                max: VoiceService.maxPitch,
-                divisions: 8,
-                value: _pitch ?? voice.pitch,
-                activeColor: AppColors.primary,
-                onChanged: (p) => setState(() => _pitch = p),
-                onChangeEnd: (p) async {
-                  await voice.setPitch(p);
-                  setState(() => _pitch = null);
-                  await voice.preview();
-                },
+        if (!voice.useRecorded)
+          Row(
+            children: [
+              Text('Sakin', style: textStyle),
+              Expanded(
+                child: Slider(
+                  key: const Key('pitch-slider'),
+                  min: VoiceService.minPitch,
+                  max: VoiceService.maxPitch,
+                  divisions: 8,
+                  value: _pitch ?? voice.pitch,
+                  activeColor: AppColors.primary,
+                  onChanged: (p) => setState(() => _pitch = p),
+                  onChangeEnd: (p) async {
+                    await voice.setPitch(p);
+                    setState(() => _pitch = null);
+                    await voice.preview();
+                  },
+                ),
               ),
-            ),
-            Text('Neşeli', style: textStyle),
-          ],
-        ),
+              Text('Neşeli', style: textStyle),
+            ],
+          ),
         SizedBox(
           width: double.infinity,
           child: OutlinedButton.icon(
@@ -166,7 +181,17 @@ class _VoiceSettingsState extends State<VoiceSettings> {
             ),
           ),
         ),
-        if (voices.isEmpty) ...[
+        if (voice.useRecorded) ...[
+          const SizedBox(height: 8),
+          Text(
+            VoiceClips.credit,
+            style: GoogleFonts.poppins(
+              fontSize: 10,
+              color: AppColors.textSecondary,
+            ),
+          ),
+        ],
+        if (voices.isEmpty && !voice.useRecorded) ...[
           const SizedBox(height: 8),
           Text(
             'Telefonda Türkçe ses bulunamadı; varsayılan ses kullanılıyor.',

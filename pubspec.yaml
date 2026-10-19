@@ -81,4 +81,6 @@ flutter:
     - assets/images/zor/
     - assets/sounds/feedback/
     - assets/sounds/backgrounds/
+    - assets/voice/
+    - assets/voice/clips/
     - bilbil-puzzle/

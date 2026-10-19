@@ -3,7 +3,6 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
 
 import '../../core/theme/app_colors.dart';
-import '../../services/rl_agent/rl_agent.dart';
 import '../../services/sound/sound_service.dart';
 import '../../services/tts/voice_service.dart';
 import '../parent/widgets/sound_settings.dart';
@@ -69,14 +68,10 @@ class _SoundLabScreenState extends State<SoundLabScreen> {
         VoiceService.cheerfulRate,
       ),
       ('Yanlış', _voice.tryAgain('elma'), VoiceService.cheerfulRate),
-      ('İpucu', 'Bu bir... zürafa!', VoiceService.wordRate),
-      (
-        'Duyamadım',
-        'Seni duyamadım! Bir daha söyler misin?',
-        VoiceService.cheerfulRate,
-      ),
-      for (final c in RLAgent.configs)
-        ('${c.label} hız', 'Harika! Bu bir kaplumbağa!', c.ttsRate),
+      ('İpucu', VoiceService.hint('zürafa'), VoiceService.wordRate),
+      ('Birlikte', VoiceService.together('köpek'), VoiceService.wordRate),
+      ('Duyamadım', VoiceService.notHeard, VoiceService.cheerfulRate),
+      ('Geçelim', VoiceService.skip('balon'), VoiceService.cheerfulRate),
     ];
 
     return Scaffold(
