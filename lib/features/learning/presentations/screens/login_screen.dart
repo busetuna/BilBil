@@ -1,8 +1,10 @@
 import 'package:app/features/learning/presentations/screens/register_screen.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
 import '../../../../core/theme/app_colors.dart';
+import '../../../debug/sound_lab_screen.dart';
 import '../providers/auth_provider.dart';
 import '../screens/forgot_password_screen.dart'; // En üste ekleyin
 import 'main_navigation.dart';
@@ -265,7 +267,16 @@ class _LoginScreenState extends State<LoginScreen>
       builder: (context, double value, child) {
         return Transform.translate(
           offset: Offset(0, value),
-          child: Container(
+          // Geliştirici: Bilbil'e uzun basınca ses laboratuvarı (debug).
+          child: GestureDetector(
+            key: const Key('sound-lab-entry'),
+            onLongPress: kDebugMode
+                ? () => Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (_) => const SoundLabScreen()),
+                    )
+                : null,
+            child: Container(
             width: 200,
             height: 200,
             decoration: BoxDecoration(
@@ -292,6 +303,7 @@ class _LoginScreenState extends State<LoginScreen>
                 },
               ),
             ),
+          ),
           ),
         );
       },

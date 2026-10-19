@@ -16,6 +16,7 @@ import '../../../../services/ads/ad_service.dart';
 import '../../../../services/asr/quiz_grammar.dart';
 import '../../../../services/learning/learning_scheduler.dart';
 import '../../../../services/learning/word_progress_service.dart';
+import '../../../../services/sound/sound_service.dart';
 import '../../../../services/tts/voice_service.dart';
 import '../../../../services/asr/vosk_asr_service.dart';
 import '../../../../services/asr/whisper_asr_service.dart';
@@ -55,6 +56,7 @@ class _QuizScreenState extends State<QuizScreen> with TickerProviderStateMixin {
 
   // ── Servisler ───────────────────────────────────────────────────────────────
   late VoiceService _voice;
+  late SoundService _sound;
   late VoskAsrService _vosk;
   late WhisperAsrService _whisper;
   late RLAgent _rlAgent;
@@ -144,6 +146,7 @@ class _QuizScreenState extends State<QuizScreen> with TickerProviderStateMixin {
     _statsService = Provider.of<StatsService>(context, listen: false);
     _livesService = Provider.of<LivesService>(context, listen: false);
     _voice = Provider.of<VoiceService>(context, listen: false);
+    _sound = Provider.of<SoundService>(context, listen: false);
     _progress = Provider.of<WordProgressService>(context, listen: false);
     _vosk = Provider.of<VoskAsrService>(context, listen: false);
     _whisper = Provider.of<WhisperAsrService>(context, listen: false);
@@ -168,6 +171,7 @@ class _QuizScreenState extends State<QuizScreen> with TickerProviderStateMixin {
       _activeDifficulty = _rlAgent.currentDifficulty;
       _currentItem = _items[0];
       _initTts(); // _rlAgent'a ihtiyaç duyar
+      _sound.startMusic(); // ebeveyn açtıysa
       if (_statsService.asrEngine == 'platform') {
         _whisper.initialize();
       } else {
@@ -179,6 +183,7 @@ class _QuizScreenState extends State<QuizScreen> with TickerProviderStateMixin {
   @override
   void dispose() {
     _voice.stop();
+    _sound.stopMusic();
     _silenceTimer?.cancel();
     if (_isListening) _stopAsr();
     _micPulseController.dispose();
@@ -291,8 +296,10 @@ class _QuizScreenState extends State<QuizScreen> with TickerProviderStateMixin {
     }
     if (!mounted || _isListening || _hasSpoken) return;
 
-    // Bilbil konuşurken mikrofon açılırsa kendi sesi cevap sanılmasın.
+    // Bilbil konuşurken mikrofon açılırsa kendi sesi cevap sanılmasın;
+    // müzik de dinleme boyunca susar (cevap bitince _listeningDone sürdürür).
     await _voice.stop();
+    await _sound.suspendMusic('mic');
     if (!mounted) return;
 
     setState(() {
@@ -357,9 +364,13 @@ class _QuizScreenState extends State<QuizScreen> with TickerProviderStateMixin {
     }
   }
 
+  /// Dinleme bitti (cevap ya da "duyamadım"): müzik sürebilir.
+  void _listeningDone() => _sound.resumeMusic('mic');
+
   void _handleFinalResult(List<String> candidates) {
     _stopAsr();
     _micPulseController.stop();
+    _listeningDone();
 
     final expected = _currentItem.word;
     // Tahminlerden biri tutarsa doğru; ekranda tutan (yoksa en iyi) tahmin.
@@ -395,16 +406,21 @@ class _QuizScreenState extends State<QuizScreen> with TickerProviderStateMixin {
       ..reset()
       ..forward();
 
+    // Efekt hemen, Bilbil'in sözü yarım saniye sonra (bkz. _speak).
     if (correct) {
+      _sound.play(SoundEffect.correct);
       _speak(_voice.praise(expected, hinted: _hintUsed, lead: _lead));
       _rewardService.addCorrect().then((newRewards) {
         if (mounted && newRewards.isNotEmpty) {
           Future.delayed(const Duration(milliseconds: 800), () {
-            if (mounted) showRewardCelebration(context, newRewards.first);
+            if (!mounted) return;
+            _sound.play(SoundEffect.reward);
+            showRewardCelebration(context, newRewards.first);
           });
         }
       });
     } else {
+      _sound.play(SoundEffect.wrong);
       _speak(_voice.tryAgain(expected, lead: _lead));
     }
 
@@ -475,6 +491,7 @@ class _QuizScreenState extends State<QuizScreen> with TickerProviderStateMixin {
   void _leaveQuiz() {
     if (_leaving) return;
     _leaving = true;
+    _sound.stopMusic(); // reklamdan önce
     final ads = context.read<AdService>();
     Navigator.pop(context);
     ads.showQuizEndAd(answersThisSession: _answeredThisSession);
@@ -483,6 +500,7 @@ class _QuizScreenState extends State<QuizScreen> with TickerProviderStateMixin {
   /// Hiçbir şey duyulmadı. Bu çocuğun hatası değil (sessiz kaldı, mikrofon
   /// alamadı ya da tanıma kaçırdı): can, istatistik ve RL etkilenmez.
   void _handleNotHeard() {
+    _listeningDone();
     if (!mounted || _hasSpoken) return;
     _notHeardCount++;
     if (_notHeardCount < _maxNotHeard) {
@@ -516,10 +534,12 @@ class _QuizScreenState extends State<QuizScreen> with TickerProviderStateMixin {
     if (_livesService.lives == 0) {
       Future.delayed(const Duration(seconds: 2), () async {
         if (!mounted) return;
+        _sound.suspendMusic('rest'); // molada müzik yok (reklam da var)
         await Navigator.push(
           context,
           MaterialPageRoute(builder: (_) => const RestScreen()),
         );
+        _sound.resumeMusic('rest');
         if (!mounted) return;
         // Mola bitmeden geri dönüldüyse 0 canla oynanmasın.
         if (_livesService.hasLives) {
