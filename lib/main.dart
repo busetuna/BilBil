@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_auth/firebase_auth.dart' as fb;
@@ -20,12 +21,17 @@ import 'services/learning/word_progress_service.dart';
 import 'services/sync/account_sync.dart';
 import 'services/theme/theme_service.dart';
 import 'services/sound/sound_service.dart';
+import 'services/tts/voice_clips.dart';
 import 'services/tts/voice_service.dart';
 import 'services/asr/vosk_asr_service.dart';
 import 'services/asr/whisper_asr_service.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  // Bilbil'in sesi CC BY 4.0: kaynak gösterimi lisans listesinde de dursun.
+  LicenseRegistry.addLicense(() async* {
+    yield const LicenseEntryWithLineBreaks(['Bilbil sesi'], VoiceClips.credit);
+  });
 
   await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
 

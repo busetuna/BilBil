@@ -33,6 +33,7 @@ import 'package:app/services/rewards/reward_service.dart';
 import 'package:app/services/stats/stats_service.dart';
 import 'package:app/services/theme/theme_service.dart';
 import 'package:app/services/sound/sound_service.dart';
+import 'package:app/services/tts/voice_clips.dart';
 import 'package:app/services/tts/voice_service.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -90,6 +91,22 @@ class FakeVosk extends VoskAsrService {
 }
 
 /// Reklam SDK'sı yerine: testin belirlediği sonucu döner.
+/// Bilbil'in kayıtlı sesini çalmaz; söylenen cümleyi listeye yazar.
+class FakeClipPlayer implements ClipPlayer {
+  final List<String> spoken;
+  final assets = <List<String>>[];
+  FakeClipPlayer(this.spoken);
+
+  @override
+  Future<void> play(String text, List<String> parts) async {
+    spoken.add(text);
+    assets.add(parts);
+  }
+
+  @override
+  Future<void> stop() async {}
+}
+
 /// Çalınan efektleri ve müzik olaylarını sırayla kaydeder.
 class FakeSound implements SoundBackend {
   final calls = <String>[];
@@ -149,6 +166,7 @@ void main() {
   late LivesService lives;
   late WordProgressService progress;
   late VoiceService voice;
+  late FakeClipPlayer clipPlayer;
   late FakeSound soundBackend;
   late SoundService sound;
   late FakeVosk vosk;
@@ -186,7 +204,8 @@ void main() {
     await lives.init();
     progress = WordProgressService();
     await progress.init();
-    voice = VoiceService();
+    clipPlayer = FakeClipPlayer(spoken);
+    voice = VoiceService(clipPlayer: clipPlayer);
     await voice.init();
     soundBackend = FakeSound();
     sound = SoundService(backend: soundBackend);
@@ -937,4 +956,17 @@ void main() {
       await finish(tester);
     },
   );
+
+  testWidgets('Bilbil kayıtlı sesiyle konuşur (telefonun sesi değil)', (
+    tester,
+  ) async {
+    await openQuiz(tester);
+    final word = reveal(tester).correctWord;
+    await say(tester, word);
+    await tester.pump(const Duration(milliseconds: 600)); // övgü 0.5 sn sonra
+    expect(spoken.last, contains(word));
+    expect(clipPlayer.assets.last, isNotEmpty);
+    expect(clipPlayer.assets.last, everyElement(startsWith('voice/clips/')));
+    await finish(tester);
+  });
 }

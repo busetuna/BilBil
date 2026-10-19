@@ -26,7 +26,7 @@ class AudioplayersBackend implements SoundBackend {
   // Ses odağı istenmez: efekt ve müzik, Bilbil'in konuşmasını (TTS) ve
   // diğer uygulamaları durdurmaz, onlarla karışır. iOS'ta kategori
   // playAndRecord: mikrofon kaydıyla aynı oturumda çalışabilsin.
-  static final _context = AudioContext(
+  static final audioContext = AudioContext(
     android: const AudioContextAndroid(
       contentType: AndroidContentType.sonification,
       usageType: AndroidUsageType.game,
@@ -46,7 +46,7 @@ class AudioplayersBackend implements SoundBackend {
 
   static Future<AudioPlayer> _create(PlayerMode mode) async {
     final p = AudioPlayer();
-    await p.setAudioContext(_context);
+    await p.setAudioContext(audioContext);
     await p.setPlayerMode(mode);
     return p;
   }
