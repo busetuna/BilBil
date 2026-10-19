@@ -2,6 +2,7 @@ import 'dart:io';
 
 import 'package:app/data/models/quiz_category.dart';
 import 'package:app/data/models/quiz_item.dart';
+import 'package:app/features/learning/presentations/screens/answer_checker.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {
@@ -41,5 +42,43 @@ void main() {
         );
       }
     }
+  });
+
+  test('her resim tek bir soruda; diğer doğru adlar asıl kelimeden farklı', () {
+    final paths = QuizData.all.map((i) => i.imagePath).toList();
+    expect(paths.toSet().length, paths.length);
+    for (final i in QuizData.all) {
+      expect(File(i.imagePath).existsSync(), isTrue, reason: i.imagePath);
+      expect(i.answers.first, i.word);
+      for (final a in i.alsoAccepted) {
+        expect(
+          AnswerChecker.normalize(a),
+          isNot(AnswerChecker.normalize(i.word)),
+        );
+      }
+    }
+  });
+
+  test('resmin diğer doğru adı kabul edilir (Kupa için "bardak")', () {
+    final kupa = QuizData.all.firstWhere((i) => i.word == 'Kupa');
+    bool accepted(String said) =>
+        kupa.answers.any((a) => AnswerChecker.check(said, a));
+    expect(accepted('bardak'), isTrue);
+    expect(accepted('kupa'), isTrue);
+    expect(accepted('tencere'), isFalse);
+  });
+
+  test('Bilbil kategoriye uygun cümle kurar', () {
+    String lead(String word) =>
+        QuizCategory.leadFor(QuizData.all.firstWhere((i) => i.word == word));
+    expect(lead('Kedi'), 'Bu bir');
+    expect(lead('Kırmızı'), 'Bu renk');
+    expect(lead('Koşuyor'), 'Çocuk');
+    expect(lead('Yağmur'), 'Bu');
+  });
+
+  test('eski istatistikteki kaldırılmış kategori adıyla görünür', () {
+    expect(QuizCategory.nameOf('adjectives'), 'Basit Sıfatlar');
+    expect(QuizData.all.where((i) => i.category == 'adjectives'), isEmpty);
   });
 }

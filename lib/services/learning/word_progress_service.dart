@@ -102,12 +102,17 @@ class WordProgressService extends ChangeNotifier {
 
   /// Ebeveyn paneli için: yanlış yapılmış ve henüz oturmamış kelimeler,
   /// en çok zorlanılandan başlayarak.
-  List<WordState> struggling({int limit = 8}) {
+  /// [onlyWords]: yalnızca bu kelimeler (normalize edilmiş) — quiz'den
+  /// çıkarılmış eski kelimeler listede görünmesin.
+  List<WordState> struggling({int limit = 8, Set<String>? onlyWords}) {
     final states =
         _box.values
             .map(WordState.fromJson)
             .whereType<WordState>()
             .where((s) => s.wrong > 0 && s.box <= 1)
+            .where(
+              (s) => onlyWords == null || onlyWords.contains(keyOf(s.word)),
+            )
             .toList()
           ..sort((a, b) {
             final byWrong = b.wrong.compareTo(a.wrong);

@@ -198,6 +198,9 @@ class _QuizScreenState extends State<QuizScreen> with TickerProviderStateMixin {
     }
   }
 
+  /// Bilbil'in cümle başı: "Bu bir kedi", "Bu renk kırmızı", "Çocuk koşuyor".
+  String get _lead => QuizCategory.leadFor(_currentItem);
+
   /// Övgü ve geri bildirim: canlı tonda, zorluğa göre biraz hızlanır.
   Future<void> _speak(String text) async {
     await Future.delayed(const Duration(milliseconds: 500));
@@ -214,7 +217,7 @@ class _QuizScreenState extends State<QuizScreen> with TickerProviderStateMixin {
     final word = _currentItem.word;
     await _voice.stop();
     await _voice.speak(
-      together ? 'Hadi birlikte söyleyelim: $word!' : 'Bu bir... $word!',
+      together ? 'Hadi birlikte söyleyelim: $word!' : '$_lead... $word!',
       rate: VoiceService.wordRate,
     );
   }
@@ -360,7 +363,11 @@ class _QuizScreenState extends State<QuizScreen> with TickerProviderStateMixin {
 
     final expected = _currentItem.word;
     // Tahminlerden biri tutarsa doğru; ekranda tutan (yoksa en iyi) tahmin.
-    final match = candidates.where((c) => AnswerChecker.check(c, expected));
+    // Resmin diğer doğru adları da kabul (ör. Kupa için "Bardak").
+    final answers = _currentItem.answers;
+    final match = candidates.where(
+      (c) => answers.any((a) => AnswerChecker.check(c, a)),
+    );
     final correct = match.isNotEmpty;
     final recognized = correct ? match.first : candidates.first;
     final latencyMs = _questionStartTime != null
@@ -389,7 +396,7 @@ class _QuizScreenState extends State<QuizScreen> with TickerProviderStateMixin {
       ..forward();
 
     if (correct) {
-      _speak(_voice.praise(expected, hinted: _hintUsed));
+      _speak(_voice.praise(expected, hinted: _hintUsed, lead: _lead));
       _rewardService.addCorrect().then((newRewards) {
         if (mounted && newRewards.isNotEmpty) {
           Future.delayed(const Duration(milliseconds: 800), () {
@@ -398,7 +405,7 @@ class _QuizScreenState extends State<QuizScreen> with TickerProviderStateMixin {
         }
       });
     } else {
-      _speak(_voice.tryAgain(expected));
+      _speak(_voice.tryAgain(expected, lead: _lead));
     }
 
     _scheduleNextOrRest();
@@ -501,7 +508,7 @@ class _QuizScreenState extends State<QuizScreen> with TickerProviderStateMixin {
     _wordRevealController
       ..reset()
       ..forward();
-    _speak('Bu bir ${_currentItem.word}! Hadi sıradakine geçelim!');
+    _speak('$_lead ${_currentItem.word}! Hadi sıradakine geçelim!');
     _scheduleNextOrRest();
   }
 

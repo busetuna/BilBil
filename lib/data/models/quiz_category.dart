@@ -9,7 +9,16 @@ class QuizCategory {
   /// tanıyacağı bir resim.
   final String coverWord;
 
-  const QuizCategory(this.id, this.name, this.coverWord);
+  /// Bilbil'in cümle başı: "Bu bir kedi", "Bu renk kırmızı", "Çocuk
+  /// koşuyor". Önceden her kelimeye "Bu bir" deniyordu ("Bu bir koşuyor").
+  final String lead;
+
+  const QuizCategory(
+    this.id,
+    this.name,
+    this.coverWord, {
+    this.lead = 'Bu bir',
+  });
 
   /// Bir seviyenin kategoride oynanabilmesi için gereken en az kelime.
   /// Daha azında aynı resimler art arda gelir.
@@ -18,18 +27,29 @@ class QuizCategory {
   static const all = [
     QuizCategory('animals', 'Hayvanlar', 'Kedi'),
     QuizCategory('fruits_vegetables', 'Meyve-Sebze', 'Üzüm'),
-    QuizCategory('colors', 'Renkler', 'Kırmızı'),
+    QuizCategory('colors', 'Renkler', 'Kırmızı', lead: 'Bu renk'),
     QuizCategory('shapes', 'Şekiller', 'Yıldız'),
     QuizCategory('body_parts', 'Vücut Bölümleri', 'Burun'),
     QuizCategory('clothes', 'Kıyafetler', 'Şapka'),
-    QuizCategory('daily_objects', 'Günlük Eşyalar', 'Araba'),
-    QuizCategory('weather', 'Hava Durumu', 'Güneşli'),
-    QuizCategory('actions', 'Eylemler', 'Yürüyor'),
-    QuizCategory('adjectives', 'Basit Sıfatlar', 'Mutlu'),
+    QuizCategory('daily_objects', 'Günlük Eşyalar', 'Kitap'),
+    QuizCategory('toys', 'Oyuncaklar', 'Top'),
+    QuizCategory('nature', 'Doğa', 'Çiçek'),
+    QuizCategory('weather', 'Hava Durumu', 'Güneşli', lead: 'Bu'),
+    QuizCategory('actions', 'Eylemler', 'Yürüyor', lead: 'Çocuk'),
   ];
 
-  static String nameOf(String id) =>
-      all.where((c) => c.id == id).firstOrNull?.name ?? id;
+  /// Artık olmayan kategoriler; eski istatistiklerde adları görünsün.
+  /// "Basit Sıfatlar" resimle sorulamıyordu (çocuk topa "renkli" değil
+  /// "top" der); resimleri Oyuncaklar ve Doğa'ya taşındı.
+  static const _retiredNames = {'adjectives': 'Basit Sıfatlar'};
+
+  static QuizCategory? byId(String id) =>
+      all.where((c) => c.id == id).firstOrNull;
+
+  static String nameOf(String id) => byId(id)?.name ?? _retiredNames[id] ?? id;
+
+  /// Bilbil'in bu kelimeyle kuracağı cümle başı.
+  static String leadFor(QuizItem item) => byId(item.category)?.lead ?? 'Bu bir';
 
   List<QuizItem> get items => QuizData.byCategory(id);
 

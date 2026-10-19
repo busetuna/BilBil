@@ -7,6 +7,7 @@ import 'dart:io';
 import 'dart:typed_data';
 
 import 'package:app/data/models/quiz_category.dart';
+import 'package:app/data/models/quiz_item.dart';
 import 'package:app/domain/entities/user.dart';
 import 'package:app/domain/repositories/auth_repository.dart';
 import 'package:app/domain/usecases/login_usecase.dart';
@@ -686,7 +687,10 @@ void main() {
     stats.setChildAge(2);
     await pumpApp(tester, const Scaffold(body: SettingsTab()));
     await tester.pump();
-    expect(find.text('2 yaş: Kolay kelimeler (123 kelime).'), findsOneWidget);
+    int words(int maxDiff) =>
+        QuizData.all.where((i) => i.difficulty <= maxDiff).length;
+    expect(find.text('2 yaş: Kolay kelimeler (${words(0)} kelime).'),
+        findsOneWidget);
     final segments = tester
         .widget<SegmentedButton<int>>(find.byWidgetPredicate((w) =>
             w is SegmentedButton<int> && w.segments.length == 3))
@@ -695,7 +699,9 @@ void main() {
 
     stats.setChildAge(5);
     await tester.pump();
-    expect(find.text('5 yaş: Kolay, Orta ve Zor kelimeler (243 kelime).'),
+    expect(
+        find.text('5 yaş: Kolay, Orta ve Zor kelimeler '
+            '(${QuizData.all.length} kelime).'),
         findsOneWidget);
     await finish(tester);
   });

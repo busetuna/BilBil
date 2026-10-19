@@ -76,6 +76,15 @@ void main() {
       ], reason: 'Elma hiç yanlış yapılmadı, Köpek artık oturdu (kutu 2)');
     });
 
+    test("quiz'den çıkarılmış kelimeler zorlandıkları listesinde görünmez", () {
+      progress
+        ..record('Yumruk', correct: false)
+        ..record('Kedi', correct: false);
+      expect(progress.struggling().map((s) => s.word), contains('Yumruk'));
+      final only = {WordProgressService.keyOf('Kedi')};
+      expect(progress.struggling(onlyWords: only).map((s) => s.word), ['Kedi']);
+    });
+
     test('buluta kelime durumu gider ve geri yüklenir', () async {
       final bodies = <Map<String, dynamic>>[];
       progress.setCloudSync(

@@ -87,7 +87,15 @@ void main() {
       expect(t, contains('!'));
     }
     expect(voice.praise('Kedi', hinted: true), contains('Birlikte'));
-    expect(voice.tryAgain('Kedi'), contains('Kedi'));
+    expect(voice.tryAgain('Kedi'), contains('Bu bir Kedi'));
+    expect(
+      voice.tryAgain('Kırmızı', lead: 'Bu renk'),
+      contains('Bu renk Kırmızı'),
+    );
+    final colorPraise = {
+      for (var i = 0; i < 40; i++) voice.praise('Kırmızı', lead: 'Bu renk'),
+    };
+    expect(colorPraise.any((t) => t.contains('Bu bir')), isFalse);
   });
 
   test('konuşma hızı her cümlede ayarlanır', () async {

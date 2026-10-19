@@ -61,7 +61,8 @@ class AppColors {
   static const Map<String, Color> categoryColors = {
     'animals': Color(0xFFFFB6C1),      // Pembe
     'actions': Color(0xFF87CEEB),      // Açık Mavi
-    'adjectives': Color(0xFFFFE082),   // Sarı
+    'toys': Color(0xFFFFE082),         // Sarı
+    'nature': Color(0xFFC5E1A5),       // Açık Yeşil
     'body_parts': Color(0xFFA8E6CF),   // Mint Yeşili
     'clothes': Color(0xFFDDA0DD),      // Mor
     'colors': Color(0xFFFFD54F),       // Turuncu-Sarı

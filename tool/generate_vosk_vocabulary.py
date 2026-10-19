@@ -50,7 +50,12 @@ def main(model_dir):
         rec(word, [])
         return ' '.join(best[1]) if best else None
 
-    words = sorted({normalize(w) for w in re.findall(r"word: '([^']+)'", QUIZ.read_text('utf-8'))})
+    # Asıl kelimeler ve resmin diğer doğru adları (alsoAccepted)
+    text = QUIZ.read_text('utf-8')
+    found = re.findall(r"word: '([^']+)'", text)
+    for extra in re.findall(r"alsoAccepted: \[([^\]]*)\]", text):
+        found += re.findall(r"'([^']+)'", extra)
+    words = sorted({normalize(w) for w in found})
     phrases, missing = {}, []
     for w in words:
         parts = [t if known(t) else split(t) for t in w.split()]

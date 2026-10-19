@@ -3,6 +3,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../data/models/quiz_category.dart';
+import '../../../data/models/quiz_item.dart';
 import '../../../services/learning/word_progress_service.dart';
 import '../../../services/stats/stats_service.dart';
 
@@ -214,7 +215,9 @@ class _StrugglingWords extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final words = context.watch<WordProgressService>().struggling();
+    final words = context.watch<WordProgressService>().struggling(
+      onlyWords: _quizWords,
+    );
     final deco = BoxDecoration(
       color: Colors.white,
       borderRadius: BorderRadius.circular(16),
@@ -266,6 +269,11 @@ class _StrugglingWords extends StatelessWidget {
     );
   }
 }
+
+/// Quiz'de hâlâ sorulan kelimeler (içerikten çıkarılanlar listelenmez).
+final _quizWords = {
+  for (final i in QuizData.all) WordProgressService.keyOf(i.word),
+};
 
 class _CategoryBreakdown extends StatelessWidget {
   final StatsService stats;

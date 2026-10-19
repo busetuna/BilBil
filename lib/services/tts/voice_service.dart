@@ -146,15 +146,16 @@ class VoiceService extends ChangeNotifier {
 
   String _pick(List<String> options) => options[_rng.nextInt(options.length)];
 
-  /// Doğru cevap: "Harika! Bu bir kedi!" / "Bravo! Evet, kedi!"
-  String praise(String word, {bool hinted = false}) {
+  /// Doğru cevap: "Harika! Bu bir kedi!" / "Bravo! Evet, kedi!". [lead]
+  /// kategoriye göre cümle başı: "Bu renk kırmızı", "Çocuk koşuyor".
+  String praise(String word, {bool hinted = false, String lead = 'Bu bir'}) {
     if (hinted) return '${_pick(_cheers)} Birlikte başardık: $word!';
     return _rng.nextBool()
-        ? '${_pick(_cheers)} Bu bir $word!'
+        ? '${_pick(_cheers)} $lead $word!'
         : '${_pick(_cheers)} Evet, $word!';
   }
 
   /// Yanlış cevap: neşeli kalır, doğrusunu söyler.
-  String tryAgain(String word) =>
-      '${_pick(_almost)} Bu bir $word. Bir dahakine sen de söyle!';
+  String tryAgain(String word, {String lead = 'Bu bir'}) =>
+      '${_pick(_almost)} $lead $word. Bir dahakine sen de söyle!';
 }
