@@ -113,7 +113,7 @@ class _DifficultyChart extends StatelessWidget {
           color: Colors.white,
           borderRadius: BorderRadius.circular(20),
           boxShadow: [
-            BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 10)
+            BoxShadow(color: Colors.black.withValues(alpha: 0.05), blurRadius: 10)
           ],
         ),
         child: LineChart(
@@ -124,7 +124,7 @@ class _DifficultyChart extends StatelessWidget {
               show: true,
               horizontalInterval: 1,
               getDrawingHorizontalLine: (v) =>
-                  FlLine(color: Colors.grey.withOpacity(0.15), strokeWidth: 1),
+                  FlLine(color: Colors.grey.withValues(alpha: 0.15), strokeWidth: 1),
               drawVerticalLine: false,
             ),
             titlesData: FlTitlesData(
@@ -170,7 +170,7 @@ class _DifficultyChart extends StatelessWidget {
                 barWidth: 3,
                 dotData: FlDotData(
                   show: history.length <= 30,
-                  getDotPainter: (_, __, ___, ____) => FlDotCirclePainter(
+                  getDotPainter: (_, _, _, _) => FlDotCirclePainter(
                     radius: 4,
                     color: AppColors.primary,
                     strokeWidth: 0,
@@ -178,7 +178,7 @@ class _DifficultyChart extends StatelessWidget {
                 ),
                 belowBarData: BarAreaData(
                   show: true,
-                  color: AppColors.primary.withOpacity(0.10),
+                  color: AppColors.primary.withValues(alpha: 0.10),
                 ),
               ),
             ],
@@ -206,7 +206,7 @@ class _LatencyChart extends StatelessWidget {
         color: Colors.white,
         borderRadius: BorderRadius.circular(20),
         boxShadow: [
-          BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 10)
+          BoxShadow(color: Colors.black.withValues(alpha: 0.05), blurRadius: 10)
         ],
       ),
       child: LineChart(
@@ -217,14 +217,14 @@ class _LatencyChart extends StatelessWidget {
             show: true,
             horizontalInterval: 5,
             getDrawingHorizontalLine: (v) =>
-                FlLine(color: Colors.grey.withOpacity(0.15), strokeWidth: 1),
+                FlLine(color: Colors.grey.withValues(alpha: 0.15), strokeWidth: 1),
             drawVerticalLine: false,
           ),
           extraLinesData: ExtraLinesData(
             horizontalLines: [
               HorizontalLine(
                 y: 0.5,
-                color: const Color(0xFF4CAF50).withOpacity(0.6),
+                color: const Color(0xFF4CAF50).withValues(alpha: 0.6),
                 strokeWidth: 1.5,
                 dashArray: [6, 4],
                 label: HorizontalLineLabel(
@@ -273,7 +273,7 @@ class _LatencyChart extends StatelessWidget {
               barWidth: 3,
               dotData: FlDotData(
                 show: history.length <= 30,
-                getDotPainter: (spot, _, __, ___) => FlDotCirclePainter(
+                getDotPainter: (spot, _, _, _) => FlDotCirclePainter(
                   radius: 4,
                   color: spot.y <= 0.5
                       ? const Color(0xFF4CAF50)
@@ -283,7 +283,7 @@ class _LatencyChart extends StatelessWidget {
               ),
               belowBarData: BarAreaData(
                 show: true,
-                color: const Color(0xFFFF9800).withOpacity(0.08),
+                color: const Color(0xFFFF9800).withValues(alpha: 0.08),
               ),
             ),
           ],

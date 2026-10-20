@@ -84,7 +84,7 @@ class _HomeScreenState extends State<HomeScreen>
                               child: Icon(
                                 Icons.star,
                                 size: 40,
-                                color: AppColors.primary.withOpacity(0.15),
+                                color: AppColors.primary.withValues(alpha: 0.15),
                               ),
                             ),
                           ),
@@ -174,11 +174,11 @@ class _HomeScreenState extends State<HomeScreen>
                 decoration: BoxDecoration(
                   shape: BoxShape.circle,
                   color: _showThemePicker
-                      ? AppColors.primary.withOpacity(0.12)
+                      ? AppColors.primary.withValues(alpha: 0.12)
                       : Colors.white,
                   boxShadow: [
                     BoxShadow(
-                      color: Colors.black.withOpacity(0.08),
+                      color: Colors.black.withValues(alpha: 0.08),
                       blurRadius: 8,
                     ),
                   ],
@@ -204,7 +204,7 @@ class _HomeScreenState extends State<HomeScreen>
                   color: Colors.white,
                   boxShadow: [
                     BoxShadow(
-                      color: Colors.black.withOpacity(0.08),
+                      color: Colors.black.withValues(alpha: 0.08),
                       blurRadius: 8,
                     ),
                   ],
@@ -225,12 +225,12 @@ class _HomeScreenState extends State<HomeScreen>
                 shape: BoxShape.circle,
                 color: Colors.white,
                 border: Border.all(
-                  color: AppColors.primary.withOpacity(0.3),
+                  color: AppColors.primary.withValues(alpha: 0.3),
                   width: 2,
                 ),
                 boxShadow: [
                   BoxShadow(
-                    color: AppColors.primary.withOpacity(0.15),
+                    color: AppColors.primary.withValues(alpha: 0.15),
                     blurRadius: 10,
                   ),
                 ],
@@ -241,7 +241,7 @@ class _HomeScreenState extends State<HomeScreen>
                   fit: BoxFit.cover,
                   cacheWidth: 144, // 48 px'lik avatar; görsel 640 px (tool/optimize_images.py)
 
-                  errorBuilder: (_, __, ___) => Icon(
+                  errorBuilder: (_, _, _) => Icon(
                     Icons.flutter_dash,
                     color: AppColors.primary,
                     size: 28,
@@ -275,7 +275,7 @@ class _HomeScreenState extends State<HomeScreen>
         borderRadius: BorderRadius.circular(20),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.07),
+            color: Colors.black.withValues(alpha: 0.07),
             blurRadius: 12,
             offset: const Offset(0, 4),
           ),
@@ -315,8 +315,8 @@ class _HomeScreenState extends State<HomeScreen>
                         : null,
                     boxShadow: [
                       BoxShadow(
-                        color: theme.primary.withOpacity(
-                          isSelected ? 0.5 : 0.2,
+                        color: theme.primary.withValues(
+                          alpha: isSelected ? 0.5 : 0.2,
                         ),
                         blurRadius: isSelected ? 14 : 6,
                         spreadRadius: isSelected ? 2 : 0,
@@ -376,7 +376,7 @@ class _HomeScreenState extends State<HomeScreen>
           child: ListView.separated(
             scrollDirection: Axis.horizontal,
             itemCount: QuizCategory.all.length,
-            separatorBuilder: (_, __) => const SizedBox(width: 10),
+            separatorBuilder: (_, _) => const SizedBox(width: 10),
             itemBuilder: (_, i) {
               final category = QuizCategory.all[i];
               return _CategoryTile(
@@ -411,13 +411,13 @@ class _HomeScreenState extends State<HomeScreen>
             ),
             boxShadow: [
               BoxShadow(
-                color: AppColors.primary.withOpacity(0.4),
+                color: AppColors.primary.withValues(alpha: 0.4),
                 blurRadius: 40,
                 spreadRadius: 8,
                 offset: const Offset(0, 10),
               ),
               BoxShadow(
-                color: AppColors.primaryLight.withOpacity(0.2),
+                color: AppColors.primaryLight.withValues(alpha: 0.2),
                 blurRadius: 70,
                 spreadRadius: 15,
               ),
@@ -432,7 +432,7 @@ class _HomeScreenState extends State<HomeScreen>
                 height: 68,
                 decoration: BoxDecoration(
                   shape: BoxShape.circle,
-                  color: Colors.white.withOpacity(0.3),
+                  color: Colors.white.withValues(alpha: 0.3),
                 ),
                 child: const Icon(
                   Icons.play_arrow_rounded,
@@ -460,7 +460,7 @@ class _HomeScreenState extends State<HomeScreen>
   Widget _buildFlowerShape() {
     return CustomPaint(
       size: const Size(50, 50),
-      painter: _FlowerPainter(color: AppColors.secondary.withOpacity(0.15)),
+      painter: _FlowerPainter(color: AppColors.secondary.withValues(alpha: 0.15)),
     );
   }
 }
@@ -500,7 +500,7 @@ class _CategoryTile extends StatelessWidget {
                 category.cover.imagePath,
                 fit: BoxFit.cover,
                 cacheWidth: 180,
-                errorBuilder: (_, __, ___) =>
+                errorBuilder: (_, _, _) =>
                     Icon(Icons.image_rounded, color: color),
               ),
             ),

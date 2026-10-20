@@ -24,7 +24,7 @@ import 'services/sound/sound_service.dart';
 import 'services/tts/voice_clips.dart';
 import 'services/tts/voice_service.dart';
 import 'services/asr/vosk_asr_service.dart';
-import 'services/asr/whisper_asr_service.dart';
+import 'services/asr/platform_asr_service.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -64,7 +64,7 @@ void main() async {
   await soundService.init();
 
   final voskAsrService = VoskAsrService();
-  final whisperAsrService = WhisperAsrService();
+  final platformAsrService = PlatformAsrService();
 
   // Reklam SDK'sı arka planda hazırlanır; açılışı bekletmez.
   final adService = AdService();
@@ -96,7 +96,7 @@ void main() async {
       soundService: soundService,
       themeService: themeService,
       voskAsrService: voskAsrService,
-      whisperAsrService: whisperAsrService,
+      platformAsrService: platformAsrService,
     ),
   );
 }
@@ -113,7 +113,7 @@ class MyApp extends StatelessWidget {
   final SoundService soundService;
   final ThemeService themeService;
   final VoskAsrService voskAsrService;
-  final WhisperAsrService whisperAsrService;
+  final PlatformAsrService platformAsrService;
 
   const MyApp({
     super.key,
@@ -128,7 +128,7 @@ class MyApp extends StatelessWidget {
     required this.soundService,
     required this.themeService,
     required this.voskAsrService,
-    required this.whisperAsrService,
+    required this.platformAsrService,
   });
 
   Future<void> _onSignedIn(String uid) => accountSync.onSignedIn(uid);
@@ -165,8 +165,8 @@ class MyApp extends StatelessWidget {
         ChangeNotifierProvider<SoundService>.value(value: soundService),
         ChangeNotifierProvider<ThemeService>.value(value: themeService),
         ChangeNotifierProvider<VoskAsrService>.value(value: voskAsrService),
-        ChangeNotifierProvider<WhisperAsrService>.value(
-          value: whisperAsrService,
+        ChangeNotifierProvider<PlatformAsrService>.value(
+          value: platformAsrService,
         ),
       ],
       child: Consumer<ThemeService>(

@@ -44,12 +44,12 @@ class RewardsTab extends StatelessWidget {
               final earned = rewardSvc.isEarned(reward.id);
               return Container(
                 decoration: BoxDecoration(
-                  color: earned ? reward.color.withOpacity(0.12) : Colors.white,
+                  color: earned ? reward.color.withValues(alpha: 0.12) : Colors.white,
                   borderRadius: BorderRadius.circular(16),
                   border: Border.all(
                     color: earned
-                        ? reward.color.withOpacity(0.4)
-                        : Colors.grey.withOpacity(0.2),
+                        ? reward.color.withValues(alpha: 0.4)
+                        : Colors.grey.withValues(alpha: 0.2),
                   ),
                 ),
                 child: Column(
@@ -62,7 +62,7 @@ class RewardsTab extends StatelessWidget {
                             ? Image.asset(
                                 reward.imagePath,
                                 fit: BoxFit.contain,
-                                errorBuilder: (_, __, ___) => Text(
+                                errorBuilder: (_, _, _) => Text(
                                     reward.emoji,
                                     style: const TextStyle(fontSize: 36)),
                               )

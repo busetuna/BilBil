@@ -186,7 +186,7 @@ class _RestScreenState extends State<RestScreen>
                 ),
                 boxShadow: [
                   BoxShadow(
-                    color: AppColors.primary.withOpacity(0.4),
+                    color: AppColors.primary.withValues(alpha: 0.4),
                     blurRadius: 30,
                     spreadRadius: 8,
                   ),
@@ -226,7 +226,7 @@ class _RestScreenState extends State<RestScreen>
         height: 200,
         decoration: BoxDecoration(
           shape: BoxShape.circle,
-          color: AppColors.primary.withOpacity(0.08),
+          color: AppColors.primary.withValues(alpha: 0.08),
         ),
       ),
       Container(
@@ -234,7 +234,7 @@ class _RestScreenState extends State<RestScreen>
         height: 175,
         decoration: BoxDecoration(
           shape: BoxShape.circle,
-          color: AppColors.primary.withOpacity(0.10),
+          color: AppColors.primary.withValues(alpha: 0.10),
         ),
       ),
     ];
@@ -243,7 +243,7 @@ class _RestScreenState extends State<RestScreen>
   Widget _buildZzz() {
     return AnimatedBuilder(
       animation: _zzzCtrl,
-      builder: (_, __) {
+      builder: (_, _) {
         final t = _zzzCtrl.value;
         return Column(
           mainAxisSize: MainAxisSize.min,
@@ -283,7 +283,7 @@ class _RestScreenState extends State<RestScreen>
   Widget _buildStar({required double size, required double delay}) {
     return AnimatedBuilder(
       animation: _pulseCtrl,
-      builder: (_, __) {
+      builder: (_, _) {
         final t = (_pulseCtrl.value - delay).abs();
         final opacity = (0.4 + 0.6 * (1 - t)).clamp(0.0, 1.0);
         return Opacity(
@@ -350,7 +350,7 @@ class _RestScreenState extends State<RestScreen>
                   borderRadius: BorderRadius.circular(22),
                   boxShadow: [
                     BoxShadow(
-                      color: AppColors.primary.withOpacity(0.45),
+                      color: AppColors.primary.withValues(alpha: 0.45),
                       blurRadius: 20,
                       offset: const Offset(0, 6),
                     ),

@@ -19,7 +19,7 @@ import '../../../../services/learning/word_progress_service.dart';
 import '../../../../services/sound/sound_service.dart';
 import '../../../../services/tts/voice_service.dart';
 import '../../../../services/asr/vosk_asr_service.dart';
-import '../../../../services/asr/whisper_asr_service.dart';
+import '../../../../services/asr/platform_asr_service.dart';
 import 'rest_screen.dart';
 import 'answer_checker.dart';
 import 'reward_celebration_dialog.dart';
@@ -58,7 +58,7 @@ class _QuizScreenState extends State<QuizScreen> with TickerProviderStateMixin {
   late VoiceService _voice;
   late SoundService _sound;
   late VoskAsrService _vosk;
-  late WhisperAsrService _whisper;
+  late PlatformAsrService _platformAsr;
   late RLAgent _rlAgent;
   late RewardService _rewardService;
   late StatsService _statsService;
@@ -149,7 +149,7 @@ class _QuizScreenState extends State<QuizScreen> with TickerProviderStateMixin {
     _sound = Provider.of<SoundService>(context, listen: false);
     _progress = Provider.of<WordProgressService>(context, listen: false);
     _vosk = Provider.of<VoskAsrService>(context, listen: false);
-    _whisper = Provider.of<WhisperAsrService>(context, listen: false);
+    _platformAsr = Provider.of<PlatformAsrService>(context, listen: false);
     // Quiz bitişi reklamı çıkışta hazır olsun.
     Provider.of<AdService>(context, listen: false).preloadInterstitial();
     if (!_servicesInitialized) {
@@ -173,7 +173,7 @@ class _QuizScreenState extends State<QuizScreen> with TickerProviderStateMixin {
       _initTts(); // _rlAgent'a ihtiyaç duyar
       _sound.startMusic(); // ebeveyn açtıysa
       if (_statsService.asrEngine == 'platform') {
-        _whisper.initialize();
+        _platformAsr.initialize();
       } else {
         _vosk.initialize();
       }
@@ -231,12 +231,13 @@ class _QuizScreenState extends State<QuizScreen> with TickerProviderStateMixin {
 
   // ── ASR (Vosk on-device) ────────────────────────────────────────────────────
 
-  bool get _asrIsReady =>
-      _statsService.asrEngine == 'platform' ? _whisper.isReady : _vosk.isReady;
+  bool get _asrIsReady => _statsService.asrEngine == 'platform'
+      ? _platformAsr.isReady
+      : _vosk.isReady;
 
   void _stopAsr() {
     if (_statsService.asrEngine == 'platform') {
-      _whisper.stopListening();
+      _platformAsr.stopListening();
     } else {
       _vosk.stopListening();
     }
@@ -248,7 +249,7 @@ class _QuizScreenState extends State<QuizScreen> with TickerProviderStateMixin {
     required void Function() onSpeech,
   }) {
     if (_statsService.asrEngine == 'platform') {
-      _whisper.startListening(onPartial: onPartial, onFinal: onFinal);
+      _platformAsr.startListening(onPartial: onPartial, onFinal: onFinal);
     } else {
       _vosk.startListening(
         onPartial: onPartial,
@@ -263,7 +264,7 @@ class _QuizScreenState extends State<QuizScreen> with TickerProviderStateMixin {
   Future<List<String>> _finishAsr() async {
     final partial = [if (_recognizedWord.trim().isNotEmpty) _recognizedWord];
     if (_statsService.asrEngine == 'platform') {
-      _whisper.stopListening();
+      _platformAsr.stopListening();
       return partial;
     }
     final candidates = await _vosk.finishListening();
@@ -714,15 +715,15 @@ class _QuizScreenState extends State<QuizScreen> with TickerProviderStateMixin {
                                 revealAnimation: _wordRevealAnimation,
                               ),
                               const SizedBox(height: 28),
-                              Consumer2<VoskAsrService, WhisperAsrService>(
-                                builder: (context, vosk, whisper, _) {
+                              Consumer2<VoskAsrService, PlatformAsrService>(
+                                builder: (context, vosk, platformAsr, _) {
                                   final usePlatform =
                                       _statsService.asrEngine == 'platform';
                                   if (usePlatform) {
                                     return _micWithHint(
                                       QuizMicButton(
                                         isListening: _isListening,
-                                        sttAvailable: whisper.isReady,
+                                        sttAvailable: platformAsr.isReady,
                                         onTap: _toggleListening,
                                         pulseController: _micPulseController,
                                       ),

@@ -16,7 +16,7 @@ class QuizImageCard extends StatelessWidget {
         borderRadius: BorderRadius.circular(28),
         boxShadow: [
           BoxShadow(
-              color: Colors.black.withOpacity(0.07),
+              color: Colors.black.withValues(alpha: 0.07),
               blurRadius: 16,
               offset: const Offset(0, 4))
         ],
@@ -26,7 +26,7 @@ class QuizImageCard extends StatelessWidget {
         child: Image.asset(
           imagePath,
           fit: BoxFit.contain,
-          errorBuilder: (_, __, ___) => Center(
+          errorBuilder: (_, _, _) => Center(
             child: Icon(Icons.image_not_supported_outlined,
                 size: 60, color: Colors.grey[300]),
           ),

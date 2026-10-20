@@ -69,6 +69,9 @@ class WordProgressService extends ChangeNotifier {
 
   void clearCloudSync() => _api = null;
 
+  /// Yereldeki durumu olduğu gibi buluta yazar (çevrimdışı değişiklikler).
+  void pushToCloud() => _syncToCloud();
+
   static String keyOf(String word) => AnswerChecker.normalize(word);
 
   WordState? stateOf(String word) => WordState.fromJson(_box.get(keyOf(word)));
