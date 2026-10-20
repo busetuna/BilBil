@@ -23,7 +23,9 @@ import 'package:app/features/learning/presentations/widgets/quiz_image_card.dart
 import 'package:app/features/learning/presentations/widgets/quiz_mic_button.dart';
 import 'package:app/features/learning/presentations/widgets/quiz_word_reveal.dart';
 import 'package:app/services/ads/ad_service.dart';
+import 'package:app/features/learning/presentations/screens/answer_checker.dart';
 import 'package:app/services/asr/vosk_asr_service.dart';
+import 'package:app/services/asr/vosk_vocabulary.dart';
 import 'package:app/services/asr/platform_asr_service.dart';
 import 'package:app/services/learning/learning_scheduler.dart';
 import 'package:app/services/learning/word_progress_service.dart';
@@ -966,6 +968,36 @@ void main() {
     expect(spoken.last, contains(word));
     expect(clipPlayer.assets.last, isNotEmpty);
     expect(clipPlayer.assets.last, everyElement(startsWith('voice/clips/')));
+    await finish(tester);
+  });
+
+  testWidgets('çocuğun tipik söyleyişi ("yeşil" yerine "şişil") doğru sayılır; '
+      'Bilbil doğru kelimeyle över', (tester) async {
+    await openQuiz(tester);
+    // Çocuk söyleyişi olan bir soru gelene kadar ilerle.
+    String? variant;
+    for (var i = 0; i < 30 && variant == null; i++) {
+      final word = reveal(tester).correctWord;
+      final vs = voskChildVariants[AnswerChecker.normalize(word)];
+      if (vs != null && vs.isNotEmpty) {
+        variant = vs.first;
+        break;
+      }
+      await say(tester, word);
+      await nextQuestion(tester);
+    }
+    expect(variant, isNotNull);
+    final word = reveal(tester).correctWord;
+    final before = stats.totalCorrect;
+
+    await tapMic(tester);
+    expect(vosk.lastGrammar, contains(variant), reason: 'o sorunun sözlüğünde');
+    vosk.onFinal!([variant!]);
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 600));
+    expect(reveal(tester).isCorrect, isTrue);
+    expect(stats.totalCorrect, before + 1);
+    expect(spoken.last, contains(word), reason: 'Bilbil doğrusunu söyler');
     await finish(tester);
   });
 }

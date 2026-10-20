@@ -76,9 +76,37 @@ def main(model_dir):
     lines.append('const voskQuizPhrases = <String, String>{')
     lines += [f"  '{w}': '{p}'," for w, p in phrases.items()]
     lines.append('};')
+
+    # Çocuk söyleyişleri (bkz. tool/child_variants.py): yalnızca o sorunun
+    # kapalı sözlüğüne eklenir; Vosk'un yazabildikleri.
+    sys.path.insert(0, str(Path(__file__).resolve().parent))
+    from child_variants import variants
+    quiz_words = list(dict.fromkeys(re.findall(r"word: '([^']+)'", text)))
+    child = {}
+    for w in quiz_words:
+        key = normalize(w)
+        if key not in phrases:
+            continue  # açık sözlükte: kapalı sözlük yok
+        vs = []
+        for v in variants(w, quiz_words):
+            parts = [t if known(t) else split(t) for t in v.split()]
+            if all(parts):
+                vs.append(' '.join(parts))
+        if vs:
+            child[key] = list(dict.fromkeys(vs))
+    lines += [
+        '',
+        '// Çocukların tipik söyleyişleri (tool/child_variants.py): kelime -> Vosk',
+        '// biçimleri. Yalnızca o sorunun kapalı sözlüğüne girer ve doğru sayılır',
+        '// ("yeşil" için "şişil").',
+        'const voskChildVariants = <String, List<String>>{',
+    ]
+    lines += [f"  '{w}': [{', '.join(repr(v) for v in vs)}]," for w, vs in child.items()]
+    lines.append('};')
     OUT.write_text('\n'.join(lines) + '\n', 'utf-8')
     print(f'{len(phrases)} kelime tabloda ({sum(1 for w, p in phrases.items() if w != p)} takma ad), '
-          f'{len(missing)} açık sözlükte -> {OUT.relative_to(ROOT)}')
+          f'{len(missing)} açık sözlükte, {sum(map(len, child.values()))} çocuk söyleyişi '
+          f'({len(child)} kelime) -> {OUT.relative_to(ROOT)}')
 
 
 if __name__ == '__main__':

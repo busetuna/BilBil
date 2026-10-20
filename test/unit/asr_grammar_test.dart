@@ -46,6 +46,39 @@ void main() {
       },
     );
 
+    test('çocuk söyleyişleri yalnızca o sorunun sözlüğüne girer', () {
+      final yesil = QuizGrammar.forWord('Yeşil')!;
+      expect(yesil, contains('şiş il'), reason: '"şişil" (yeşil)');
+      expect(yesil.last, '[unk]');
+      expect(QuizGrammar.forWord('Kedi'), contains('tedi'));
+      expect(QuizGrammar.forWord('Köpek'), isNot(contains('tedi')));
+    });
+
+    test('çocuk söyleyişi doğru sayılır, başka kelimeninki sayılmaz', () {
+      expect(QuizGrammar.isChildVariant('şiş il', 'Yeşil'), isTrue);
+      expect(QuizGrammar.isChildVariant('şişil', 'Yeşil'), isTrue);
+      expect(QuizGrammar.isChildVariant('tedi', 'Kedi'), isTrue);
+      expect(QuizGrammar.isChildVariant('tedi', 'Yeşil'), isFalse);
+      expect(QuizGrammar.isChildVariant('', 'Kedi'), isFalse);
+    });
+
+    test('hiçbir çocuk söyleyişi başka bir quiz kelimesinin kendisi değil', () {
+      final words = {
+        for (final i in QuizData.all)
+          AnswerChecker.normalize(i.word).replaceAll(' ', ''),
+      };
+      voskChildVariants.forEach((word, variants) {
+        for (final v in variants) {
+          final flat = v.replaceAll(' ', '');
+          expect(
+            words.contains(flat) && flat != word.replaceAll(' ', ''),
+            isFalse,
+            reason: '$word ← $v',
+          );
+        }
+      });
+    });
+
     test('takma ad tanınırsa cevap kontrolü doğru sayar', () {
       voskQuizPhrases.forEach((word, phrase) {
         expect(
