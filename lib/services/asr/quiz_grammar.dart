@@ -14,11 +14,34 @@ class QuizGrammar {
   /// [word] için kapalı sözlük. Vosk bu kelimeyi hiç yazamıyorsa (sözlükte
   /// yok ve parçalanamıyor) null: o soruda açık sözlük kullanılır, çünkü
   /// kapalı sözlükte hedef hiç tanınamazdı.
+  ///
+  /// Hedefin çocuk söyleyişleri de eklenir ("yeşil" sorulurken "şişil"):
+  /// yalnızca o sorunun sözlüğüne, başka kelimelerinkiyle karışmasın.
   static List<String>? forWord(String word) {
-    if (!voskQuizPhrases.containsKey(AnswerChecker.normalize(word))) {
-      return null;
-    }
-    return _all ??= List.unmodifiable(_build());
+    final key = AnswerChecker.normalize(word);
+    if (!voskQuizPhrases.containsKey(key)) return null;
+    final base = _all ??= List.unmodifiable(_build());
+    final child = voskChildVariants[key];
+    if (child == null || child.isEmpty) return base;
+    return _withChild[key] ??= List.unmodifiable([
+      ...base.where((p) => p != '[unk]'),
+      ...child.where((c) => !base.contains(c)),
+      '[unk]',
+    ]);
+  }
+
+  static final _withChild = <String, List<String>>{};
+
+  /// Vosk'un yazdığı metin bu kelimenin bir çocuk söyleyişi mi? Çocuk
+  /// "şişil" dediğinde Vosk "şişil" (ya da parçalı "şiş il") yazar.
+  static bool isChildVariant(String recognized, String word) {
+    final variants = voskChildVariants[AnswerChecker.normalize(word)];
+    if (variants == null) return false;
+    final flat = AnswerChecker.normalize(
+      recognized.replaceAll('[unk]', ' '),
+    ).replaceAll(' ', '');
+    return flat.isNotEmpty &&
+        variants.any((v) => v.replaceAll(' ', '') == flat);
   }
 
   static List<String> _build() {

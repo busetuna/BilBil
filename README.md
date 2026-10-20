@@ -16,7 +16,10 @@ Flutter (Android öncelikli, iOS da derlenir) + Django REST API (Railway).
 - **Cihaz üstü ses tanıma:** Vosk (`vosk-model-small-tr-0.3`), her soruda
   yalnızca quiz kelimelerinden oluşan kapalı sözlükle; isteğe bağlı telefonun
   kendi tanıyıcısı. Cevap kontrolü çocukların eksik/bozuk söyleyişini tolere
-  eder; resmin diğer doğru adları da kabul edilir (Kupa için "bardak").
+  eder; tipik çocuk söyleyişleri ("yeşil" için "şişil", "kedi" için "tedi",
+  bkz. `tool/child_variants.py`) o sorunun sözlüğüne eklenir. Resmin diğer
+  doğru adları da kabul edilir (Kupa için "bardak"); tanınan metin başka bir
+  quiz kelimesinin kendisiyse ("diş" sorusunda "diz") kabul edilmez.
 - **Bilbil'in sesi:** önceden seslendirilmiş neşeli kayıtlar (cümleler
   parçalardan birleştirilir); kaydı olmayan cümlede telefonun sesi.
 - **"Bilbil söylesin" ipucu**; 2–3 yaşta duyulmazsa "Hadi birlikte söyleyelim".
@@ -93,7 +96,7 @@ flutter run
 
 ```bash
 flutter analyze
-flutter test                                          # ~160 test
+flutter test                                          # ~165 test
 cd backend && DJANGO_DEBUG=1 python manage.py test    # backend
 ```
 
@@ -105,7 +108,7 @@ seviyeler.
 
 | Betik | Ne zaman | Gereken |
 |---|---|---|
-| `generate_vosk_vocabulary.py <model>` | quiz kelimeleri değişince | `pip install vosk` |
+| `generate_vosk_vocabulary.py <model>` | quiz kelimeleri değişince (çocuk söyleyişlerini de `child_variants.py` ile üretir) | `pip install vosk` |
 | `generate_voice.py` | kelime ya da Bilbil'in cümleleri değişince (CPU'da ~20–30 dk) | torch (CPU), `pocket-tts`, `soundfile` |
 | `generate_sounds.py` | efekt/müzik değiştirilecekse | yalnızca Python |
 | `optimize_images.py` | yeni PNG resim eklenince (WebP'ye çevirir) | `pillow` |

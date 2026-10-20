@@ -13,6 +13,7 @@ import '../../../../services/rl_agent/rl_agent.dart';
 import '../../../../services/stats/stats_service.dart';
 import '../../../../services/lives/lives_service.dart';
 import '../../../../services/ads/ad_service.dart';
+import '../../../../services/asr/quiz_answer.dart';
 import '../../../../services/asr/quiz_grammar.dart';
 import '../../../../services/learning/learning_scheduler.dart';
 import '../../../../services/learning/word_progress_service.dart';
@@ -21,7 +22,6 @@ import '../../../../services/tts/voice_service.dart';
 import '../../../../services/asr/vosk_asr_service.dart';
 import '../../../../services/asr/platform_asr_service.dart';
 import 'rest_screen.dart';
-import 'answer_checker.dart';
 import 'reward_celebration_dialog.dart';
 import 'quiz_dialogs.dart';
 import '../widgets/quiz_top_bar.dart';
@@ -377,11 +377,9 @@ class _QuizScreenState extends State<QuizScreen> with TickerProviderStateMixin {
 
     final expected = _currentItem.word;
     // Tahminlerden biri tutarsa doğru; ekranda tutan (yoksa en iyi) tahmin.
-    // Resmin diğer doğru adları da kabul (ör. Kupa için "Bardak").
-    final answers = _currentItem.answers;
-    final match = candidates.where(
-      (c) => answers.any((a) => AnswerChecker.check(c, a)),
-    );
+    // Resmin diğer doğru adları ("Bardak"), çocuk söyleyişleri ("şişil")
+    // kabul; başka bir quiz kelimesinin kendisi kabul değil (bkz. QuizAnswer).
+    final match = candidates.where((c) => QuizAnswer.accepts(c, _currentItem));
     final correct = match.isNotEmpty;
     final recognized = correct ? match.first : candidates.first;
     final latencyMs = _questionStartTime != null
