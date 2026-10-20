@@ -4,7 +4,6 @@
 // izin eklentileri sahte kanallarla cevaplanır, Hive kutuları bellektedir.
 import 'dart:async';
 import 'dart:io';
-import 'dart:typed_data';
 
 import 'package:app/data/models/quiz_category.dart';
 import 'package:app/data/models/quiz_item.dart';
@@ -25,7 +24,7 @@ import 'package:app/features/learning/presentations/widgets/quiz_mic_button.dart
 import 'package:app/features/learning/presentations/widgets/quiz_word_reveal.dart';
 import 'package:app/services/ads/ad_service.dart';
 import 'package:app/services/asr/vosk_asr_service.dart';
-import 'package:app/services/asr/whisper_asr_service.dart';
+import 'package:app/services/asr/platform_asr_service.dart';
 import 'package:app/services/learning/learning_scheduler.dart';
 import 'package:app/services/learning/word_progress_service.dart';
 import 'package:app/services/lives/lives_service.dart';
@@ -257,8 +256,8 @@ void main() {
           ChangeNotifierProvider<SoundService>.value(value: sound),
           ChangeNotifierProvider<VoskAsrService>.value(value: vosk),
           ChangeNotifierProvider<AdService>.value(value: ads),
-          ChangeNotifierProvider<WhisperAsrService>.value(
-            value: WhisperAsrService(),
+          ChangeNotifierProvider<PlatformAsrService>.value(
+            value: PlatformAsrService(),
           ),
         ],
         child: MaterialApp(home: home),

@@ -111,8 +111,9 @@ class _SettingsTabState extends State<SettingsTab> {
       Uri.parse(AppLinks.privacy),
       mode: LaunchMode.externalApplication,
     );
-    if (!opened && mounted)
+    if (!opened && mounted) {
       _showSnack('Tarayıcı açılamadı: ${AppLinks.privacy}');
+    }
   }
 
   Future<void> _logout() async {
@@ -155,7 +156,7 @@ class _SettingsTabState extends State<SettingsTab> {
     color: Colors.white,
     borderRadius: BorderRadius.circular(16),
     boxShadow: [
-      BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 8),
+      BoxShadow(color: Colors.black.withValues(alpha: 0.05), blurRadius: 8),
     ],
   );
 

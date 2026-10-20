@@ -39,7 +39,7 @@ class _MainNavigationState extends State<MainNavigation> {
         borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.08),
+            color: Colors.black.withValues(alpha: 0.08),
             blurRadius: 20,
             offset: const Offset(0, -4),
           ),
@@ -76,7 +76,7 @@ class _MainNavigationState extends State<MainNavigation> {
         duration: const Duration(milliseconds: 200),
         padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
         decoration: BoxDecoration(
-          color: isSelected ? AppColors.primary.withOpacity(0.12) : Colors.transparent,
+          color: isSelected ? AppColors.primary.withValues(alpha: 0.12) : Colors.transparent,
           borderRadius: BorderRadius.circular(16),
         ),
         child: Column(
@@ -133,7 +133,7 @@ class _RewardsScreen extends StatelessWidget {
                         Image.asset(active.imagePath,
                             fit: BoxFit.cover,
                             cacheWidth: 1080,
-                            errorBuilder: (_, __, ___) => Container(
+                            errorBuilder: (_, _, _) => Container(
                                 color: const Color(0xFF9B91FF)))
                       else
                         Container(
@@ -152,8 +152,8 @@ class _RewardsScreen extends StatelessWidget {
                             begin: Alignment.topCenter,
                             end: Alignment.bottomCenter,
                             colors: [
-                              Colors.black.withOpacity(0.15),
-                              Colors.black.withOpacity(0.55),
+                              Colors.black.withValues(alpha: 0.15),
+                              Colors.black.withValues(alpha: 0.55),
                             ],
                           ),
                         ),
@@ -181,7 +181,7 @@ class _RewardsScreen extends StatelessWidget {
                                 '${active.emoji} ${active.title} — $pieces/${RewardService.puzzlePieceCount} parça',
                                 style: GoogleFonts.poppins(
                                     fontSize: 12,
-                                    color: Colors.white.withOpacity(0.9)),
+                                    color: Colors.white.withValues(alpha: 0.9)),
                               ),
                               const SizedBox(height: 6),
                               ClipRRect(
@@ -189,7 +189,7 @@ class _RewardsScreen extends StatelessWidget {
                                 child: LinearProgressIndicator(
                                   value: pieces / RewardService.puzzlePieceCount,
                                   backgroundColor:
-                                      Colors.white.withOpacity(0.25),
+                                      Colors.white.withValues(alpha: 0.25),
                                   valueColor:
                                       const AlwaysStoppedAnimation<Color>(
                                           Colors.white),
@@ -287,8 +287,8 @@ class _RewardCard extends StatelessWidget {
                 boxShadow: [
                   BoxShadow(
                     color: (isEarned || isActive)
-                        ? reward.color.withOpacity(0.25)
-                        : Colors.black.withOpacity(0.08),
+                        ? reward.color.withValues(alpha: 0.25)
+                        : Colors.black.withValues(alpha: 0.08),
                     blurRadius: 12,
                     offset: const Offset(0, 4),
                   ),
@@ -314,7 +314,7 @@ class _RewardCard extends StatelessWidget {
                             begin: Alignment.bottomCenter,
                             end: Alignment.topCenter,
                             colors: [
-                              Colors.black.withOpacity(0.7),
+                              Colors.black.withValues(alpha: 0.7),
                               Colors.transparent,
                             ],
                           ),
@@ -334,8 +334,8 @@ class _RewardCard extends StatelessWidget {
                           color: isEarned
                               ? reward.color
                               : isActive
-                                  ? reward.color.withOpacity(0.85)
-                                  : Colors.grey.withOpacity(0.7),
+                                  ? reward.color.withValues(alpha: 0.85)
+                                  : Colors.grey.withValues(alpha: 0.7),
                           borderRadius: BorderRadius.circular(8),
                         ),
                         child: Text(
@@ -355,7 +355,7 @@ class _RewardCard extends StatelessWidget {
                     // Kilitli overlay
                     if (!isEarned && !isActive)
                       Container(
-                        color: Colors.black.withOpacity(0.45),
+                        color: Colors.black.withValues(alpha: 0.45),
                         child: Center(
                           child: Column(
                             mainAxisSize: MainAxisSize.min,
@@ -500,8 +500,8 @@ class _RewardCard extends StatelessWidget {
         reward.imagePath,
         fit: BoxFit.cover,
         cacheWidth: 500,
-        errorBuilder: (_, __, ___) => Container(
-          color: reward.color.withOpacity(0.15),
+        errorBuilder: (_, _, _) => Container(
+          color: reward.color.withValues(alpha: 0.15),
           child: Center(
               child: Text(reward.emoji,
                   style: const TextStyle(fontSize: 48))),
@@ -520,7 +520,7 @@ class _RewardCard extends StatelessWidget {
         reward.imagePath,
         fit: BoxFit.cover,
         cacheWidth: 500,
-        errorBuilder: (_, __, ___) => Container(
+        errorBuilder: (_, _, _) => Container(
           color: Colors.grey[300],
           child: Center(
               child: Text(reward.emoji,

@@ -53,9 +53,9 @@ class AppColors {
   static const Color borderLight = Color(0xFFF0F0F0);
 
   // Gölge Renkler
-  static Color shadowLight = Colors.black.withOpacity(0.08);
-  static Color shadowMedium = Colors.black.withOpacity(0.15);
-  static Color shadowDark = Colors.black.withOpacity(0.25);
+  static Color shadowLight = Colors.black.withValues(alpha: 0.08);
+  static Color shadowMedium = Colors.black.withValues(alpha: 0.15);
+  static Color shadowDark = Colors.black.withValues(alpha: 0.25);
 
   // Kategori Renkler (Kelime kategorileri için)
   static const Map<String, Color> categoryColors = {

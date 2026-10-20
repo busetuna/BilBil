@@ -52,7 +52,7 @@ class QuizTopBar extends StatelessWidget {
                     borderRadius: BorderRadius.circular(12),
                     boxShadow: [
                       BoxShadow(
-                        color: Colors.black.withOpacity(0.08),
+                        color: Colors.black.withValues(alpha: 0.08),
                         blurRadius: 8,
                       ),
                     ],
@@ -93,7 +93,7 @@ class QuizTopBar extends StatelessWidget {
                   borderRadius: BorderRadius.circular(12),
                   boxShadow: [
                     BoxShadow(
-                      color: Colors.black.withOpacity(0.08),
+                      color: Colors.black.withValues(alpha: 0.08),
                       blurRadius: 8,
                     ),
                   ],
@@ -120,9 +120,9 @@ class QuizTopBar extends StatelessWidget {
                     vertical: 3,
                   ),
                   decoration: BoxDecoration(
-                    color: diffColor.withOpacity(0.15),
+                    color: diffColor.withValues(alpha: 0.15),
                     borderRadius: BorderRadius.circular(10),
-                    border: Border.all(color: diffColor.withOpacity(0.4)),
+                    border: Border.all(color: diffColor.withValues(alpha: 0.4)),
                   ),
                   child: Row(
                     mainAxisSize: MainAxisSize.min,
@@ -151,7 +151,7 @@ class QuizTopBar extends StatelessWidget {
                 ),
               ),
               Consumer<LivesService>(
-                builder: (_, lives, __) => Row(
+                builder: (_, lives, _) => Row(
                   children: List.generate(
                     LivesService.maxLives,
                     (i) => Padding(

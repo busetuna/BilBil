@@ -199,34 +199,34 @@ class _LoginScreenState extends State<LoginScreen>
         Positioned(
           top: size.height * 0.05,
           left: -20,
-          child: _buildCloud(80, AppColors.primary.withOpacity(0.1)),
+          child: _buildCloud(80, AppColors.primary.withValues(alpha: 0.1)),
         ),
         Positioned(
           top: size.height * 0.15,
           right: -30,
-          child: _buildCloud(100, AppColors.secondary.withOpacity(0.1)),
+          child: _buildCloud(100, AppColors.secondary.withValues(alpha: 0.1)),
         ),
         Positioned(
           bottom: size.height * 0.1,
           left: size.width * 0.1,
-          child: _buildCloud(60, AppColors.primary.withOpacity(0.08)),
+          child: _buildCloud(60, AppColors.primary.withValues(alpha: 0.08)),
         ),
 
         // Yıldızlar
         Positioned(
           top: size.height * 0.12,
           right: size.width * 0.2,
-          child: _buildStar(24, AppColors.accent.withOpacity(0.3)),
+          child: _buildStar(24, AppColors.accent.withValues(alpha: 0.3)),
         ),
         Positioned(
           bottom: size.height * 0.2,
           right: size.width * 0.15,
-          child: _buildStar(16, AppColors.accent.withOpacity(0.25)),
+          child: _buildStar(16, AppColors.accent.withValues(alpha: 0.25)),
         ),
         Positioned(
           top: size.height * 0.25,
           left: size.width * 0.15,
-          child: _buildStar(20, AppColors.accent.withOpacity(0.2)),
+          child: _buildStar(20, AppColors.accent.withValues(alpha: 0.2)),
         ),
       ],
     );
@@ -284,7 +284,7 @@ class _LoginScreenState extends State<LoginScreen>
               color: Colors.white,
               boxShadow: [
                 BoxShadow(
-                  color: AppColors.primary.withOpacity(0.2),
+                  color: AppColors.primary.withValues(alpha: 0.2),
                   blurRadius: 30,
                   spreadRadius: 5,
                 ),
@@ -320,7 +320,7 @@ class _LoginScreenState extends State<LoginScreen>
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
-            color: AppColors.primary.withOpacity(0.1),
+            color: AppColors.primary.withValues(alpha: 0.1),
             blurRadius: 20,
             offset: const Offset(0, 4),
           ),
@@ -340,7 +340,7 @@ class _LoginScreenState extends State<LoginScreen>
           ),
           prefixIcon: Icon(
             Icons.email_outlined,
-            color: AppColors.primary.withOpacity(0.7),
+            color: AppColors.primary.withValues(alpha: 0.7),
             size: 24,
           ),
           border: InputBorder.none,
@@ -357,7 +357,7 @@ class _LoginScreenState extends State<LoginScreen>
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
-            color: AppColors.primary.withOpacity(0.1),
+            color: AppColors.primary.withValues(alpha: 0.1),
             blurRadius: 20,
             offset: const Offset(0, 4),
           ),
@@ -377,13 +377,13 @@ class _LoginScreenState extends State<LoginScreen>
           ),
           prefixIcon: Icon(
             Icons.lock_outline,
-            color: AppColors.primary.withOpacity(0.7),
+            color: AppColors.primary.withValues(alpha: 0.7),
             size: 24,
           ),
           suffixIcon: IconButton(
             icon: Icon(
               _isPasswordVisible ? Icons.visibility_off : Icons.visibility,
-              color: AppColors.primary.withOpacity(0.7),
+              color: AppColors.primary.withValues(alpha: 0.7),
               size: 24,
             ),
             onPressed: () {
@@ -409,7 +409,7 @@ class _LoginScreenState extends State<LoginScreen>
           backgroundColor: AppColors.primary,
           foregroundColor: Colors.white,
           elevation: 0,
-          shadowColor: AppColors.primary.withOpacity(0.4),
+          shadowColor: AppColors.primary.withValues(alpha: 0.4),
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(16),
           ),
@@ -459,7 +459,7 @@ class _LoginScreenState extends State<LoginScreen>
           backgroundColor: AppColors.secondary,
           foregroundColor: Colors.white,
           elevation: 0,
-          shadowColor: AppColors.secondary.withOpacity(0.4),
+          shadowColor: AppColors.secondary.withValues(alpha: 0.4),
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(16),
           ),

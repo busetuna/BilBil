@@ -32,6 +32,9 @@ class LivesService extends ChangeNotifier {
 
   void clearCloudSync() => _api = null;
 
+  /// Yereldeki durumu olduğu gibi buluta yazar (çevrimdışı değişiklikler).
+  void pushToCloud() => _syncToCloud();
+
   Future<void> loadFromCloud(dynamic data) async {
     if (data == null) return;
     _lives = (data as num).toInt().clamp(0, maxLives);

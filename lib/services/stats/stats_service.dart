@@ -24,6 +24,9 @@ class StatsService extends ChangeNotifier {
 
   void clearCloudSync() => _api = null;
 
+  /// Yereldeki durumu olduğu gibi buluta yazar (çevrimdışı değişiklikler).
+  void pushToCloud() => _syncToCloud();
+
   Future<void> loadFromCloud(Map<String, dynamic>? data) async {
     if (data == null) return;
     await _box.put(

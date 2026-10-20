@@ -36,7 +36,7 @@ class _PuzzleScreenState extends State<PuzzleScreen> {
         if (!completer.isCompleted) completer.complete(info);
         stream.removeListener(listener);
       },
-      onError: (_, __) {
+      onError: (_, _) {
         if (!completer.isCompleted) {
           completer.completeError('load error');
         }
@@ -124,7 +124,7 @@ class _PuzzleScreenState extends State<PuzzleScreen> {
         borderRadius: BorderRadius.circular(22),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.12),
+            color: Colors.black.withValues(alpha: 0.12),
             blurRadius: 14,
             offset: const Offset(0, 5),
           ),
@@ -139,8 +139,8 @@ class _PuzzleScreenState extends State<PuzzleScreen> {
               widget.reward.imagePath,
               fit: BoxFit.cover,
               cacheWidth: 1080,
-              errorBuilder: (_, __, ___) => Container(
-                color: widget.reward.color.withOpacity(0.2),
+              errorBuilder: (_, _, _) => Container(
+                color: widget.reward.color.withValues(alpha: 0.2),
                 child: Center(
                     child: Text(widget.reward.emoji,
                         style: const TextStyle(fontSize: 60))),
@@ -177,7 +177,7 @@ class _PuzzleScreenState extends State<PuzzleScreen> {
                     begin: Alignment.bottomCenter,
                     end: Alignment.topCenter,
                     colors: [
-                      Colors.black.withOpacity(0.55),
+                      Colors.black.withValues(alpha: 0.55),
                       Colors.transparent,
                     ],
                   ),
@@ -228,7 +228,7 @@ class _PuzzleScreenState extends State<PuzzleScreen> {
               borderRadius: BorderRadius.circular(10),
               boxShadow: [
                 BoxShadow(
-                    color: Colors.black.withOpacity(0.07), blurRadius: 6)
+                    color: Colors.black.withValues(alpha: 0.07), blurRadius: 6)
               ],
             ),
             child: Text(
@@ -280,9 +280,9 @@ class _PuzzleScreenState extends State<PuzzleScreen> {
         color: Colors.white,
         borderRadius: BorderRadius.circular(16),
         border:
-            Border.all(color: widget.reward.color.withOpacity(0.3), width: 1.5),
+            Border.all(color: widget.reward.color.withValues(alpha: 0.3), width: 1.5),
         boxShadow: [
-          BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 8)
+          BoxShadow(color: Colors.black.withValues(alpha: 0.05), blurRadius: 8)
         ],
       ),
       child: GridView.builder(
@@ -300,12 +300,12 @@ class _PuzzleScreenState extends State<PuzzleScreen> {
             duration: const Duration(milliseconds: 300),
             decoration: BoxDecoration(
               color: collected
-                  ? widget.reward.color.withOpacity(0.15)
+                  ? widget.reward.color.withValues(alpha: 0.15)
                   : const Color(0xFFF0F0F5),
               borderRadius: BorderRadius.circular(6),
               border: Border.all(
                 color: collected
-                    ? widget.reward.color.withOpacity(0.5)
+                    ? widget.reward.color.withValues(alpha: 0.5)
                     : Colors.grey[300]!,
                 width: 1,
               ),
@@ -336,7 +336,7 @@ class _PuzzleScreenState extends State<PuzzleScreen> {
             borderRadius: BorderRadius.circular(20),
             boxShadow: [
               BoxShadow(
-                color: const Color(0xFF43C659).withOpacity(0.4),
+                color: const Color(0xFF43C659).withValues(alpha: 0.4),
                 blurRadius: 14,
                 offset: const Offset(0, 4),
               ),
@@ -458,8 +458,8 @@ class _PuzzleTile extends StatelessWidget {
                   height: h,
                   fit: BoxFit.cover,
                   cacheWidth: 1080, // önizlemeyle aynı: tek kez çözülür
-                  errorBuilder: (_, __, ___) => Container(
-                    color: accentColor.withOpacity(0.3),
+                  errorBuilder: (_, _, _) => Container(
+                    color: accentColor.withValues(alpha: 0.3),
                     child: const Center(
                       child: Icon(Icons.pets, color: Colors.white, size: 20),
                     ),

@@ -1,13 +1,12 @@
-// Platform-native ASR servisi.
-// Raporda belirtilen Whisper-tiny/Vosk seçeneğinin platform karşılığıdır.
-// Android'de Google'ın on-device sinir ağı tabanlı ses tanımayı,
-// iOS'ta Apple'ın yerleşik ASR'ını kullanır.
+// Telefonun kendi ses tanıyıcısı (speech_to_text): Android'de Google'ın
+// cihaz üstü tanıyıcısı, iOS'ta Apple'ınki. Ayarlarda "Platform ASR".
+// (Önceden adı WhisperAsrService'ti; Whisper ile ilgisi yoktur.)
 import 'package:flutter/foundation.dart';
 import 'package:speech_to_text/speech_to_text.dart';
 
 enum PlatformAsrStatus { idle, initializing, ready, error }
 
-class WhisperAsrService extends ChangeNotifier {
+class PlatformAsrService extends ChangeNotifier {
   final _stt = SpeechToText();
 
   PlatformAsrStatus _status = PlatformAsrStatus.idle;
@@ -20,23 +19,24 @@ class WhisperAsrService extends ChangeNotifier {
 
   Future<void> initialize() async {
     if (_status == PlatformAsrStatus.ready ||
-        _status == PlatformAsrStatus.initializing)
+        _status == PlatformAsrStatus.initializing) {
       return;
+    }
     _status = PlatformAsrStatus.initializing;
     _errorMessage = null;
     notifyListeners();
 
     try {
       final available = await _stt.initialize(
-        onError: (e) => debugPrint('WhisperAsrService error: ${e.errorMsg}'),
-        onStatus: (s) => debugPrint('WhisperAsrService status: $s'),
+        onError: (e) => debugPrint('PlatformAsrService error: ${e.errorMsg}'),
+        onStatus: (s) => debugPrint('PlatformAsrService status: $s'),
       );
       _status = available ? PlatformAsrStatus.ready : PlatformAsrStatus.error;
       if (!available) _errorMessage = 'Platform ses tanıma kullanılamıyor';
     } catch (e) {
       _status = PlatformAsrStatus.error;
       _errorMessage = e.toString();
-      debugPrint('WhisperAsrService init error: $e');
+      debugPrint('PlatformAsrService init error: $e');
     }
     notifyListeners();
   }

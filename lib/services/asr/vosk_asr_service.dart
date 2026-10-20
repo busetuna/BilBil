@@ -32,8 +32,9 @@ class VoskAsrService extends ChangeNotifier {
 
   Future<void> initialize() async {
     if (_status == AsrModelStatus.ready ||
-        _status == AsrModelStatus.downloading)
+        _status == AsrModelStatus.downloading) {
       return;
+    }
     _status = AsrModelStatus.downloading;
     _downloadProgress = 0;
     _errorMessage = null;

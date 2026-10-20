@@ -35,7 +35,7 @@ class QuizMicButton extends StatelessWidget {
             boxShadow: [
               BoxShadow(
                 color: (isListening ? AppColors.secondary : AppColors.primary)
-                    .withOpacity(0.45),
+                    .withValues(alpha: 0.45),
                 blurRadius: 24,
                 spreadRadius: 4,
               ),

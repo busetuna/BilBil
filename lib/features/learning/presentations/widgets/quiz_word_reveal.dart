@@ -34,7 +34,7 @@ class QuizWordReveal extends StatelessWidget {
                 color: const Color(0xFFFFF3E0),
                 borderRadius: BorderRadius.circular(20),
                 border: Border.all(
-                    color: const Color(0xFFFF9800).withOpacity(0.6), width: 2),
+                    color: const Color(0xFFFF9800).withValues(alpha: 0.6), width: 2),
               ),
               child: Row(
                 mainAxisSize: MainAxisSize.min,
@@ -79,10 +79,10 @@ class QuizWordReveal extends StatelessWidget {
                     padding: const EdgeInsets.symmetric(
                         horizontal: 32, vertical: 12),
                     decoration: BoxDecoration(
-                      color: feedbackColor.withOpacity(0.12),
+                      color: feedbackColor.withValues(alpha: 0.12),
                       borderRadius: BorderRadius.circular(20),
                       border: Border.all(
-                          color: feedbackColor.withOpacity(0.5), width: 2),
+                          color: feedbackColor.withValues(alpha: 0.5), width: 2),
                     ),
                     child: Row(
                       mainAxisSize: MainAxisSize.min,

@@ -158,7 +158,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
         color: Colors.white,
         boxShadow: [
           BoxShadow(
-            color: AppColors.primary.withOpacity(0.2),
+            color: AppColors.primary.withValues(alpha: 0.2),
             blurRadius: 30,
             spreadRadius: 5,
           ),
@@ -192,7 +192,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
-            color: AppColors.primary.withOpacity(0.1),
+            color: AppColors.primary.withValues(alpha: 0.1),
             blurRadius: 20,
             offset: const Offset(0, 4),
           ),
@@ -212,7 +212,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
           ),
           prefixIcon: Icon(
             icon,
-            color: AppColors.primary.withOpacity(0.7),
+            color: AppColors.primary.withValues(alpha: 0.7),
             size: 24,
           ),
           border: InputBorder.none,
@@ -229,7 +229,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
-            color: AppColors.primary.withOpacity(0.1),
+            color: AppColors.primary.withValues(alpha: 0.1),
             blurRadius: 20,
             offset: const Offset(0, 4),
           ),
@@ -249,13 +249,13 @@ class _RegisterScreenState extends State<RegisterScreen> {
           ),
           prefixIcon: Icon(
             Icons.lock_outline,
-            color: AppColors.primary.withOpacity(0.7),
+            color: AppColors.primary.withValues(alpha: 0.7),
             size: 24,
           ),
           suffixIcon: IconButton(
             icon: Icon(
               _isPasswordVisible ? Icons.visibility_off : Icons.visibility,
-              color: AppColors.primary.withOpacity(0.7),
+              color: AppColors.primary.withValues(alpha: 0.7),
               size: 24,
             ),
             onPressed: () {

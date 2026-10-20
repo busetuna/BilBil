@@ -29,7 +29,9 @@ class VadDetector {
     final s = _pcmToDoubles(pcmBytes);
     if (s.isEmpty) return 0.0;
     double sum = 0.0;
-    for (final v in s) sum += v * v;
+    for (final v in s) {
+      sum += v * v;
+    }
     return math.sqrt(sum / s.length);
   }
 

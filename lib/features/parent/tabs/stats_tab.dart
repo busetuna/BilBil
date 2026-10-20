@@ -165,7 +165,7 @@ class StatsTab extends StatelessWidget {
               color: Colors.white,
               borderRadius: BorderRadius.circular(16),
               boxShadow: [
-                BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 8),
+                BoxShadow(color: Colors.black.withValues(alpha: 0.05), blurRadius: 8),
               ],
             ),
             child: Column(
@@ -291,7 +291,7 @@ class _CategoryBreakdown extends StatelessWidget {
           color: Colors.white,
           borderRadius: BorderRadius.circular(16),
           boxShadow: [
-            BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 8),
+            BoxShadow(color: Colors.black.withValues(alpha: 0.05), blurRadius: 8),
           ],
         ),
         child: Center(
@@ -334,7 +334,7 @@ class _CategoryBreakdown extends StatelessWidget {
         color: Colors.white,
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
-          BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 8),
+          BoxShadow(color: Colors.black.withValues(alpha: 0.05), blurRadius: 8),
         ],
       ),
       child: Column(
@@ -417,7 +417,7 @@ class _StatCard extends StatelessWidget {
         color: Colors.white,
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
-          BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 8),
+          BoxShadow(color: Colors.black.withValues(alpha: 0.05), blurRadius: 8),
         ],
       ),
       child: Column(

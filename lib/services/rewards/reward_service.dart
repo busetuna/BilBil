@@ -114,16 +114,24 @@ class RewardService extends ChangeNotifier {
 
   void clearCloudSync() => _api = null;
 
+  /// Yereldeki durumu olduğu gibi buluta yazar (çevrimdışı değişiklikler).
+  void pushToCloud() => _syncToCloud();
+
   Future<void> loadFromCloud(Map<String, dynamic>? data) async {
     if (data == null) return;
     _totalCorrect = (data['totalCorrect'] as num?)?.toInt() ?? 0;
     _earnedIds = List<String>.from(data['earnedIds'] as List? ?? []);
     final raw = data['puzzlePieces'] as Map? ?? {};
-    _puzzlePieces = raw.map((k, v) => MapEntry(k.toString(), (v as num).toInt()));
+    _puzzlePieces = raw.map(
+      (k, v) => MapEntry(k.toString(), (v as num).toInt()),
+    );
 
     await _box.put(_totalCorrectKey, _totalCorrect);
     await _box.put(_earnedIdsKey, _earnedIds);
-    await _box.put(_puzzlePiecesKey, _puzzlePieces.map((k, v) => MapEntry(k, v)));
+    await _box.put(
+      _puzzlePiecesKey,
+      _puzzlePieces.map((k, v) => MapEntry(k, v)),
+    );
     notifyListeners();
   }
 
@@ -137,7 +145,8 @@ class RewardService extends ChangeNotifier {
 
   Future<void> init() async {
     _box = await Hive.openBox(_boxName);
-    _totalCorrect = (_box.get(_totalCorrectKey, defaultValue: 0) as num).toInt();
+    _totalCorrect = (_box.get(_totalCorrectKey, defaultValue: 0) as num)
+        .toInt();
     final stored = _box.get(_earnedIdsKey, defaultValue: <dynamic>[]);
     _earnedIds = List<String>.from(stored as List);
     final raw = _box.get(_puzzlePiecesKey, defaultValue: <dynamic, dynamic>{});
@@ -159,7 +168,10 @@ class RewardService extends ChangeNotifier {
 
     final pieces = puzzlePiecesFor(active.id) + 1;
     _puzzlePieces[active.id] = pieces;
-    await _box.put(_puzzlePiecesKey, _puzzlePieces.map((k, v) => MapEntry(k, v)));
+    await _box.put(
+      _puzzlePiecesKey,
+      _puzzlePieces.map((k, v) => MapEntry(k, v)),
+    );
 
     final newlyEarned = <Reward>[];
     if (pieces >= puzzlePieceCount && !_earnedIds.contains(active.id)) {

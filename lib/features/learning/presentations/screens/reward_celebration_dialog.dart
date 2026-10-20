@@ -87,7 +87,7 @@ class _RewardCelebrationCardState extends State<RewardCelebrationCard>
                         height: 32,
                         decoration: BoxDecoration(
                           shape: BoxShape.circle,
-                          color: Colors.white.withOpacity(0.75),
+                          color: Colors.white.withValues(alpha: 0.75),
                         ),
                         child: const Icon(Icons.close, size: 18, color: Colors.grey),
                       ),
@@ -173,7 +173,7 @@ class _RewardCelebrationCardState extends State<RewardCelebrationCard>
             color: Colors.white,
             boxShadow: [
               BoxShadow(
-                color: Colors.black.withOpacity(0.10),
+                color: Colors.black.withValues(alpha: 0.10),
                 blurRadius: 14,
                 offset: const Offset(0, 4),
               ),
@@ -186,7 +186,7 @@ class _RewardCelebrationCardState extends State<RewardCelebrationCard>
                 widget.reward.imagePath,
                 fit: BoxFit.contain,
                 cacheWidth: 450,
-                errorBuilder: (_, __, ___) => Text(
+                errorBuilder: (_, _, _) => Text(
                   widget.reward.emoji,
                   style: const TextStyle(fontSize: 60),
                   textAlign: TextAlign.center,
@@ -204,7 +204,7 @@ class _RewardCelebrationCardState extends State<RewardCelebrationCard>
               borderRadius: BorderRadius.circular(20),
               boxShadow: [
                 BoxShadow(
-                  color: Colors.black.withOpacity(0.10),
+                  color: Colors.black.withValues(alpha: 0.10),
                   blurRadius: 6,
                 ),
               ],
